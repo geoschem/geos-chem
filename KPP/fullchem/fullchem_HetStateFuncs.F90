@@ -130,7 +130,7 @@ CONTAINS
     INTEGER  :: id_NO2, id_O3, id_SO2, id_DST1, id_DST2, id_DST3, id_DST4
        ! Pointers
     TYPE(SpcConc), POINTER :: Spc(:)
-    pH_a                        = State_Chm%IsorropAeropH(I,J,L,1)
+    pH_a                        = State_Chm%AteAeropH(I,J,L,1)
     Hplus_a                     = 10**(-1.0_dp * pH_a)
     hydroxide = 10.0_fp**(-14.0_fp + pH_a) ! OH- concentration, M
     KspFeOH3 = 2.6e-38_fp
@@ -175,8 +175,8 @@ CONTAINS
     H%aClArea       = State_Chm%aClArea(I,J,L)
     H%aClRadi       = State_Chm%aClRadi(I,J,L)
     H%aClVol        = H%aClArea * H%aClRadi / 3.0_dp
-    H%AWATER(:)     = State_Chm%IsorropAeroH2O(I,J,L,:)
-    H%IONIC         = State_Chm%IsorropIONIC(I,J,L)
+    H%AWATER(:)     = State_Chm%AteAeroH2O(I,J,L,:)
+    H%IONIC         = State_Chm%AteIONIC(I,J,L)
     H%xArea(1:NA)   = State_Chm%AeroArea(I,J,L,1:NA)
     H%xRadi(1:NA)   = State_Chm%AeroRadi(I,J,L,1:NA)
     H%xVol(1:NA)    = H%xArea(1:NA) * H%xRadi(1:NA) / 3.0_dp
@@ -193,14 +193,14 @@ CONTAINS
     H%frac_SO3_aq   = SafeDiv( H%SO3_aq,  H%TSO3_aq, 0.0_dp )
 
     ! Concentrations from ISORROPIA/HETP
-    H%HSO4_molal    = State_Chm%IsorropBisulfate(I,J,L)
-    H%NO3_molal     = State_Chm%IsorropNitrate(I,J,L,1)
-    H%SO4_molal     = State_Chm%IsorropSulfate(I,J,L)
+    H%HSO4_molal    = State_Chm%AteBisulfate(I,J,L)
+    H%NO3_molal     = State_Chm%AteNitrate(I,J,L,1)
+    H%SO4_molal     = State_Chm%AteSulfate(I,J,L)
 
     ! pH and alkalinity fields
-    !H%H_plus        = State_Chm%IsorropHplus(I,J,L,1)
+    !H%H_plus        = State_Chm%AteHplus(I,J,L,1)
     H%pHCloud       = State_Chm%pHCloud(I,J,L)
-    H%pHSSA(:)      = State_Chm%IsorropAeropH(I,J,L,:)
+    H%pHSSA(:)      = State_Chm%AteAeropH(I,J,L,:)
     H%H_conc_Sul    = 10.0**( -1.0_dp * H%pHSSA(1) )
     H%H_conc_LCl    = 10.0**( -1.0_dp * H%pHCloud  )
     H%H_conc_ICl    = 10.0**( -4.5_dp              )
@@ -261,7 +261,7 @@ CONTAINS
     XSO3_a   = 1.e+0_dp/(1.e+0_dp + Hplus_a/Ks2 + Hplus_a*Hplus_a/(Ks1*Ks2))
 
      ! For aerosols (krt)
-    ALWC         = State_Chm%IsorropAeroH2O(I,J,L,1) ! ug/m3 air
+    ALWC         = State_Chm%AteAeroH2O(I,J,L,1) ! ug/m3 air
     ! convert ALWC from ug/m3 to m3/m3
     ALWC = ALWC * 1e-9_dp * 1e-3_dp
     
@@ -285,7 +285,7 @@ CONTAINS
     MACOEFF_H2O2 = 0.11_dp
     MACOEFF_CH2O = 0.04_dp
     ! Ionic strength from HETP (M)
-    IONIC_a = State_Chm%IsorropIONIC(I,J,L) 
+    IONIC_a = State_Chm%AteIONIC(I,J,L) 
     ! Molecular speed
     M_SO2 = State_Chm%SpcData(id_SO2)%Info%MW_g   * 1.0e-3_dp
     speed = ( SQRT( EIGHT_RSTARG_T / ( PI * M_SO2 ) ))*100.0_dp

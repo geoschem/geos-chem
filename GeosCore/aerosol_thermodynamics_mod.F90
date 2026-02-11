@@ -268,15 +268,15 @@ CONTAINS
 
     ! Zero State_Chm arrays to avoid leftover values from hanging
     ! around between calls -- especially up near the tropopause
-    State_Chm%IsorropAeropH    = 0.0_fp
-    State_Chm%IsorropHplus     = 0.0_fp
-    State_Chm%IsorropAeroH2O   = 0.0_fp
-    State_Chm%IsorropSulfate   = 0.0_fp
-    State_Chm%IsorropNitrate   = 0.0_fp
-    State_Chm%IsorropBisulfate = 0.0_fp
-    State_Chm%IsorropChloride  = 0.0_fp
-    State_Chm%IsorropIONIC     = 0.0_fp
-    State_Chm%IsorropOH        = 0.0_fp
+    State_Chm%AteAeropH    = 0.0_fp
+    State_Chm%AteHplus     = 0.0_fp
+    State_Chm%AteAeroH2O   = 0.0_fp
+    State_Chm%AteSulfate   = 0.0_fp
+    State_Chm%AteNitrate   = 0.0_fp
+    State_Chm%AteBisulfate = 0.0_fp
+    State_Chm%AteChloride  = 0.0_fp
+    State_Chm%AteIONIC     = 0.0_fp
+    State_Chm%AteOH        = 0.0_fp
     ! First-time initialization
     IF ( FIRST ) THEN
 
@@ -957,15 +957,15 @@ CONTAINS
           IF ( AERLIQ(8) < 1e-18_fp ) THEN
              ! Aerosol is dry so HPLUSTEMP and PH_SAV are undefined
              ! We force HPLUSTEMP to 1d20 (hotp, ccc, 12/18/09)
-             ! Force IsorropAeropH to 20e0 (X. Wang, 6/27/19)
+             ! Force AteAeropH to 20e0 (X. Wang, 6/27/19)
              !HPLUSTEMP       = 1e+20_fp
              HPLUSTEMP       = 1.0e-30_fp
              SULFTEMP        = 1.0e-30_fp
              BISULTEMP       = 1.0e-30_fp
              NITRTEMP        = 1.0e-30_fp
              CLTEMP          = 1.0e-30_fp
-             !State_Chm%IsorropAeropH(I,J,L,N) = -999e+0_fp
-             State_Chm%IsorropAeropH(I,J,L,N) = 20.0_fp
+             !State_Chm%AteAeropH(I,J,L,N) = -999e+0_fp
+             State_Chm%AteAeropH(I,J,L,N) = 20.0_fp
           ELSE
              HPLUSTEMP    = AERLIQ(1) / AERLIQ(8) * 1.0e+3_fp / 18.0_fp
              SULFTEMP     = AERLIQ(5) / AERLIQ(8) * 1.0e+3_fp / 18.0_fp
@@ -974,20 +974,20 @@ CONTAINS
              CLTEMP       = AERLIQ(4) / AERLIQ(8) * 1.0e+3_fp / 18.0_fp
 
              ! Use SAFELOG10 to prevent NAN
-             State_Chm%IsorropAeropH(I,J,L,N)=-1.0_fp*SAFELOG10(HPLUSTEMP)
+             State_Chm%AteAeropH(I,J,L,N)=-1.0_fp*SAFELOG10(HPLUSTEMP)
           ENDIF
 
           ! Additional Info
-          State_Chm%IsorropHplus(I,J,L,N)   = MAX(HPLUSTEMP, 1e-30_fp)
-          State_Chm%IsorropAeroH2O(I,J,L,N) = MAX((AERLIQ(8)*18e+6_fp),1e-30_fp) ! mol/m3 -> ug/m3
-          State_Chm%IsorropNitrate(I,J,L,N) = MAX(NITRTEMP, 1e-30_fp)
-          State_Chm%IsorropChloride(I,J,L,N)= MAX(CLTEMP, 1e-30_fp)
+          State_Chm%AteHplus(I,J,L,N)   = MAX(HPLUSTEMP, 1e-30_fp)
+          State_Chm%AteAeroH2O(I,J,L,N) = MAX((AERLIQ(8)*18e+6_fp),1e-30_fp) ! mol/m3 -> ug/m3
+          State_Chm%AteNitrate(I,J,L,N) = MAX(NITRTEMP, 1e-30_fp)
+          State_Chm%AteChloride(I,J,L,N)= MAX(CLTEMP, 1e-30_fp)
           IF (N==1) THEN
-             State_Chm%IsorropSulfate(I,J,L)  = MAX(SULFTEMP, 1e-30_fp)
-             State_Chm%IsorropBisulfate(I,J,L)= MAX(BISULTEMP, 1e-30_fp)
+             State_Chm%AteSulfate(I,J,L)  = MAX(SULFTEMP, 1e-30_fp)
+             State_Chm%AteBisulfate(I,J,L)= MAX(BISULTEMP, 1e-30_fp)
              State_Chm%AeroH2O(I,J,L,1+NDUST) = AERLIQ(8) * 18e+0_fp ! mol/m3 -> g/m3
-             State_Chm%IsorropIONIC(I,J,L)    = max(OTHER(5), 1e-30_fp) ! mol/m3
-             State_Chm%IsorropOH(I,J,L)       = max(OTHER(4), 1E-30_fp) ! mol/m3
+             State_Chm%AteIONIC(I,J,L)    = max(OTHER(5), 1e-30_fp) ! mol/m3
+             State_Chm%AteOH(I,J,L)       = max(OTHER(4), 1E-30_fp) ! mol/m3
          
              NUM_SAV = ( Spc(id_NH3 )%Conc(I,J,L)  / 17.0_fp                 &
                      +   Spc(id_NH4 )%Conc(I,J,L)  / 18.0_fp                 &
