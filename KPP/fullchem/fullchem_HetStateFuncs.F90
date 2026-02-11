@@ -127,8 +127,10 @@ CONTAINS
     REAL(dp) :: Ks1, Ks2, HCSO2_a
     REAL(dp) :: XSO2g_a, PATM, SO2, CNVFAC, RHO,RHO_num, id_pFe
     REAL(dp) :: ff, k9, k10,A, B, Beta, b1
-    INTEGER  :: id_NO2, id_O3, id_SO2, id_DST1, id_DST2, id_DST3, id_DST4
-       ! Pointers
+    INTEGER  :: id_NO2, id_O3, id_SO2, id_DSTbin1, id_DSTbin2, id_DSTbin3,
+    INTEGER  :: id_DSTbin4, id_DSTbin5, id_DSTbin6, id_DSTbin7
+
+    ! Pointers
     TYPE(SpcConc), POINTER :: Spc(:)
     pH_a                        = State_Chm%AteAeropH(I,J,L,1)
     Hplus_a                     = 10**(-1.0_dp * pH_a)
@@ -149,12 +151,15 @@ CONTAINS
     !========================================================================
     ! Populate fields of the HetState object in gckpp_Global
     !========================================================================
-    id_SO2    = Ind_( 'SO2'    )
-    id_DST1   = Ind_( 'DST1'   )
-    id_DST2   = Ind_( 'DST2'   )
-    id_DST3   = Ind_( 'DST3'   )
-    id_DST4   = Ind_( 'DST4'   )
-    id_pFe    = Ind_( 'pFe'    )
+    id_SO2          = Ind_( 'SO2'     )
+    id_DSTbin1      = Ind_( 'DSTbin1' )
+    id_DSTbin2      = Ind_( 'DSTbin2' )
+    id_DSTbin3      = Ind_( 'DSTbin3' )
+    id_DSTbin4      = Ind_( 'DSTbin4' )
+    id_DSTbin1      = Ind_( 'DSTbin5' )
+    id_DSTbin2      = Ind_( 'DSTbin6' )
+    id_DSTbin3      = Ind_( 'DSTbin7' )
+    id_pFe          = Ind_( 'pFe'     )
 
     ! Identify a box for debug printout within rate-law functions
     debugBox        = .FALSE.
@@ -302,12 +307,22 @@ CONTAINS
     MnII_Max  = 0.0
     ! Metal catalyzed oxidation of SO2 pathway
     !--------------------------------------------------------
-   ! Get dust concentrations [MND -> ng/m3]
+    ! Get dust concentrations [MND -> ng/m3]
+    ! Get the MW_g from DSTbin1, all dust bins have the same MW
+    DUST = (                                                                &
+             ( Spc(id_DSTbin1)%Conc(I,J,L) +                                &
+               Spc(id_DSTbin2)%Conc(I,J,L) +                                &
+               Spc(id_DSTbin3)%Conc(I,J,L) +                                &
+               Spc(id_DSTbin4)%Conc(I,J,L) +                                &
+             ) * 0.7_dp                    +                                &
+             Spc(id_DSTbin5)%Conc(I,J,L)   +                                &
+             Spc(id_DSTbin6)%Conc(I,J,L)   +                                &
+             Spc(id_DSTbin7)%Conc(I,J,L)                                    &
+           )                                                                &
+         * 1.e+15_dp                                                        &
+         * State_Chm%SpcData(id_DSTbin1)%Info%MW_g                          &
+         / AVO
 
-    DUST = ( Spc(id_DST1)%Conc(I,J,L)*0.7_dp + Spc(id_DST2)%Conc(I,J,L) + &
-         Spc(id_DST3)%Conc(I,J,L) + Spc(id_DST4)%Conc(I,J,L) )            &
-         * 1.e+15_dp * State_Chm%SpcData(id_DST1)%Info%MW_g / AVO
-      
     ! Calculate Fe and Mn natural [ng m-3]
     ! Assume that Fe is 3.5% of total dust mass based on
     ! Taylor and McLennan [1985]
