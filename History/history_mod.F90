@@ -496,18 +496,22 @@ CONTAINS
     USE State_Diag_Mod
     USE State_Grid_Mod,        ONLY : GrdState
     USE State_Met_Mod
+    USE Time_Mod,              ONLY : Get_Ts_Diag
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),   INTENT(IN)  :: Input_Opt    ! Input Options object
-    TYPE(ChmState),   INTENT(IN)  :: State_Chm    ! Chemistry State object
-    TYPE(DgnState),   INTENT(INOUT)  :: State_Diag   ! Diagnostic State object
-    TYPE(GrdState),   INTENT(IN)  :: State_Grid   ! Grid State Object object
-    TYPE(MetState),   INTENT(IN)  :: State_Met    ! Meteorology State object
+    TYPE(OptInput),   INTENT(IN)    :: Input_Opt    ! Input Options object
+    TYPE(ChmState),   INTENT(IN)    :: State_Chm    ! Chemistry State object
+    TYPE(GrdState),   INTENT(IN)    :: State_Grid   ! Grid State Object object
+    TYPE(MetState),   INTENT(IN)    :: State_Met    ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState),   INTENT(INOUT) :: State_Diag   ! Diagnostic State object
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(OUT) :: RC           ! Success or failure?
+    INTEGER,          INTENT(OUT)   :: RC           ! Success or failure?
 !
 ! !REMARKS:
 !  Private routine, called from History_Init.
@@ -541,13 +545,13 @@ CONTAINS
     INTEGER                      :: Ind_Dry,        Ind_Fix,       Ind_Gas
     INTEGER                      :: Ind_Kpp,        Ind_Pho,       Ind_Rst
     INTEGER                      :: Ind_Var,        Ind_Wet,       Ind
-    INTEGER                      :: HbHrs,          HbMin,         HbSec
-    INTEGER                      :: HeartBeatHms,   nTags
+    INTEGER                      :: Hrs,            Min,           Sec
+    INTEGER                      :: HeartBeatHms,   DiagTimeHms,   nTags
     REAL(f8)                     :: UpdateAlarm,    HeartBeatDtSec
     REAL(f8)                     :: FileWriteAlarm, FileCloseAlarm
     REAL(f8)                     :: JulianDate,     JulianDateEnd
     REAL(f8)                     :: UpdateCheck,    FileWriteCheck
-    REAL(f8)                     :: SimLengthSec
+    REAL(f8)                     :: SimLengthSec,   DiagDtSec
 
     ! Strings
     CHARACTER(LEN=6  )           :: TStr
@@ -609,6 +613,7 @@ CONTAINS
        LineNum        =  0
        SpaceDim       =  0
        HeartBeatDtSec =  DBLE( Input_Opt%TS_DYN )
+       DiagDtSec      =  DBLE( Get_Ts_Diag()    )
        yyyymmdd       =  Input_Opt%NymdB
        hhmmss         =  Input_Opt%NhmsB
        yyyymmdd_end   =  Input_Opt%NymdE
@@ -625,11 +630,16 @@ CONTAINS
                                          deltaYMD,     deltaHMS             )
 
        ! Convert the HeartBeatDtSec into hours:minutes:seconds
-       ! for defining the Update interval for time-averaged collections
-       HbMin          = HeartBeatDtSec / 60
-       HbHrs          = HbMin / 60
-       HbSec          = HeartBeatDtSec - ( HbMin * 60 ) - ( HbHrs * 3600 )
-       HeartBeatHms   = ( HbHrs * 10000 ) + ( HbMin * 100 ) + HbSec
+       Min            = HeartBeatDtSec / 60
+       Hrs            = Min / 60
+       Sec            = HeartBeatDtSec - ( Min * 60 ) - ( Hrs * 3600 )
+       HeartBeatHms   = ( Hrs * 10000 ) + ( Min * 100 ) + Sec
+
+       ! Convert the DiagDtSec into hours:minutes:seconds
+       Min            = DiagDtSec / 60
+       Hrs            = Min / 60
+       Sec            = DiagDtSec - ( Min * 60 ) - ( Hrs * 3600 )
+       DiagTimeHms    = ( Hrs * 10000 ) + ( Min * 100 ) + Sec
 
        ! Initialize objects and pointers
        Container      => NULL()
@@ -1401,7 +1411,8 @@ CONTAINS
              ! Define the "Update" interval
              !
              ! Normally, we will set UpdateYmd and UpdateHms directly from
-             ! the "heartbeat" timestep of the simulation in seconds.
+             ! the diagnostic timestep (= the larger of the dynamic and
+             ! chemistry timesteps) in seconds.
              !
              ! If the ".acc_interval" tag is specified in HISTORY.rc,
              ! then we will set UpdateYmd and UpdateHms from
@@ -1417,9 +1428,9 @@ CONTAINS
              !--------------------------------------------------------------
              IF ( TRIM( CollectionAccInterval(C) ) == UNDEFINED_STR ) THEN
 
-                ! Set UpdateYmd and UpdateHms from the HeartBeat timestep
+                ! Set UpdateYmd and UpdateHms from the diagnostic timestep
                 UpdateYmd = 00000000
-                UpdateHms = HeartBeatHms
+                UpdateHms = DiagTimeHms
 
                 ! SPECIAL CASE: If FileWriteYmd is 240000 then set
                 ! and set FileWriteYmd=000001 and FileWriteHms=000000

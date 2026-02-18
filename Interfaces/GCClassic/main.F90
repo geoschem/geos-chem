@@ -856,7 +856,7 @@ PROGRAM GEOS_Chem
           !------------------------------------------------------------------
           ! %%%%% HISTORY (netCDF diagnostics) %%%%%
           !
-          ! Certain diagnostics need to be zeroed out at the start
+          ! Certain diagnostics need to be zeroed out at the start of
           ! each timestep, before operations like drydep, wetdep, and
           ! convection are executed.
           !------------------------------------------------------------------
@@ -1673,7 +1673,9 @@ PROGRAM GEOS_Chem
           ENDIF
 
           !------------------------------------------------------------------
-          !    ***** A R C H I V E   D I A G N O S T I C S  (1 of 2) *****
+          !    ***** A R C H I V E   D I A G N O S T I C S  (1 of 3) *****
+          !
+          ! Once per diagnostic timestep = MAX( Ts_Dyn, Ts_Chem )
           !------------------------------------------------------------------
           IF ( Its_Time_For_Diag() ) THEN
 
@@ -1730,17 +1732,9 @@ PROGRAM GEOS_Chem
           ENDIF
 
           !------------------------------------------------------------------
-          !       ***** H I S T O R Y   U P D A T E   T I M E *****
+          !    ***** A R C H I V E   D I A G N O S T I C S  (2 of 3) *****
           !
-          ! Increment the timestep values by the heartbeat time.  This is
-          ! because we need to write out diagnostic quantities at the end
-          ! of the diagnostic timestep before the actual alarm timestep
-          ! (If archiving diagnostics hourly, write at 50 past the hour)
-          !------------------------------------------------------------------
-          CALL History_SetTime( Input_Opt, RC )
-
-          !------------------------------------------------------------------
-          !    ***** A R C H I V E   D I A G N O S T I C S  (2 of 2) *****
+          ! Once per diagnostic timestep = MAX( Ts_Dyn, Ts_Chem )
           !------------------------------------------------------------------
           IF ( Its_Time_For_Diag() ) THEN
 
@@ -1753,12 +1747,39 @@ PROGRAM GEOS_Chem
                 CALL Error_Stop( ErrMsg, ThisLoc )
              ENDIF
 
-             ! Update each HISTORY ITEM from its data source
-             CALL History_Update( Input_Opt, State_Diag, RC )
-             IF ( RC /= GC_SUCCESS ) THEN
-                ErrMsg = 'Error encountered in "History_Update"!'
-                CALL Error_Stop( ErrMsg, ThisLoc )
-             ENDIF
+          ENDIF
+
+          !------------------------------------------------------------------
+          !            ***** H I S T O R Y   U P D A T E ****
+          !------------------------------------------------------------------
+
+          ! As we are now at the end of the current dynamic timestep (i.e.
+          ! at time T + Ts_Dyn), call "History_SetTime" to increment the
+          ! elapsed time field in each diagnostic collection.  This will be
+          ! used to update the alarms that determine when fields will be
+          ! updated and when files will be written.
+          CALL History_SetTime( Input_Opt, RC )
+
+          ! Also call "History_Update" to update each diagnostic field from
+          ! its data source.  Make sure that this call happens on each
+          ! dynamic timestep, as this will ensure that fields belonging to
+          ! the Restart collection will be updated on the dynamic timestep
+          ! prior to the file write time.  All other collection fields will
+          ! be updated once per diagnostic timestep = MAX( Ts_Dyn, Ts_Chem )
+          ! in order to prevent values before the end of a chemistry timestep
+          ! from being included in the diagnostic averaging.
+          CALL History_Update( Input_Opt, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "History_Update"!'
+             CALL Error_Stop( ErrMsg, ThisLoc )
+          ENDIF
+
+          !------------------------------------------------------------------
+          !    ***** A R C H I V E   D I A G N O S T I C S  (3 of 3) *****
+          !
+          ! Once per diagnostic timestep = MAX( Ts_Dyn, Ts_Chem )
+          !------------------------------------------------------------------
+          IF ( Its_Time_For_Diag() ) THEN
 
              !------------------------------------------------------------------
              !         ***** O B S P A C K   D I A G N O S T I C S *****
