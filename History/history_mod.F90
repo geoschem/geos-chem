@@ -1491,10 +1491,30 @@ CONTAINS
                    'Incompatible Restart collection metadata!           ',   &
                    'Restart.frequency = ',     FileWriteYmd, FileWriteHms,   &
                    'but Restart.duration  = ', FileCloseYmd, FileCloseHms
- 260             FORMAT( a, a, i8.8, 1x, i6.6, 1x, a, i8.8, 1x, i6.6 )
+ 260            FORMAT( a, a, i8.8, 1x, i6.6, 1x, a, i8.8, 1x, i6.6 )
                 CALL GC_Error( ErrMsg, RC, ThisLoc )
                 RETURN
              ENDIF
+          ENDIF
+
+          !=================================================================
+          ! Sanity check: Prevent a collection from being updated
+          ! more frequently than the diagnostic time step.  This will
+          ! prevent errors such as the one described in GitHub issue
+          ! https://github.com/geoschem/geos-chem/issues/3117.
+          !=================================================================
+          IF ( UpdateHms < DiagTimeHms ) THEN
+             WRITE( ErrMsg, 265 ) TRIM( CollectionName(C) ), UpdateHms,      &
+                  DiagTimeHms, TRIM( CollectionName(C) ), DiagTimeHms
+ 265         FORMAT( 'The ', a, '.frequency setting (', i6.6, ') is ',       &
+                     'smaller than the the diagnostic timestep (', i6.6,     &
+                     ')!  This can lead to spurious results in the ',        &
+                     'diagnostic archival such as were described in ',       &
+                     'https://github.com/geoschem/geos-chem/issues/3117. ',  &
+                     'Please set ', a, '.frequency equal to or greater ',    &
+                     'greater than ', i6.6, '.'                             )
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
           ENDIF
 
           !=================================================================
