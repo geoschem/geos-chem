@@ -41,6 +41,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated default GCHP resolution in createRunDir.sh from c24 for MERRA2/GEOS-FP and c30 for GEOS-IT to c90 in all cases.
 - Updated `download_data.yml` and GCHP `createRunDir.sh` to use restart files from the 14.8.0-rc.0 benchmarks (for some simulations)
 - Changed frequency of SpeciesConcVV and SpeciesConcMND diagnostic update to every chemistry timestep (previously dynamic timestep) to avoid value oscillation for certain species when dynamic timestep is less than chemistry timestep
+- Updated `main.F90` and `gchp_chunk_mod.F90` to so that dry deposition is done after emissions
 
 ### Fixed
 - Fixed incorrect variable names and removed unused variables in `NcdfUtil/ncdf_mod.F90`
@@ -173,7 +174,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Replace hardwired values with constant parameters in routine `Aerosol_Conc` (in `GeosCore/aerosol_mod.F90`
 - Updated species database so that dust species use the anchor `&DSTbin properties` and metals species use `&METALSproperties`
 - Updated call to `ExtData_Set` in `hco_gc_interface_mod.F90` to accept `ExtState%SNOMAS`
-- Upated sample carbon simulation restart file to output generated from 10-year simulation
+- Updated sample carbon simulation restart file to output generated from 10-year simulation
 
 ### Fixed
 - Restored entries for TMB emissions in `HEMCO_Config.rc.fullchem` template files for GCClassic and GCHP

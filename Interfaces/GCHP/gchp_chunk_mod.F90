@@ -1177,28 +1177,7 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! 2. Dry deposition
-    !
-    ! Calculates the deposition rates in [s-1].
-    !=======================================================================
-    IF ( DoDryDep ) THEN
-       if(Input_Opt%AmIRoot.and.NCALLS<10) THEN
-          write(*,*) ' --- Do drydep now'
-          write(*,*) '     Use FULL PBL: ', Input_Opt%PBL_DRYDEP
-       endif
-       CALL MAPL_TimerOn( STATE, 'GC_DRYDEP' )
-
-       ! Do dry deposition
-       CALL Do_DryDep ( Input_Opt, State_Chm, State_Diag, &
-                        State_Grid, State_Met, RC )
-       _ASSERT(RC==GC_SUCCESS, 'Error calling Do_DryDep')
-
-       CALL MAPL_TimerOff( STATE, 'GC_DRYDEP' )
-       if(Input_Opt%AmIRoot.and.NCALLS<10) write(*,*) ' --- Drydep done!'
-    ENDIF
-
-    !=======================================================================
-    ! 3. Emissions (HEMCO)
+    ! 2. Emissions (HEMCO)
     !
     ! HEMCO must be called on first time step to make sure that the HEMCO
     ! data lists are all properly set up.
@@ -1237,6 +1216,28 @@ CONTAINS
           _VERIFY(STATUS)
        endif
 
+    ENDIF
+
+    !=======================================================================
+    ! 3. Dry deposition
+    !
+    ! Calculates the deposition rates in [s-1].  Call after emissions so
+    ! that we'll include the contribution from SeaFlux and PARANOx.
+    !=======================================================================
+    IF ( DoDryDep ) THEN
+       if(Input_Opt%AmIRoot.and.NCALLS<10) THEN
+          write(*,*) ' --- Do drydep now'
+          write(*,*) '     Use FULL PBL: ', Input_Opt%PBL_DRYDEP
+       endif
+       CALL MAPL_TimerOn( STATE, 'GC_DRYDEP' )
+
+       ! Do dry deposition
+       CALL Do_DryDep ( Input_Opt, State_Chm, State_Diag, &
+                        State_Grid, State_Met, RC )
+       _ASSERT(RC==GC_SUCCESS, 'Error calling Do_DryDep')
+
+       CALL MAPL_TimerOff( STATE, 'GC_DRYDEP' )
+       if(Input_Opt%AmIRoot.and.NCALLS<10) write(*,*) ' --- Drydep done!'
     ENDIF
 
     !=======================================================================
