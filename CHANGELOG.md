@@ -12,6 +12,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Changed
 - Updated `Interfaces/GCClassic/main.F90` so that diagnostic archival is done once per diagnostic timestep (i.e. the larger of the chemistry timestep or dynamic timestep)
 - Updated routine `History_Read_Collection_Data` to set the default update frequency of time-averaged collections to the diagnostic timestep instead of the dynamic timestep
+- Updated the logic when computing `HeartBeatHms` and `DiagTimeHms` in `history_mod.F90` to be more robust
+
 
 ## [14.7.0] - 2026-02-05
 ### Added

@@ -629,17 +629,18 @@ CONTAINS
                                          yyyymmdd_end, hhmmss_end,           &
                                          deltaYMD,     deltaHMS             )
 
-       ! Convert the HeartBeatDtSec into hours:minutes:seconds
-       Min            = HeartBeatDtSec / 60
-       Hrs            = Min / 60
-       Sec            = HeartBeatDtSec - ( Min * 60 ) - ( Hrs * 3600 )
-       HeartBeatHms   = ( Hrs * 10000 ) + ( Min * 100 ) + Sec
+       ! Convert the DiagDtSec into hours:minutes:seconds
+       Hrs          = HeartBeatDtSec / 3600.0_fp
+       Min          = MOD( HeartBeatDtSec / 60.0_fp, 60.0_fp )
+       Sec          = MOD( HeartBeatDtSec,           60.0_fp )
+       HeartBeatHms = ( Hrs * 10000 ) + ( Min * 100 ) + Sec
+
 
        ! Convert the DiagDtSec into hours:minutes:seconds
-       Min            = DiagDtSec / 60
-       Hrs            = Min / 60
-       Sec            = DiagDtSec - ( Min * 60 ) - ( Hrs * 3600 )
-       DiagTimeHms    = ( Hrs * 10000 ) + ( Min * 100 ) + Sec
+       Hrs          = DiagDtSec / 3600
+       Min          = MOD( DiagDtSec / 60.0_fp, 60.0_fp )
+       Sec          = MOD( DiagDtSec,           60.0_fp )
+       DiagTimeHms  = ( Hrs * 10000 ) + ( Min * 100 ) + Sec
 
        ! Initialize objects and pointers
        Container      => NULL()
