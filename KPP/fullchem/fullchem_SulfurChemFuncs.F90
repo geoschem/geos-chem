@@ -1222,11 +1222,17 @@ CONTAINS
        ! jmm (12/3/18)
        !
        ! Get dust concentrations [MND -> ng/m3]
-
-        DUST = ( Spc(id_DSTbin1)%Conc(I,J,L) + Spc(id_DSTbin2)%Conc(I,J,L) + Spc(id_DSTbin3)%Conc(I,J,L) + &
-        Spc(id_DSTbin4)%Conc(I,J,L) + Spc(id_DSTbin5)%Conc(I,J,L) +       &
-        Spc(id_DSTbin6)%Conc(I,J,L) + Spc(id_DSTbin7)%Conc(I,J,L) ) * 1.e+15_fp * &
-        State_Chm%SpcData(id_DSTbin1)%Info%MW_g / AVO
+       ! Get the MW in g from DSTbin1 (all dust bins have the same MW)
+       DUST = ( Spc(id_DSTbin1)%Conc(I,J,L) +                                &
+                Spc(id_DSTbin2)%Conc(I,J,L) +                                &
+                Spc(id_DSTbin3)%Conc(I,J,L) +                                &
+                Spc(id_DSTbin4)%Conc(I,J,L) +                                &
+                Spc(id_DSTbin5)%Conc(I,J,L) +                                &
+                Spc(id_DSTbin6)%Conc(I,J,L) +                                &
+                Spc(id_DSTbin7)%Conc(I,J,L)   )                              &
+            * 1.e+15_dp                                                    &
+            * State_Chm%SpcData(id_DSTbin1)%Info%MW_g                      &
+            / AVO
 
        ! Conversion from dust mass to Ca2+ and Mg2+ mol:
        !     0.071*(1/40.08)+0.011*(1/24.31) = 2.22e-3
