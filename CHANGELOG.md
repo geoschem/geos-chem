@@ -4,6 +4,11 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [NLPBL] - TBD
+### Added
+- Added routine `Do_Drydep_Removal` to `GeosCore/drydep_mod.F90` to apply dry deposition loss to species
+- Updated `main.F90` and `gchp_chunk_mod.F90` to so that dry deposition is done after emissions
+
 ## [Unreleased] - TBD
 ### Added
 - Added PSO4AQ and PH2SO4 as a product to certain reactions; see `KPP/fullchem/CHANGELOG_fullchem.md`
@@ -118,7 +123,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Changed frequency of SpeciesConcVV and SpeciesConcMND diagnostic update to every chemistry timestep (previously dynamic timestep) to avoid value oscillation for certain species when dynamic timestep is less than chemistry timestep
 
 ### Changed
-- Updated `main.F90` and `gchp_chunk_mod.F90` to so that dry deposition is done after emissions
+
+### Removed
+- Removed dry deposition loss code from routine `Do_Tend` (in `GeosCore/mixing_mod.F90`)
 
 ## [14.7.0] - 2026-02-05
 ### Added
