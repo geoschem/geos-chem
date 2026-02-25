@@ -4,6 +4,16 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - TBD
+### Added
+- Added routine `Do_Drydep_Removal` to `GeosCore/drydep_mod.F90` to apply dry deposition loss to species
+
+### Changed
+- Updated `main.F90` and `gchp_chunk_mod.F90` to so that dry deposition is done after emissions
+
+### Removed
+- Removed dry deposition loss code from routine `Do_Tend` (in `GeosCore/mixing_mod.F90`)
+
 ## [14.8.0] - 2026-09-11
 ### Added
 - Added PSO4AQ and PH2SO4 as a product to certain reactions; see `KPP/fullchem/CHANGELOG_fullchem.md`
@@ -41,7 +51,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated default GCHP resolution in createRunDir.sh from c24 for MERRA2/GEOS-FP and c30 for GEOS-IT to c90 in all cases.
 - Updated `download_data.yml` and GCHP `createRunDir.sh` to use restart files from the 14.8.0-rc.0 benchmarks (for some simulations)
 - Changed frequency of SpeciesConcVV and SpeciesConcMND diagnostic update to every chemistry timestep (previously dynamic timestep) to avoid value oscillation for certain species when dynamic timestep is less than chemistry timestep
-- Updated `main.F90` and `gchp_chunk_mod.F90` to so that dry deposition is done after emissions
 
 ### Fixed
 - Fixed incorrect variable names and removed unused variables in `NcdfUtil/ncdf_mod.F90`

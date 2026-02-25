@@ -247,23 +247,19 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER                 :: I, J, L, L1, L2, N, D, NN, NA, nAdvect, S
-    INTEGER                 :: DRYDEPID, previous_units
-    INTEGER                 :: PBL_TOP, DRYD_TOP, EMIS_TOP
-    REAL(fp)                :: TS, TMP, FRQ, RKT, FRAC, FLUX, AREA_M2
-    REAL(fp)                :: MWkg, DENOM
-    LOGICAL                 :: FND
-    LOGICAL                 :: PBL_DRYDEP, LINEAR_CHEM, ChemGridOnly
-    LOGICAL                 :: LEMIS,      LDRYD
-    LOGICAL                 :: DryDepSpec, EmisSpec
+    LOGICAL                 :: ChemGridOnly,   EmisSpec,  FND
+    INTEGER                 :: I,              J,         L
+    INTEGER                 :: L1,             L2,        N
+    INTEGER                 :: NN,             NA,        S
+    INTEGER                 :: previous_units
+    INTEGER                 :: PBL_TOP,        EMIS_TOP,  TS
+    REAL(fp)                :: TMP,            FLUX
+    REAL(fp)                :: MWkg,           DENOM
     REAL(f8)                :: DT_Tend
 
     ! PARANOX loss fluxes (kg/m2/s). These are obtained from the
     ! HEMCO PARANOX extension via the diagnostics module.
-    REAL(fp)                :: PNOXLOSS
     REAL(f4), POINTER       :: Ptr2D        (:,:) => NULL()
-    REAL(f4), POINTER       :: PNOXLOSS_O3  (:,:)
-    REAL(f4), POINTER       :: PNOXLOSS_HNO3(:,:)
 
     ! SAVEd scalars (defined on first call only)
     LOGICAL,           SAVE :: FIRST = .TRUE.
@@ -275,7 +271,6 @@ CONTAINS
 
     ! Pointers and objects
     TYPE(Species), POINTER  :: SpcInfo
-    REAL(fp),      POINTER  :: DepFreq(:,:,:  )  ! IM, JM, nDryDep
 
     ! Strings
     CHARACTER(LEN=255)      :: ErrMsg, ErrorMsg, ThisLoc
@@ -295,21 +290,10 @@ CONTAINS
     ThisLoc = ' -> at DO_TEND (in module GeosCore/mixing_mod.F90)'
 
     ! Special case that there is no dry deposition and emissions
-    IF ( .NOT. Input_Opt%LDRYD .AND. .NOT. Input_Opt%DoEmissions ) RETURN
-
-    ! Initialize
-    LINEAR_CHEM       = Input_Opt%LINEAR_CHEM
-    LEMIS             = Input_Opt%DoEmissions
-    LDRYD             = Input_Opt%LDRYD
-    PBL_DRYDEP        = Input_Opt%PBL_DRYDEP
-    nAdvect           = State_Chm%nAdvect
+    IF ( .not. input_Opt%DoEmissions ) RETURN
 
     ! Initialize pointer
-    SpcInfo           => NULL()
-    DepFreq           => State_Chm%DryDepFreq
-
-    PNOxLoss_O3       => NULL()
-    PNOxLoss_HNO3     => NULL()
+    SpcInfo => NULL()
 
     !------------------------------------------------------------------------
     ! Emissions/dry deposition budget diagnostics - Part 1 of 2
@@ -441,36 +425,6 @@ CONTAINS
        FIRST = .FALSE.
     ENDIF
 
-    ! On first call, get pointers to the PARANOX loss fluxes. These are
-    ! stored in diagnostics 'PARANOX_O3_DEPOSITION_FLUX' and
-    ! 'PARANOX_HNO3_DEPOSITION_FLUX'. The call below links pointers
-    ! PNOXLOSS_O3 and PNOXLOSS_HNO3 to the data values stored in the
-    ! respective diagnostics. The pointers will remain unassociated if
-    ! the diagnostics do not exist.
-    ! This is only needed if non-local PBL scheme is not being used.
-    ! Otherwise, PARANOX fluxes are applied in vdiff_mod.F90.
-    !  (ckeller, 4/10/2015)
-    !
-    ! If using HEMCO Intermediate grid feature, then the call needs to be
-    ! refreshed at every time step for regridding. (hplin, 6/21/20)
-    IF ( .NOT. Input_Opt%LNLPBL ) THEN
-      CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, 'PARANOX_O3_DEPOSITION_FLUX', &
-                            .FALSE.,   RC, Ptr2D = Ptr2D          )
-      IF( ASSOCIATED( Ptr2D )) THEN
-        ALLOCATE ( PNOxLoss_O3( State_Grid%NX, State_Grid%NY ), STAT=RC )
-        PNOxLoss_O3(:,:) = Ptr2D(:,:)
-      ENDIF
-      Ptr2D => NULL()
-
-      CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, 'PARANOX_HNO3_DEPOSITION_FLUX',&
-                            .FALSE.,   RC, Ptr2D = Ptr2D        )
-      IF( ASSOCIATED( Ptr2D )) THEN
-        ALLOCATE ( PNOxLoss_HNO3( State_Grid%NX, State_Grid%NY ), STAT=RC )
-        PNOxLoss_HNO3(:,:) = Ptr2D(:,:)
-      ENDIF
-      Ptr2D => NULL()
-    ENDIF
-
     !=======================================================================
     ! Do for every advected species and grid box
     !=======================================================================
@@ -485,9 +439,10 @@ CONTAINS
     !
     ! Therefore, the loop below has been adjusted to run serially for each
     ! species, and parallelizing the inner I, J loop instead (hplin, 6/27/20)
-    ! Also, moved some non-I,J specific variables outside of the loop for optimization
+    ! Also, moved some non-I,J specific variables outside of the loop for 
+    ! optimization
 
-    DO NA = 1, nAdvect
+    DO NA = 1, State_Chm%nAdvect
 
        ! Initialize PRIVATE error-handling variables
        ErrorMsg  = ''
@@ -500,35 +455,6 @@ CONTAINS
 
        ! Molecular weight in kg
        MWkg = SpcInfo%MW_g * 1.e-3_fp
-
-       !--------------------------------------------------------------------
-       ! Check if we need to do dry deposition for this species
-       !--------------------------------------------------------------------
-
-       ! Initialize
-       DryDepSpec = .FALSE.
-       DryDepID   = -1
-
-       ! Only if dry deposition is turned on and we do want to consider
-       ! processes below the PBL...
-       IF ( LDRYD .AND. .NOT. OnlyAbovePBL ) THEN
-
-          ! Get dry deposition ID (used by drydep_mod.F90) for this species.
-          ! This is now stored in the species database object. (bmy, 7/6/16)
-          DryDepID = SpcInfo%DryDepId
-
-          ! Check if this is a HEMCO drydep species
-          DryDepSpec = ( DryDepId > 0 )
-          IF ( .NOT. DryDepSpec ) THEN
-             CALL InquireHco ( N, Dep=DryDepSpec )
-          ENDIF
-
-          ! Special case for O3 or HNO3: include PARANOX loss
-          IF ( N == id_O3   .AND. ASSOCIATED(PNOXLOSS_O3  ) )    &
-               DryDepSpec = .TRUE.
-          IF ( N == id_HNO3 .AND. ASSOCIATED(PNOXLOSS_HNO3) )    &
-               DryDepSpec = .TRUE.
-       ENDIF
 
        ! Set emissions top level:
        ! This is the top of atmosphere unless concentration build-up
@@ -548,7 +474,7 @@ CONTAINS
        ! Therefore avoid any emissions of these compounds above the
        ! chemistry grid (lin. strat. chem. applies above chemistry grid
        ! only).
-       IF ( LINEAR_CHEM ) THEN
+       IF ( Input_Opt%LINEAR_CHEM ) THEN
           IF ( N == id_BrO  .OR. N == id_Br2   .OR. &
                N == id_Br   .OR. N == id_HOBr  .OR. &
                N == id_HBr  .OR. N == id_BrNO3       ) THEN
@@ -559,38 +485,31 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Check if we need to do emissions for this species
        !--------------------------------------------------------------------
-       IF ( LEMIS ) THEN
+       IF ( Input_Opt%DoEmissions ) THEN
           CALL InquireHco ( N, Emis=EmisSpec )
        ELSE
           EmisSpec = .FALSE.
        ENDIF
 
-       ! If there is emissions for this species, it must be loaded into memory first.
-       ! This is achieved by attempting to retrieve a grid box while NOT in a parallel
-       ! loop. Failure to load this will result in severe performance issues!! (hplin, 9/27/20)
+       ! If there is emissions for this species, it must be loaded into
+       ! memory first.  This is achieved by attempting to retrieve a grid
+       ! box while NOT in a parallel loop. Failure to load this will result
+       ! in severe performance issues!! (hplin, 9/27/20)
        IF ( EmisSpec ) THEN
           CALL LoadHcoValEmis ( Input_Opt, State_Grid, N )
-       ENDIF
-
-       IF ( DryDepSpec ) THEN
-          CALL LoadHcoValDep ( Input_Opt, State_Grid, N )
        ENDIF
 
        !--------------------------------------------------------------------
        ! Can go to next species if this species does not have
        ! dry deposition and/or emissions
        !--------------------------------------------------------------------
-       IF ( .NOT. DryDepSpec .AND. .NOT. EmisSpec ) CYCLE
-
-!$OMP PARALLEL DO                                                           &
-!$OMP DEFAULT( SHARED                                                     ) &
-!$OMP PRIVATE( I,        J,            L,          L1,       L2           ) &
-!$OMP PRIVATE( PBL_TOP,  FND,          TMP                                ) &
-!$OMP PRIVATE( FRQ,      RKT,          FRAC,       FLUX,     Area_m2      ) &
-!$OMP PRIVATE( DRYD_TOP, EMIS_TOP,     PNOXLOSS,   DENOM                  ) &
-!$OMP PRIVATE( S,        ErrorMsg                                         )
+       IF ( .NOT. EmisSpec ) CYCLE
 
        ! Loop over all grid boxes
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( I,   J,   L,    L1,       L2, PBL_TOP                 )&
+       !$OMP PRIVATE( FND, TMP, FLUX, EMIS_TOP, S,  ErrorMsg                ) 
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
 
@@ -610,14 +529,6 @@ CONTAINS
              L1 = 1
           ENDIF
 
-          ! Set dry deposition top level based on PBL_DRYDEP flag of
-          ! Input_Opt.
-          IF ( PBL_DRYDEP ) THEN
-             DRYD_TOP = PBL_TOP
-          ELSE
-             DRYD_TOP = 1
-          ENDIF
-
           ! Restrict to chemistry grid
           IF ( ChemGridOnly ) THEN
              EMIS_TOP = State_Met%ChemGridLev(I,J)
@@ -627,7 +538,7 @@ CONTAINS
           ENDIF
 
           ! L2 is the upper level index to loop over
-          L2 = MAX(DRYD_TOP, EMIS_TOP)
+          L2 = EMIS_TOP
 
           ! This should not happen:
           IF ( L2 < L1 ) CYCLE
@@ -636,116 +547,16 @@ CONTAINS
           DO L = L1, L2
 
              !--------------------------------------------------------------
-             ! Apply dry deposition frequencies to all levels below the
-             ! PBL top.
-             !--------------------------------------------------------------
-             IF ( DryDepSpec .AND. ( L <= DRYD_TOP ) ) THEN
-
-                ! Init
-                FRQ = 0.0_fp
-
-                ! Dry deposition frequency from drydep_mod.F90. This is
-                ! stored in State_Chm%DryDepFreq. Units are [s-1].
-                IF ( DRYDEPID > 0 ) THEN
-                   FRQ = DepFreq(I,J,DRYDEPID)
-                ENDIF
-
-                ! Dry deposition frequency from HEMCO. HEMCO calculates
-                ! dry deposition frequencies for air-sea exchange and
-                ! from ship NOx plume parameterization (PARANOx). The
-                ! units are [s-1].
-                CALL GetHcoValDep ( Input_Opt, State_Grid, N, I, J, 1, FND, TMP )
-
-                ! Add to dry dep frequency from drydep_mod.F90
-                IF ( FND ) FRQ = FRQ + TMP
-
-                ! Get PARANOX deposition loss. Apply to surface level only.
-                ! PNOXLOSS is in kg/m2/s. (ckeller, 4/10/15)
-                PNOXLOSS = 0.0_fp
-                IF ( L == 1 ) THEN
-                   IF ( N == id_O3 .AND. ASSOCIATED(PNOXLOSS_O3) ) THEN
-                      PNOXLOSS = PNOXLOSS_O3(I,J)
-                   ENDIF
-                   IF ( N == id_HNO3 .AND. ASSOCIATED(PNOXLOSS_HNO3) ) THEN
-                      PNOXLOSS = PNOXLOSS_HNO3(I,J)
-                   ENDIF
-                ENDIF
-
-                ! Apply dry deposition
-                IF ( FRQ > 0.0_fp .OR. PNOXLOSS > 0.0_fp ) THEN
-
-                   ! Compute exponential loss term
-                   RKT  = FRQ * TS
-                   FRAC = EXP(-RKT)
-
-                   ! Loss in kg/m2
-                   FLUX = ( 1.0_fp - FRAC ) * State_Chm%Species(N)%Conc(I,J,L)
-
-                   ! Apply dry deposition
-                   State_Chm%Species(N)%Conc(I,J,L) = FRAC *    &
-                                            State_Chm%Species(N)%Conc(I,J,L)
-
-#ifdef ADJOINT
-                   if (Input_Opt%Is_Adjoint) then
-                      State_Chm%SpeciesAdj(I,J,L,N) = FRAC *  &
-                           State_Chm%SpeciesAdj(I,J,L,N)
-                   endif
-#endif
-                   ! Eventually add PARANOX loss. PNOXLOSS is in kg/m2/s.
-                   ! Make sure PARANOx loss is applied to tracers. (ckeller,
-                   ! 3/29/16).
-                   IF ( PNOXLOSS > 0 ) THEN
-                      State_Chm%Species(N)%Conc(I,J,L) = &
-                         State_Chm%Species(N)%Conc(I,J,L) - ( PNOXLOSS * TS )
-                      FLUX = FLUX + ( PNOXLOSS * TS )
-                   ENDIF
-
-                   ! Loss in [molec/cm2/s]
-                   ! Added a safe_div due to small parallelization error
-                   ! (mdy, 5/15)
-                   !
-                   ! NOTE: The original computation was:
-                   !   FLUX = FLUX / MWkg * AVO / TS / ( AREA_M2 * 1.0e4_fp ) ]
-                   ! so the denominator as we had it was wrong.
-                   ! Now corrected (elundgren, bmy, 6/12/15)
-                   DENOM = ( MWkg * TS * 1.0e+4_fp ) / AVO
-                   FLUX  = SAFE_DIV( FLUX, DENOM, 0.0e+0_fp )  ! molec/cm2/s
-
-                   ! Eventually add to SOIL_DRYDEP
-                   IF ( Input_Opt%LSOILNOX ) THEN
-                      CALL SOIL_DRYDEP( I, J, N, FLUX, State_Chm )
-                   ENDIF
-
-                   !--------------------------------------------------------
-                   ! HISTORY: Archive drydep flux loss from mixing
-                   ! Units = molec/cm2/s
-                   !
-                   ! NOTE: we don't need to multiply by the ratio of
-                   ! TS_CONV / TS_CHEM, as the updating frequency for
-                   ! HISTORY is determined by the "frequency" setting in
-                   ! the "HISTORY.rc" input file.
-                   !--------------------------------------------------------
-                   IF ( ( State_Diag%Archive_DryDepMix .or.                  &
-                          State_Diag%Archive_DryDep        )   .and.         &
-                          DryDepID > 0                       ) THEN
-                      S = State_Diag%Map_DryDepMix%id2slot(DryDepID)
-                      IF ( S > 0 ) THEN
-                         State_Diag%DryDepMix(I,J,S) = Flux
-                      ENDIF
-                   ENDIF
-
-                ENDIF ! apply drydep
-             ENDIF ! L <= PBLTOP
-
-             !--------------------------------------------------------------
              ! Apply emissions.
              ! These are always taken from HEMCO
              !--------------------------------------------------------------
              IF ( EmisSpec .AND. ( L <= EMIS_TOP ) ) THEN
 
                 ! Get HEMCO emissions. Units are [kg/m2/s].
-                ! Fix hplin: for intermediate grid, pass SkipCheck in a tight loop. Note that this assumes that adjacent
-                ! calls to GetHcoValEmis are from the same species ID, or there will be big trouble. (hplin, 10/10/20)
+                ! Fix hplin: for intermediate grid, pass SkipCheck in a 
+                ! tight loop. Note that this assumes that adjacent
+                ! calls to GetHcoValEmis are from the same species ID, 
+                ! or there will be big trouble. (hplin, 10/10/20)
 
 #ifdef MODEL_CLASSIC
                 IF ( Input_Opt%LIMGRID ) THEN
@@ -807,7 +618,7 @@ CONTAINS
           ENDDO !L
        ENDDO !J
        ENDDO !I
-!$OMP END PARALLEL DO
+       !$OMP END PARALLEL DO
 
        ! Exit with error condition
        IF ( RC /= GC_SUCCESS ) THEN
@@ -909,15 +720,8 @@ CONTAINS
     ENDIF
 
     ! Free pointers
-    DepFreq => NULL()
-
-  IF ( ASSOCIATED( PNOxLoss_O3 ) )   DEALLOCATE( PNOxLoss_O3 )
-  IF ( ASSOCIATED( PNOxLoss_HNO3 ) ) DEALLOCATE( PNOxLoss_HNO3 )
-
-  PNOxLoss_O3 => NULL()
-  PNOxLoss_HNO3 => NULL()
+    SpcInfo => NULL()
 
   END SUBROUTINE DO_TEND
-
 !EOC
 END MODULE MIXING_MOD
