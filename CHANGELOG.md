@@ -126,6 +126,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Removed
 - Removed dry deposition loss code from routine `Do_Tend` (in `GeosCore/mixing_mod.F90`)
+- Removed code that computed surface dry depostion flux `dflx` in `Compute_Sflx_for_Vdiff` (in `GeosCore/hco_interface_gc_mod.F90`)
 
 ## [14.7.0] - 2026-02-05
 ### Added

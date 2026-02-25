@@ -2319,6 +2319,9 @@ CONTAINS
 !
 ! !USES:
 !
+    USE Depo_Mercury_Mod,     ONLY : Add_Hg2_DD
+    USE Depo_Mercury_Mod,     ONLY : Add_HgP_DD
+    USE Depo_Mercury_Mod,     ONLY : Add_Hg2_SnowPack
     USE Diagnostics_Mod,      ONLY : Compute_Budget_Diagnostics
     USE ErrCode_Mod
     USE ERROR_MOD,            ONLY : SAFE_DIV
@@ -2489,9 +2492,8 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Get time step [s]
-
 #ifdef ADJOINT
+    ! Get time step [s]
     IF ( Input_Opt%Is_Adjoint ) drydep_dt = -drydep_dt
 #endif
 
@@ -2637,7 +2639,7 @@ CONTAINS
              ! Start with the drydep frequency [s-1] from drydep_mod.F90.
              IF ( drydep_id > 0 ) THEN
                 freq = State_Chm%DryDepFreq(I,J,drydep_id)
-             endif
+             ENDIF
              if ( i==33 .and. j==10 .and. N==1 ) THEN
                 print*, '%%%----- ACET ', i, j, ' -----'
                 print*, '%%% dfreq 1/s            ', freq
@@ -2752,6 +2754,32 @@ CONTAINS
                    ENDIF
                 ENDIF
 
+                !-------------------------------------------------------------
+                ! Archive Hg deposition for surface reservoirs
+                !-------------------------------------------------------------
+                IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
+
+                   ! Deposition mass, kg
+                   val = flux * State_Grid%Area_M2(I,J) * drydep_dt
+
+                   IF ( SpcInfo%Is_Hg2 ) THEN
+
+                      ! Archive dry-deposited Hg2
+                      CALL ADD_Hg2_DD( I, J, val                            )
+                      CALL ADD_Hg2_SNOWPACK( I,         J,                   &
+                                             val,       State_Met,           & 
+                                             State_Chm, State_Diag          )
+
+                   ELSE IF ( SpcInfo%Is_HgP ) THEN
+
+                      ! Archive dry-deposited HgP
+                      CALL ADD_HgP_DD( I, J, val                            )
+                      CALL ADD_Hg2_SNOWPACK( I,         J,                   & 
+                                             val,       State_Met,           &
+                                             State_Chm, State_Diag          )
+
+                   ENDIF
+                ENDIF
              ENDIF
 
 !             !---------------------------------------------------------------
