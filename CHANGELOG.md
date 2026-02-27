@@ -10,16 +10,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Changed
 - Updated `main.F90` and `gchp_chunk_mod.F90` to so that dry deposition is done after emissions
+- Added routine `Do_Drydep_Removal` to `GeosCore/drydep_mod.F90` to apply dry deposition loss to species
+- Added `BudgetDryDep*` History diagnostics
 
 ### Removed
 - Removed dry deposition loss code from routine `Do_Tend` (in `GeosCore/mixing_mod.F90`)
 - Removed code that computed surface dry depostion flux `dflx` in `Compute_Sflx_for_Vdiff` (in `GeosCore/hco_interface_gc_mod.F90`)
+- Removed dry deposition loss code from routine `Do_Tend` (in `GeosCore/mixing_mod.F90`)
 
 ## [14.8.0] - 2026-09-11
 ### Added
 - Added PSO4AQ and PH2SO4 as a product to certain reactions; see `KPP/fullchem/CHANGELOG_fullchem.md`
 - Added methanediol (MDL) as a transported gas-phase species and to the KPP fullchem and custom mechanisms
 - Added routine `Cloud_CH2O_MDL` in `KPP/fullchem/fullchem_SulfurChemFuncs.F90`
+<<<<<<< HEAD
 - Added multiphase sulfate chemistry, cloud Hplus diagnostic, and related prod/loss species per Travis et al. (2025), see `KPP/fullchem/CHANGELOG_fullchem.md`
 - Added `IONIC` output argument in calls to HETP driver routine `MACH_HETP_Main15Cases`
 - Added APM restart file paths to `run/shared/download_data.yml`
