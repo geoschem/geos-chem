@@ -2640,22 +2640,12 @@ CONTAINS
              IF ( drydep_id > 0 ) THEN
                 freq = State_Chm%DryDepFreq(I,J,drydep_id)
              ENDIF
-             if ( i==33 .and. j==10 .and. N==1 ) THEN
-                print*, '%%%----- ACET ', i, j, ' -----'
-                print*, '%%% dfreq 1/s            ', freq
-             endif
 
              ! Start with the air-to-sea deposition frequncy [s-1]
              ! as computed by the HEMCO "SeaFlux" extension.
              CALL GetHcoValDep( Input_Opt, State_Grid, N,     I,             &
                                 J,         1,          found, val           )
-             if  ( i==33 .and. j==10 .and. N==1 ) THEN
-                print*, '%%% seaflux 1/s          ', val
-             endif
              IF ( found ) freq = freq + val
-             if ( i==33 .and. j==10 .and. N==1 ) THEN
-                print*, '%%% dfreq + seaflux      ', freq
-             endif
              
 #ifndef MODEL_CESM
              ! Get PARANOX deposition loss [kg/m2/s], which will be 
@@ -2676,34 +2666,16 @@ CONTAINS
                 !------------------------------------------------------------
                 ! Perform removal of species by drydep
                 !------------------------------------------------------------
-                if ( i==33 .and. j==10 .and. N==1 ) THEN
-                   print*, '%%% drydep_dt            ', drydep_dt
-                   print*, '%%% -freq * drydep_dt    ', -freq * drydep_dt
-                endif
 
                 ! Compute fraction of species left after drydep
                 frac = EXP( -freq * drydep_dt )
-                if ( i==33 .and. j==10 .and. N==1 ) THEN
-                   print*, '%%% frac                 ', frac
-                   print*, '%%% 1.0 - frac           ', 1.0_fp - frac
-                   print*, '%%% spc kg/m2 before     ', &
-                        State_Chm%Species(N)%Conc(I,J,L)
-                endif
 
                 ! Compute drydep flux in kg/m2/s (needed for diagnostics)
                 flux = ( 1.0_fp - frac ) * State_Chm%Species(N)%Conc(I,J,L)
-                if ( i==33 .and. j==10 .and. N==1 ) THEN
-                   print*, '%%% flux kg/m2           ', flux
-                   print*, '%%% paranox loss kg/m2   ', paranox_loss
-                endif
 
                 ! Compute the species left after dry deposition [kg/m2]
                 State_Chm%Species(N)%Conc(I,J,L) =                           &
                 State_Chm%Species(N)%Conc(I,J,L) * frac
-                if ( i==33 .and. j==10 .and. N==1 ) THEN
-                   print*, '%%% spc kg/m2 after      ', &
-                        State_Chm%Species(N)%Conc(I,J,L)
-                endif
 #ifdef ADJOINT
                 IF ( Input_Opt%Is_Adjoint) THEN
                    State_Chm%SpeciesAdj(I,J,L,N) =                           &
@@ -2717,27 +2689,16 @@ CONTAINS
                    State_Chm%Species(N)%Conc(I,J,L) =                        &
                    State_Chm%Species(N)%Conc(I,J,L) - paranox_loss
                 ENDIF
-                if ( i==33 .and. j==10 .and. N==1 ) THEN
-                   print*, '%%% spc kg/m2 after pnox ', &
-                        State_Chm%Species(N)%Conc(I,J,L)
-                endif
-
 #endif
 
                 !------------------------------------------------------------
                 ! Compute drydep flux for diagnostics in [molec/cm2/s]
                 !------------------------------------------------------------
                 flux = flux + paranox_loss
-                if ( i==33 .and. j==10 .and. N==1 ) THEN
-                   print*, '%%% flux + paranox       ', flux
-                endif
 
                 ! Convert to [molec/cm2/s]
                 denom = ( mw_kg * drydep_dt * 1.0e+4_fp ) / AVO
                 flux  = Safe_Div( flux, denom, 0.0_fp )
-                if ( i==33 .and. j==10 .and. N==1 ) THEN
-                   print*, '%%% flux molec/cm2/s     ', flux
-                endif
 
                 ! Add drydep flux to the soil drydep 
                 IF ( Input_Opt%LSOILNOX ) THEN
@@ -2746,11 +2707,15 @@ CONTAINS
 
                 !------------------------------------------------------------
                 ! HISTORY: Archive drydep flux loss [molec/cm2/s]
+                ! NOTE: For now, keep the DryDepMix, we'll deal w/ it later
                 !------------------------------------------------------------
-                IF ( State_Diag%Archive_DryDep .and. drydep_id > 0 ) THEN
-                   S = State_Diag%Map_DryDep%id2slot(drydep_id)
-                   IF ( S > 0 ) THEN
-                      State_Diag%DryDep(I,J,S) = flux
+                IF ( State_Diag%Archive_DryDep      .or.                     &
+                     State_Diag%Archive_DryDepMix ) THEN
+                   IF ( drydep_id > 0 ) THEN
+                      S = State_Diag%Map_DryDepMix%id2slot(drydep_id)
+                      IF ( S > 0 ) THEN
+                         State_Diag%DryDepMix(I,J,S) = flux
+                      ENDIF
                    ENDIF
                 ENDIF
 

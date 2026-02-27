@@ -139,6 +139,22 @@ MODULE State_Diag_Mod
 
      !%%%%% Budget diagnostics %%%%%
 
+     REAL(f8),           POINTER :: BudgetDryDepFull(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetDryDepFull
+     LOGICAL                     :: Archive_BudgetDryDepFull
+
+     REAL(f8),           POINTER :: BudgetDryDepTrop(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetDryDepTrop
+     LOGICAL                     :: Archive_BudgetDryDepTrop
+
+     REAL(f8),           POINTER :: BudgetDryDepPBL(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetDryDepPBL
+     LOGICAL                     :: Archive_BudgetDryDepPBL
+
+     REAL(f8),           POINTER :: BudgetDryDepLevs(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetDryDepLevs
+     LOGICAL                     :: Archive_BudgetDryDepLevs
+
      REAL(f8),           POINTER :: BudgetEmisDryDepFull(:,:,:)
      TYPE(DgnMap),       POINTER :: Map_BudgetEmisDryDepFull
      LOGICAL                     :: Archive_BudgetEmisDryDepFull
@@ -238,6 +254,7 @@ MODULE State_Diag_Mod
      REAL(f8),           POINTER :: BudgetColumnMass(:,:,:,:)
      INTEGER                     :: BudgetBotLev_int
      INTEGER                     :: BudgetTopLev_int
+     LOGICAL                     :: Archive_BudgetDryDep
      LOGICAL                     :: Archive_BudgetEmisDryDep
      LOGICAL                     :: Archive_BudgetTransport
      LOGICAL                     :: Archive_BudgetMixing
@@ -1592,6 +1609,23 @@ CONTAINS
     State_Diag%Archive_FracOfTimeInTrop            = .FALSE.
 
     !%%%%% Budget diagnostics %%%%%
+
+    State_Diag%BudgetDryDepFull                    => NULL()
+    State_Diag%Map_BudgetDryDepFull                => NULL()
+    State_Diag%Archive_BudgetDryDepFull            = .FALSE.
+    State_Diag%Archive_BudgetDryDep                = .FALSE.
+
+    State_Diag%BudgetDryDepTrop                    => NULL()
+    State_Diag%Map_BudgetDryDepTrop                => NULL()
+    State_Diag%Archive_BudgetDryDepTrop            = .FALSE.
+
+    State_Diag%BudgetDryDepPBL                     => NULL()
+    State_Diag%Map_BudgetDryDepPBL                 => NULL()
+    State_Diag%Archive_BudgetDryDepPBL             = .FALSE.
+
+    State_Diag%BudgetDryDepLevs                    => NULL()
+    State_Diag%Map_BudgetDryDepLevs                => NULL()
+    State_Diag%Archive_BudgetDryDepLevs            = .FALSE.
 
     State_Diag%BudgetEmisDryDepFull                => NULL()
     State_Diag%Map_BudgetEmisDryDepFull            => NULL()
@@ -3144,6 +3178,105 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------------
+    ! Budget for dry deposition (average kg/m2/s across single timestep)
+    !-----------------------------------------------------------------------
+    diagID  = 'BudgetDryDepFull'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetDryDepFull,                       &
+         archiveData    = State_Diag%Archive_BudgetDryDepFull,               &
+         mapData        = State_Diag%Map_BudgetDryDepFull,                   &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    ! Trop-only emissions
+    diagID  = 'BudgetDryDepTrop'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetDryDepTrop,                       &
+         archiveData    = State_Diag%Archive_BudgetDryDepTrop,               &
+         mapData        = State_Diag%Map_BudgetDryDepTrop,                   &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    ! PBL-only emissions
+    diagID  = 'BudgetDryDepPBL'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetDryDepPBL,                        &
+         archiveData    = State_Diag%Archive_BudgetDryDepPBL,                &
+         mapData        = State_Diag%Map_BudgetDryDepPBL,                    &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    ! Fixed level range emissions
+    diagID  = 'BudgetDryDepLevs' // &
+               TRIM( budgetBotLev_str ) // 'to' // TRIM( budgetTopLev_str )
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetDryDepLevs,                       &
+         archiveData    = State_Diag%Archive_BudgetDryDepLevs,               &
+         mapData        = State_Diag%Map_BudgetDryDepLevs,                   &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    ! High-level logical for emissions budget
+    IF ( State_Diag%Archive_BudgetDryDepFull  .or.                           &
+         State_Diag%Archive_BudgetDryDepTrop  .or.                           &
+         State_Diag%Archive_BudgetDryDepLevs  .or.                           &
+         State_Diag%Archive_BudgetDryDepLevs ) THEN
+       State_Diag%Archive_BudgetDryDep = .TRUE.
+    ENDIF
+
+    !-----------------------------------------------------------------------
     ! Budget for emissions  (average kg/m2/s across single timestep)
     !-----------------------------------------------------------------------
     diagID  = 'BudgetEmisDryDepFull'
@@ -3740,16 +3873,17 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Top and bottom levels for budget level range diagnostics
     !------------------------------------------------------------------------
-    IF (State_Diag%Archive_BudgetEmisDryDepLevs    .or. &
-        State_Diag%Archive_BudgetTransportLevs     .or. &
-        State_Diag%Archive_BudgetMixingLevs        .or. &
-        State_Diag%Archive_BudgetConvectionLevs    .or. &
-        State_Diag%Archive_BudgetChemistryLevs     .or. &
-        State_Diag%Archive_BudgetWetDepLevs            ) THEN
+    IF ( State_Diag%Archive_BudgetDryDepLevs        .or.                     &
+         State_Diag%Archive_BudgetEmisDryDepLevs    .or.                     &
+         State_Diag%Archive_BudgetTransportLevs     .or.                     &
+         State_Diag%Archive_BudgetMixingLevs        .or.                     &
+         State_Diag%Archive_BudgetConvectionLevs    .or.                     &
+         State_Diag%Archive_BudgetChemistryLevs     .or.                     &
+         State_Diag%Archive_BudgetWetDepLevs      ) THEN
        READ( BudgetTopLev_str, '(i3)') State_Diag%BudgetTopLev_int
        READ( BudgetBotLev_str, '(i3)') State_Diag%BudgetBotLev_int
        IF ( ( State_Diag%BudgetBotLev_int <= 0 ) .OR. &
-            ( State_Diag%BudgetBotLev_int > State_Diag%BudgetTopLev_int ) .OR. &
+            ( State_Diag%BudgetBotLev_int > State_Diag%BudgetTopLev_int ) .or. &
             ( State_Diag%BudgetTopLev_int > State_Grid%NZ ) ) THEN
           errMsg = 'Budget diagnostic level range is not valid: ' // &
                TRIM(BudgetBotLev_str) // ' to ' //                   &
@@ -12329,141 +12463,151 @@ CONTAINS
 
     !========================================================================
     ! Set high-level logicals for diagnostics
-    !=======================================================================
-    State_Diag%Archive_Budget =  &
-                           ( State_Diag%Archive_BudgetEmisDryDepFull    .or. &
-                             State_Diag%Archive_BudgetEmisDryDepTrop    .or. &
-                             State_Diag%Archive_BudgetEmisDryDepPBL     .or. &
-                             State_Diag%Archive_BudgetEmisDryDepLevs    .or. &
-                             State_Diag%Archive_BudgetTransportFull     .or. &
-                             State_Diag%Archive_BudgetTransportTrop     .or. &
-                             State_Diag%Archive_BudgetTransportPBL      .or. &
-                             State_Diag%Archive_BudgetTransportLevs     .or. &
-                             State_Diag%Archive_BudgetMixingFull        .or. &
-                             State_Diag%Archive_BudgetMixingTrop        .or. &
-                             State_Diag%Archive_BudgetMixingPBL         .or. &
-                             State_Diag%Archive_BudgetMixingLevs        .or. &
-                             State_Diag%Archive_BudgetConvectionFull    .or. &
-                             State_Diag%Archive_BudgetConvectionTrop    .or. &
-                             State_Diag%Archive_BudgetConvectionPBL     .or. &
-                             State_Diag%Archive_BudgetConvectionLevs    .or. &
-                             State_Diag%Archive_BudgetChemistryFull     .or. &
-                             State_Diag%Archive_BudgetChemistryTrop     .or. &
-                             State_Diag%Archive_BudgetChemistryPBL      .or. &
-                             State_Diag%Archive_BudgetChemistryLevs     .or. &
-                             State_Diag%Archive_BudgetWetDepFull        .or. &
-                             State_Diag%Archive_BudgetWetDepTrop        .or. &
-                             State_Diag%Archive_BudgetWetDepPBL         .or. &
-                             State_Diag%Archive_BudgetWetDepLevs            )
+    !========================================================================
+    State_Diag%Archive_Budget = (                                            &
+         State_Diag%Archive_BudgetDryDepFull                            .or. &
+         State_Diag%Archive_BudgetDryDepTrop                            .or. &
+         State_Diag%Archive_BudgetDryDepPBL                             .or. &
+         State_Diag%Archive_BudgetDryDepLevs                            .or. &
+         State_Diag%Archive_BudgetEmisDryDepFull                        .or. &
+         State_Diag%Archive_BudgetEmisDryDepTrop                        .or. &
+         State_Diag%Archive_BudgetEmisDryDepPBL                         .or. &
+         State_Diag%Archive_BudgetEmisDryDepLevs                        .or. &
+         State_Diag%Archive_BudgetTransportFull                         .or. &
+         State_Diag%Archive_BudgetTransportTrop                         .or. &
+         State_Diag%Archive_BudgetTransportPBL                          .or. &
+         State_Diag%Archive_BudgetTransportLevs                         .or. &
+         State_Diag%Archive_BudgetMixingFull                            .or. &
+         State_Diag%Archive_BudgetMixingTrop                            .or. &
+         State_Diag%Archive_BudgetMixingPBL                             .or. &
+         State_Diag%Archive_BudgetMixingLevs                            .or. &
+         State_Diag%Archive_BudgetConvectionFull                        .or. &
+         State_Diag%Archive_BudgetConvectionTrop                        .or. &
+         State_Diag%Archive_BudgetConvectionPBL                         .or. &
+         State_Diag%Archive_BudgetConvectionLevs                        .or. &
+         State_Diag%Archive_BudgetChemistryFull                         .or. &
+         State_Diag%Archive_BudgetChemistryTrop                         .or. &
+         State_Diag%Archive_BudgetChemistryPBL                          .or. &
+         State_Diag%Archive_BudgetChemistryLevs                         .or. &
+         State_Diag%Archive_BudgetWetDepFull                            .or. &
+         State_Diag%Archive_BudgetWetDepTrop                            .or. &
+         State_Diag%Archive_BudgetWetDepPBL                             .or. &
+         State_Diag%Archive_BudgetWetDepLevs                                )
 
-    State_Diag%Archive_AerMass = ( State_Diag%Archive_AerMassASOA       .or. &
-                                   State_Diag%Archive_AerMassBC         .or. &
-                                   State_Diag%Archive_AerMassINDIOL     .or. &
-                                   State_Diag%Archive_AerMassISN1OA     .or. &
-                                   State_Diag%Archive_AerMassLVOCOA     .or. &
-                                   State_Diag%Archive_AerMassNH4        .or. &
-                                   State_Diag%Archive_AerMassNIT        .or. &
-                                   State_Diag%Archive_AerMassOPOA       .or. &
-                                   State_Diag%Archive_AerMassPOA        .or. &
-                                   State_Diag%Archive_AerMassSAL        .or. &
-                                   State_Diag%Archive_AerMassSO4        .or. &
-                                   State_Diag%Archive_AerMassHMS        .or. &  !(jmm, 06/29/18)
-                                   State_Diag%Archive_AerMassSOAGX      .or. &
-                                   State_Diag%Archive_AerMassSOAIE      .or. &
-                                   State_Diag%Archive_AerMassTSOA       .or. &
-                                   State_Diag%Archive_BetaNO            .or. &
-                                   State_Diag%Archive_PM25              .or. &
-                                   State_Diag%Archive_PM10              .or. &
-                                   State_Diag%Archive_TotalOA           .or. &
-                                   State_Diag%Archive_TotalOC           .or. &
-                                   State_Diag%Archive_TotalBiogenicOA       )
+    State_Diag%Archive_AerMass = (                                           &
+         State_Diag%Archive_AerMassASOA                                 .or. &
+         State_Diag%Archive_AerMassBC                                   .or. &
+         State_Diag%Archive_AerMassINDIOL                               .or. &
+         State_Diag%Archive_AerMassISN1OA                               .or. &
+         State_Diag%Archive_AerMassLVOCOA                               .or. &
+         State_Diag%Archive_AerMassNH4                                  .or. &
+         State_Diag%Archive_AerMassNIT                                  .or. &
+         State_Diag%Archive_AerMassOPOA                                 .or. &
+         State_Diag%Archive_AerMassPOA                                  .or. &
+         State_Diag%Archive_AerMassSAL                                  .or. &
+         State_Diag%Archive_AerMassSO4                                  .or. &
+         State_Diag%Archive_AerMassHMS                                  .or. &
+         State_Diag%Archive_AerMassSOAGX                                .or. &
+         State_Diag%Archive_AerMassSOAIE                                .or. &
+         State_Diag%Archive_AerMassTSOA                                 .or. &
+         State_Diag%Archive_BetaNO                                      .or. &
+         State_Diag%Archive_PM25                                        .or. &
+         State_Diag%Archive_PM10                                        .or. &
+         State_Diag%Archive_TotalOA                                     .or. &
+         State_Diag%Archive_TotalOC                                     .or. &
+         State_Diag%Archive_TotalBiogenicOA                                 )
 
 #ifdef TOMAS
-    State_Diag%Archive_Tomas  = ( State_Diag%Archive_TomasH2SO4mass         .or. &
-                                  State_Diag%Archive_TomasH2SO4number       .or. &
-                                  State_Diag%Archive_TomasCOAGmass          .or. &
-                                  State_Diag%Archive_TomasCOAGnumber        .or. &
-                                  State_Diag%Archive_TomasNUCRATEFN         .or. &
-                                  State_Diag%Archive_TomasNUCLmass          .or. &
-                                  State_Diag%Archive_TomasNUCLnumber        .or. &
-                                  State_Diag%Archive_TomasNUCRATEnumber     .or. &
-                                  State_Diag%Archive_TomasAQOXmass          .or. &
-                                  State_Diag%Archive_TomasAQOXnumber        .or. &
-                                  State_Diag%Archive_TomasMNFIXmass         .or. &
-                                  State_Diag%Archive_TomasMNFIXnumber       .or. &
-                                  State_Diag%Archive_TomasMNFIXh2so4mass    .or. &
-                                  State_Diag%Archive_TomasMNFIXh2so4number  .or. &
-                                  State_Diag%Archive_TomasMNFIXcoagmass     .or. &
-                                  State_Diag%Archive_TomasMNFIXcoagnumber   .or. &
-                                  State_Diag%Archive_TomasMNFIXaqoxmass     .or. &
-                                  State_Diag%Archive_TomasMNFIXaqoxnumber   .or. &
-                                  State_Diag%Archive_TomasMNFIXezwat1mass   .or. &
-                                  State_Diag%Archive_TomasMNFIXezwat1number .or. &
-                                  State_Diag%Archive_TomasMNFIXezwat2mass   .or. &
-                                  State_Diag%Archive_TomasMNFIXezwat2number .or. &
-                                  State_Diag%Archive_TomasMNFIXezwat3mass   .or. &
-                                  State_Diag%Archive_TomasMNFIXezwat3number .or. &
-                                  State_Diag%Archive_TomasMNFIXcheck1mass   .or. &
-                                  State_Diag%Archive_TomasMNFIXcheck1number .or. &
-                                  State_Diag%Archive_TomasMNFIXcheck2mass   .or. &
-                                  State_Diag%Archive_TomasMNFIXcheck2number .or. &
-                                  State_Diag%Archive_TomasMNFIXcheck3mass   .or. &
-                                  State_Diag%Archive_TomasMNFIXcheck3number .or. &
-                                  State_Diag%Archive_TomasSOAmass           .or. &
-                                  State_Diag%Archive_TomasSOAnumber         )
+    State_Diag%Archive_Tomas  = (                                            &
+         State_Diag%Archive_TomasH2SO4mass                              .or. &
+         State_Diag%Archive_TomasH2SO4number                            .or. &
+         State_Diag%Archive_TomasCOAGmass                               .or. &
+         State_Diag%Archive_TomasCOAGnumber                             .or. &
+         State_Diag%Archive_TomasNUCRATEFN                              .or. &
+         State_Diag%Archive_TomasNUCLmass                               .or. &
+         State_Diag%Archive_TomasNUCLnumber                             .or. &
+         State_Diag%Archive_TomasNUCRATEnumber                          .or. &
+         State_Diag%Archive_TomasAQOXmass                               .or. &
+         State_Diag%Archive_TomasAQOXnumber                             .or. &
+         State_Diag%Archive_TomasMNFIXmass                              .or. &
+         State_Diag%Archive_TomasMNFIXnumber                            .or. &
+         State_Diag%Archive_TomasMNFIXh2so4mass                         .or. &
+         State_Diag%Archive_TomasMNFIXh2so4number                       .or. &
+         State_Diag%Archive_TomasMNFIXcoagmass                          .or. &
+         State_Diag%Archive_TomasMNFIXcoagnumber                        .or. &
+         State_Diag%Archive_TomasMNFIXaqoxmass                          .or. &
+         State_Diag%Archive_TomasMNFIXaqoxnumber                        .or. &
+         State_Diag%Archive_TomasMNFIXezwat1mass                        .or. &
+         State_Diag%Archive_TomasMNFIXezwat1number                      .or. &
+         State_Diag%Archive_TomasMNFIXezwat2mass                        .or. &
+         State_Diag%Archive_TomasMNFIXezwat2number                      .or. &
+         State_Diag%Archive_TomasMNFIXezwat3mass                        .or. &
+         State_Diag%Archive_TomasMNFIXezwat3number                      .or. &
+         State_Diag%Archive_TomasMNFIXcheck1mass                        .or. &
+         State_Diag%Archive_TomasMNFIXcheck1number                      .or. &
+         State_Diag%Archive_TomasMNFIXcheck2mass                        .or. &
+         State_Diag%Archive_TomasMNFIXcheck2number                      .or. &
+         State_Diag%Archive_TomasMNFIXcheck3mass                        .or. &
+         State_Diag%Archive_TomasMNFIXcheck3number                      .or. &
+         State_Diag%Archive_TomasSOAmass                                .or. &
+         State_Diag%Archive_TomasSOAnumber                                  )
 #endif
 
-    State_Diag%Archive_AOD  = ( State_Diag%Archive_AODHygWL1            .or. &
-                                State_Diag%Archive_AODHygWL2            .or. &
-                                State_Diag%Archive_AODHygWL3            .or. &
-                                State_Diag%Archive_PDER                 .or. & ! H. Zhu, April 05, 2024
-                                State_Diag%Archive_AODSOAfromAqIsopWL1  .or. &
-                                State_Diag%Archive_AODSOAfromAqIsopWL2  .or. &
-                                State_Diag%Archive_AODSOAfromAqIsopWL3  .or. &
-                                State_Diag%Archive_AODDust              .or. &
-                                State_Diag%Archive_AODDustWL1           .or. &
-                                State_Diag%Archive_AODDustWL2           .or. &
-                                State_Diag%Archive_AODDustWL3               )
+    State_Diag%Archive_AOD  = (                                              &
+         State_Diag%Archive_AODHygWL1                                   .or. &
+         State_Diag%Archive_AODHygWL2                                   .or. &
+         State_Diag%Archive_AODHygWL3                                   .or. &
+         State_Diag%Archive_PDER                                        .or. & 
+         State_Diag%Archive_AODSOAfromAqIsopWL1                         .or. &
+         State_Diag%Archive_AODSOAfromAqIsopWL2                         .or. &
+         State_Diag%Archive_AODSOAfromAqIsopWL3                         .or. &
+         State_Diag%Archive_AODDust                                     .or. &
+         State_Diag%Archive_AODDustWL1                                  .or. &
+         State_Diag%Archive_AODDustWL2                                  .or. &
+         State_Diag%Archive_AODDustWL3                                      )
 
-    State_Diag%Archive_AODStrat = ( State_Diag%Archive_AODSLAWL1        .or. &
-                                    State_Diag%Archive_AODSLAWL2        .or. &
-                                    State_Diag%Archive_AODSLAWL3        .or. &
-                                    State_Diag%Archive_AODPSCWL1        .or. &
-                                    State_Diag%Archive_AODPSCWL2        .or. &
-                                    State_Diag%Archive_AODPSCWL3        .or. &
-                                    State_Diag%Archive_AerNumDenSLA     .or. &
-                                    State_Diag%Archive_AerNumDenPSC        )
+    State_Diag%Archive_AODStrat = (                                          &
+         State_Diag%Archive_AODSLAWL1                                   .or. &
+         State_Diag%Archive_AODSLAWL2                                   .or. &
+         State_Diag%Archive_AODSLAWL3                                   .or. &
+         State_Diag%Archive_AODPSCWL1                                   .or. &
+         State_Diag%Archive_AODPSCWL2                                   .or. &
+         State_Diag%Archive_AODPSCWL3                                   .or. &
+         State_Diag%Archive_AerNumDenSLA                                .or. &
+         State_Diag%Archive_AerNumDenPSC                                    )
 
-    State_Diag%Archive_ConcAboveSfc =                                        &
-                                 ( State_Diag%Archive_SpeciesConcALT1  .and. &
-                                   State_Diag%Archive_DryDepRaALT1     .and. &
-                                   State_Diag%Archive_DryDepVelForALT1      )
+    State_Diag%Archive_ConcAboveSfc = (                                      &
+         State_Diag%Archive_SpeciesConcALT1                            .and. &
+         State_Diag%Archive_DryDepRaALT1                               .and. &
+         State_Diag%Archive_DryDepVelForALT1                                )
 
-    State_Diag%Archive_KppDiags = ( State_Diag%Archive_KppIntCounts       .or. &
-                                    State_Diag%Archive_KppJacCounts       .or. &
-                                    State_Diag%Archive_KppTotSteps        .or. &
-                                    State_Diag%Archive_KppAccSteps        .or. &
-                                    State_Diag%Archive_KppRejSteps        .or. &
-                                    State_Diag%Archive_KppLuDecomps       .or. &
-                                    State_Diag%Archive_KppSubsts          .or. &
-                                    State_Diag%Archive_KppSmDecomps       .or. &
-                                    State_Diag%Archive_KppNegatives       .or. &
-                                    State_Diag%Archive_KppNegatives0      .or. &
-                                    State_Diag%Archive_KppAutoReducerNVAR .or. &
-                                    State_Diag%Archive_KppAutoReduceThres .or. &
-                                    State_Diag%Archive_KppcNONZERO        .or. &
-                                    State_Diag%Archive_KppTime            .or. &
-                                    State_Diag%Archive_KppDiags             )
+    State_Diag%Archive_KppDiags = (                                          &
+         State_Diag%Archive_KppIntCounts                                .or. &
+         State_Diag%Archive_KppJacCounts                                .or. &
+         State_Diag%Archive_KppTotSteps                                 .or. &
+         State_Diag%Archive_KppAccSteps                                 .or. &
+         State_Diag%Archive_KppRejSteps                                 .or. &
+         State_Diag%Archive_KppLuDecomps                                .or. &
+         State_Diag%Archive_KppSubsts                                   .or. &
+         State_Diag%Archive_KppSmDecomps                                .or. &
+         State_Diag%Archive_KppNegatives                                .or. &
+         State_Diag%Archive_KppNegatives0                               .or. &
+         State_Diag%Archive_KppAutoReducerNVAR                          .or. &
+         State_Diag%Archive_KppAutoReduceThres                          .or. &
+         State_Diag%Archive_KppcNONZERO                                 .or. &
+         State_Diag%Archive_KppTime                                     .or. &
+         State_Diag%Archive_KppDiags                                        )
 
-    State_Diag%Archive_RadOptics  = ( State_Diag%Archive_RadAODWL1     .or. &
-                                      State_Diag%Archive_RadAODWL2     .or. &
-                                      State_Diag%Archive_RadAODWL3     .or. &
-                                      State_Diag%Archive_RadSSAWL1     .or. &
-                                      State_Diag%Archive_RadSSAWL2     .or. &
-                                      State_Diag%Archive_RadSSAWL3     .or. &
-                                      State_Diag%Archive_RadAsymWL1    .or. &
-                                      State_Diag%Archive_RadAsymWL2    .or. &
-                                      State_Diag%Archive_RadAsymWL3        )
+    State_Diag%Archive_RadOptics  = (                                        &
+         State_Diag%Archive_RadAODWL1                                   .or. &
+         State_Diag%Archive_RadAODWL2                                   .or. &
+         State_Diag%Archive_RadAODWL3                                   .or. &
+         State_Diag%Archive_RadSSAWL1                                   .or. &
+         State_Diag%Archive_RadSSAWL2                                   .or. &
+         State_Diag%Archive_RadSSAWL3                                   .or. &
+         State_Diag%Archive_RadAsymWL1                                  .or. &
+         State_Diag%Archive_RadAsymWL2                                  .or. &
+         State_Diag%Archive_RadAsymWL3                                      )
 
     State_Diag%Archive_Metrics = (                                           &
          State_Diag%Archive_AirMassColumnFull                           .or. &
@@ -12592,6 +12736,30 @@ CONTAINS
 
     CALL Finalize( diagId   = 'BudgetColumnMass',                            &
                    Ptr2Data = State_Diag%BudgetColumnMass,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'BudgetDryDepFull',                            &
+                   Ptr2Data = State_Diag%BudgetDryDepFull,                   &
+                   mapData  = State_Diag%Map_BudgetDryDepFull,               &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'BudgetDryDepTrop',                            &
+                   Ptr2Data = State_Diag%BudgetDryDepTrop,                   &
+                   mapData  = State_Diag%Map_BudgetDryDepTrop,               &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'BudgetDryDepPBL',                             &
+                   Ptr2Data = State_Diag%BudgetDryDepPBL,                    &
+                   mapData  = State_Diag%Map_BudgetDryDepPBL,                &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'BudgetDryDepLevs',                            &
+                   Ptr2Data = State_Diag%BudgetDryDepLevs,                   &
+                   mapData  = State_Diag%Map_BudgetDryDepLevs,               &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -14619,7 +14787,28 @@ CONTAINS
        IF ( isTagged  ) TagId = 'ADV'
  
        ! Set description based on diagnostic name
-       IF ( TRIM( Name_AllCaps ) == 'BUDGETEMISDRYDEPFULL' ) THEN
+       IF ( TRIM( Name_AllCaps ) == 'BUDGETDRYDEPFULL' ) THEN
+          IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
+                                   'for dry deposition'
+       
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETDRYDEPTROP' ) THEN
+          IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
+                                   'change in column for dry deposition'
+       
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETDRYDEPPBL' ) THEN
+          IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change '  // &
+                                   'in column for dry deposition'
+
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETEMISDRYDEPLEVS'              &
+                                         // TRIM(budgetBotLev_str) // 'TO'   &
+                                         // TRIM(budgetTopLev_str) ) THEN
+          IF ( isDesc    ) Desc  =                                           &
+               'Total mass rate of change in column levels '              // &
+               TRIM(budgetBotLev_str) // ' to '                           // &
+               TRIM(budgetTopLev_str)                                     // &
+               ' for dry deposition'
+     
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETEMISDRYDEPFULL' ) THEN
           IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
                                    'for emissions and dry deposition'
        
