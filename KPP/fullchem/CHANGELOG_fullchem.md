@@ -4,6 +4,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 # Mechanism history
 
+## [Unreleased] - TBD
+### Fixed
+- Added PSO4AQ as a product to the SO2 + H2O2 rxn
+- Added PSO4AQ as a product to the SO2 + O3 rxn
+- Added PSO4AQ as a product to the SO2 {+O2} rxn
+- Added PH2SO4 as a product to the HOCl + SO2 rxn
+- Added PH2SO4 as a product to the HOBr + SO2 rxn
+
 ## [14.5.0] - TBD
 - Added four new species ALK4N1, ALK4N2, ALK4O2, and ALK4P to address issues in ALK4 and R4N2 chemistry following Brewer et al. (2023, JGR)
 - Added ALK4N1 and ALK4N2 to Ox family in KPP
