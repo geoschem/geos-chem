@@ -1796,12 +1796,12 @@ ITHN = IONITA :                VOCuptk1stOrd( SR_MW(ind_ITHN), 5.0E-3_dp, State_
 MCRHNB = IONITA :              VOCuptk1stOrd( SR_MW(ind_MCRHNB), 5.0E-3_dp, State_Het );                    {2019/11/06; Bates2019; KHB}
 MCRHN = IONITA :               VOCuptk1stOrd( SR_MW(ind_MCRHN), 5.0E-3_dp, State_Het );                     {2019/11/06; Bates2019; KHB}
 NPHEN = AONITA :               VOCuptk1stOrd( SR_MW(ind_NPHEN), 1.0E-2_dp, State_Het );                     {2021/09/29; Bates2021b; KHB,MSL}
-SO2 + H2O2  = SO4 + PSO4MP :   SO2uptkbyH2O2(State_Het);
-SO2 + O3    = SO4 + PSO4MP :   SO2uptkbyO3(State_Het);
-SO2 {+O2}   = SO4 + PSO4MP :   SO2uptkbyTMIO2(State_Het);
-SO2 + NO2   = SO4 + PSO4MP :   SO2uptkbyNO2(State_Het);
-SO2 + CH2O  = HMS + PSO4MP :   SO2uptkbyCH2O(State_Het);
-HMS         = SO2 + CH2O + PHMSMP :    HMSDecomp(State_Het);
+SO2 + H2O2  = SO4 + PSO4MP :   SO2uptkbyH2O2(State_Het);                                                    {2026/03/02; Travis2025; KRT}
+SO2 + O3    = SO4 + PSO4MP :   SO2uptkbyO3(State_Het);                                                      {2026/03/02; Travis2025; KRT}
+SO2 {+O2}   = SO4 + PSO4MP :   SO2uptkbyTMIO2(State_Het);                                                   {2026/03/02; Travis2025; KRT}
+SO2 + NO2   = SO4 + PSO4MP :   SO2uptkbyNO2(State_Het);                                                     {2026/03/02; Travis2025; KRT}
+SO2 + CH2O  = HMS + PSO4MP :   SO2uptkbyCH2O(State_Het);                                                    {2026/03/02; Travis2025; KRT}
+HMS         = SO2 + CH2O + PHMSMP :    HMSDecomp(State_Het);                                                {2026/03/02; Travis2025; KRT}
 HMS + OH + SO2  = 2SO4 + CH2O + 2PSO4MP : HMSOxidation(State_Het);                                          {2026/03/02; Travis2025; KRT}       
 //
 //
