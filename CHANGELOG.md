@@ -135,7 +135,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Reordered code in `aerosol_mod.F90` and `gc_environment_mod.F90` so that aerosol optics file paths will be printed to the dry-run log file
 - Fixed wrong mass flux and Courant number import scaling for GCHP runs that read these fields from offline files
 - Corrected GCHP carbon HISTORY.rc entries for KPPdiags, RxnRates, and RxnConst collections
-=======
 
 ### Removed
 - Removed `#ifndef TOMAS` block at the start of the parallel loop in `DO_CONVECTION`

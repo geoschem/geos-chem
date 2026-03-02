@@ -11,7 +11,7 @@ GEOS-Chem KPP file containing species and equations for the full chemistry
 FILE HISTORY
 ===============================================================================
 
-Version: 14.5.0
+Version: 14.8.0
 
 Please see "CHANGELOG_fullchem.md" in this folder for the revision history
 of the fullchem mechanism.
@@ -1802,7 +1802,7 @@ SO2 {+O2}   = SO4 + PSO4MP :   SO2uptkbyTMIO2(State_Het);
 SO2 + NO2   = SO4 + PSO4MP :   SO2uptkbyNO2(State_Het);
 SO2 + CH2O  = HMS + PSO4MP :   SO2uptkbyCH2O(State_Het);
 HMS         = SO2 + CH2O + PHMSMP :    HMSDecomp(State_Het);
-HMS + OH + SO2  = 2SO4 + CH2O + 2PSO4MP :               HMSOxidation(State_Het);
+HMS + OH + SO2  = 2SO4 + CH2O + 2PSO4MP : HMSOxidation(State_Het);                                          {2026/03/02; Travis2025; KRT}       
 //
 //
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
