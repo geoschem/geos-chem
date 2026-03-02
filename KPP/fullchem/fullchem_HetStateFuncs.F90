@@ -127,7 +127,7 @@ CONTAINS
     REAL(dp) :: Ks1, Ks2, HCSO2_a
     REAL(dp) :: XSO2g_a, PATM, SO2, CNVFAC, RHO,RHO_num, id_pFe
     REAL(dp) :: ff, k9, k10,A, B, Beta, b1
-    INTEGER  :: id_NO2, id_O3, id_SO2, id_DSTbin1, id_DSTbin2, id_DSTbin3,
+    INTEGER  :: id_NO2, id_O3, id_SO2, id_DSTbin1, id_DSTbin2, id_DSTbin3
     INTEGER  :: id_DSTbin4, id_DSTbin5, id_DSTbin6, id_DSTbin7
 
     ! Pointers
@@ -309,16 +309,13 @@ CONTAINS
     !--------------------------------------------------------
     ! Get dust concentrations [MND -> ng/m3]
     ! Get the MW_g from DSTbin1, all dust bins have the same MW
-    DUST = (                                                                &
-             ( Spc(id_DSTbin1)%Conc(I,J,L) +                                &
-               Spc(id_DSTbin2)%Conc(I,J,L) +                                &
-               Spc(id_DSTbin3)%Conc(I,J,L) +                                &
-               Spc(id_DSTbin4)%Conc(I,J,L) +                                &
-             ) * 0.7_dp                    +                                &
-             Spc(id_DSTbin5)%Conc(I,J,L)   +                                &
-             Spc(id_DSTbin6)%Conc(I,J,L)   +                                &
-             Spc(id_DSTbin7)%Conc(I,J,L)                                    &
-           )                                                                &
+    DUST = ( Spc(id_DSTbin1)%Conc(I,J,L) +                                  &
+             Spc(id_DSTbin2)%Conc(I,J,L) +                                  &
+             Spc(id_DSTbin3)%Conc(I,J,L) +                                  &
+             Spc(id_DSTbin4)%Conc(I,J,L) +                                  &
+             Spc(id_DSTbin5)%Conc(I,J,L) +                                  &
+             Spc(id_DSTbin6)%Conc(I,J,L) +                                  &
+             Spc(id_DSTbin7)%Conc(I,J,L)   )                                &
          * 1.e+15_dp                                                        &
          * State_Chm%SpcData(id_DSTbin1)%Info%MW_g                          &
          / AVO
