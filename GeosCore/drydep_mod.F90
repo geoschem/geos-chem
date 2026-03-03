@@ -2707,14 +2707,13 @@ CONTAINS
 
                 !------------------------------------------------------------
                 ! HISTORY: Archive drydep flux loss [molec/cm2/s]
-                ! NOTE: For now, keep the DryDepMix, we'll deal w/ it later
                 !------------------------------------------------------------
                 IF ( State_Diag%Archive_DryDep      .or.                     &
-                     State_Diag%Archive_DryDepMix ) THEN
+                     State_Diag%Archive_DryDepFlx ) THEN
                    IF ( drydep_id > 0 ) THEN
-                      S = State_Diag%Map_DryDepMix%id2slot(drydep_id)
+                      S = State_Diag%Map_DryDepFlx%id2slot(drydep_id)
                       IF ( S > 0 ) THEN
-                         State_Diag%DryDepMix(I,J,S) = flux
+                         State_Diag%DryDepFlx(I,J,S) = flux
                       ENDIF
                    ENDIF
                 ENDIF

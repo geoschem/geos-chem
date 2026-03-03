@@ -1357,7 +1357,8 @@ PROGRAM GEOS_Chem
              ENDIF
 
              !---------------------------------------------------------------
-             ! Remove species by dry deposition
+             ! Apply dry deposition frequencies to species concentrations
+             ! to compute removal of species by dry deposition
              !---------------------------------------------------------------
              CALL Do_DryDep_Removal( Input_Opt,  State_Chm, State_Diag,      &
                                      State_Grid, State_Met, RC              )

@@ -269,9 +269,9 @@ MODULE State_Diag_Mod
      TYPE(DgnMap),       POINTER :: Map_DryDepChm
      LOGICAL                     :: Archive_DryDepChm
 
-     REAL(f4),           POINTER :: DryDepMix(:,:,:)
-     TYPE(DgnMap),       POINTER :: Map_DryDepMix
-     LOGICAL                     :: Archive_DryDepMix
+     REAL(f4),           POINTER :: DryDepFlx(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_DryDepFlx
+     LOGICAL                     :: Archive_DryDepFlx
 
      REAL(f4),           POINTER :: DryDep(:,:,:)
      TYPE(DgnMap),       POINTER :: Map_DryDep
@@ -1741,9 +1741,9 @@ CONTAINS
     State_Diag%Map_DryDepChm                       => NULL()
     State_Diag%Archive_DryDepChm                   = .FALSE.
 
-    State_Diag%DryDepMix                           => NULL()
-    State_Diag%Map_DryDepMix                       => NULL()
-    State_Diag%Archive_DryDepMix                   = .FALSE.
+    State_Diag%DryDepFlx                           => NULL()
+    State_Diag%Map_DryDepFlx                       => NULL()
+    State_Diag%Archive_DryDepFlx                   = .FALSE.
 
     State_Diag%DryDep                              => NULL()
     State_Diag%Map_DryDep                          => NULL()
@@ -3957,8 +3957,8 @@ CONTAINS
 
     IF ( found ) THEN
 
-       ! If DryDepMix is in the DiagList, then allocate all corresponding
-       ! State_Diag fields and register the DryDepMix diagnostic
+       ! If DryDepFlx is in the DiagList, then allocate all corresponding
+       ! State_Diag fields and register the DryDepFlx diagnostic
        diagID  = 'DryDepChm'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
@@ -3986,7 +3986,7 @@ CONTAINS
        ! If "DryDep" is registered but "DryDepChm" is not, then initialize
        ! the State_Diag%DryDepChm fields but do not register the diagnostic.
        IF ( forceDefine ) THEN
-          CALL Init_NoRegister_DryDepChmMix( State_Diag, RC, Chm=.TRUE. )
+          CALL Init_NoRegister_DryDepChmFlx( State_Diag, RC, Chm=.TRUE. )
        ENDIF
 
     ENDIF
@@ -3997,14 +3997,14 @@ CONTAINS
     ! but do not register individual fields unless they are in HISTORY.rc
     !------------------------------------------------------------------------
 
-    ! Check if the "DryDepMix" diagnostic is also in the DiagList
-    CALL Check_DiagList( am_I_Root, Diag_List, 'DryDepMix', found, RC )
+    ! Check if the "DryDepFlx" diagnostic is also in the DiagList
+    CALL Check_DiagList( am_I_Root, Diag_List, 'DryDepFlx', found, RC )
 
     IF ( found ) THEN
 
-       ! If DryDepMix is in the DiagList, then allocate all
+       ! If DryDepFlx is in the DiagList, then allocate all
        ! corresponding State_Diag fields and register the diagnostic
-       diagID  = 'DryDepMix'
+       diagID  = 'DryDepFlx'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
             State_Chm      = State_Chm,                                      &
@@ -4012,9 +4012,9 @@ CONTAINS
             State_Grid     = State_Grid,                                     &
             DiagList       = Diag_List,                                      &
             TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%DryDepMix,                           &
-            archiveData    = State_Diag%Archive_DryDepMix,                   &
-            mapData        = State_Diag%Map_DryDepMix,                       &
+            Ptr2Data       = State_Diag%DryDepFlx,                           &
+            archiveData    = State_Diag%Archive_DryDepFlx,                   &
+            mapData        = State_Diag%Map_DryDepFlx,                       &
             forceDefine    = forceDefine,                                    &
             diagId         = diagId,                                         &
             diagFlag       = 'D',                                            &
@@ -4028,10 +4028,10 @@ CONTAINS
 
     ELSE
 
-       ! If "DryDep" is registered but "DryDepMix" is not, then initialize
-       ! the State_Diag%DryDepMix fields but do not register the diagnostic.
+       ! If "DryDep" is registered but "DryDepFlx" is not, then initialize
+       ! the State_Diag%DryDepFlx fields but do not register the diagnostic.
        IF ( forceDefine ) THEN
-          CALL Init_NoRegister_DryDepChmMix( State_Diag, RC, Mix=.TRUE. )
+          CALL Init_NoRegister_DryDepChmFlx( State_Diag, RC, Mix=.TRUE. )
        ENDIF
 
     ENDIF
@@ -12913,9 +12913,9 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    CALL Finalize( diagId   = 'DryDepMix',                                   &
-                   Ptr2Data = State_Diag%DryDepMix,                          &
-                   mapData  = State_Diag%Map_DryDepMix,                      &
+    CALL Finalize( diagId   = 'DryDepFlx',                                   &
+                   Ptr2Data = State_Diag%DryDepFlx,                          &
+                   mapData  = State_Diag%Map_DryDepFlx,                      &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -14952,14 +14952,14 @@ CONTAINS
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'DRY'
 
-    ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPMIX' ) THEN
-       IF ( isDesc    ) Desc  = 'Dry deposition flux of species, from mixing'
+    ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPFLX' ) THEN
+       IF ( isDesc    ) Desc  = 'Dry deposition flux of species (excluding settling)'
        IF ( isUnits   ) Units = 'molec cm-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'DRY'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEP' ) THEN
-       IF ( isDesc    ) Desc  = 'Dry deposition flux of species'
+       IF ( isDesc    ) Desc  = 'Total dry deposition flux of species'
        IF ( isUnits   ) Units = 'molec cm-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'DRY'
@@ -21051,15 +21051,15 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Init_NoRegister_DryDepChemMix
+! !IROUTINE: Init_NoRegister_DryDepChemFlx
 !
-! !DESCRIPTION: Initializes but does not register the DryDepChm and DryDepMix
+! !DESCRIPTION: Initializes but does not register the DryDepChm and DryDepFlx
 !  arrays.  These are needed for the DryDep or SatDiagnDryDep diagnostics.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_NoRegister_DryDepChmMix( State_Diag, RC, Chm, Mix )
+  SUBROUTINE Init_NoRegister_DryDepChmFlx( State_Diag, RC, Chm, Mix )
 !
 ! !USES:
 !
@@ -21068,7 +21068,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,        OPTIONAL      :: Chm          ! Init DryDepChm arrays
-    LOGICAL,        OPTIONAL      :: Mix          ! Init DryDepMix arrays
+    LOGICAL,        OPTIONAL      :: Mix          ! Init DryDepFlx arrays
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -21179,55 +21179,55 @@ CONTAINS
     ENDIF
 
     !========================================================================
-    ! Initialize the DryDepMix array
+    ! Initialize the DryDepFlx array
     !========================================================================
     IF ( initMix ) THEN
 
-       ! Only allocate the DryDepMix array if necessary
-       State_Diag%Archive_DryDepMix = ( isDryDep .or. isSatDgn )
+       ! Only allocate the DryDepFlx array if necessary
+       State_Diag%Archive_DryDepFlx = ( isDryDep .or. isSatDgn )
 
        ! Allocate
-       IF ( State_Diag%Archive_DryDepMix ) THEN
+       IF ( State_Diag%Archive_DryDepFlx ) THEN
 
           ! Initialize
-          ALLOCATE( State_Diag%DryDepMix( NX, NY, NW ), STAT=RC )
-          CALL GC_CheckVar( 'State_Diag%DryDepMix', 0, RC )
+          ALLOCATE( State_Diag%DryDepFlx( NX, NY, NW ), STAT=RC )
+          CALL GC_CheckVar( 'State_Diag%DryDepFlx', 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
-          State_diag%DryDepMix = 0.0_f4
+          State_diag%DryDepFlx = 0.0_f4
 
           ! Initialize the mapping object
-          ALLOCATE( State_Diag%Map_DryDepMix, STAT=RC )
-          CALL GC_CheckVar( 'State_Diag%Map_DryDepMix', 0, RC )
+          ALLOCATE( State_Diag%Map_DryDepFlx, STAT=RC )
+          CALL GC_CheckVar( 'State_Diag%Map_DryDepFlx', 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
 
           ! Initialize slot2Id vector
-          State_Diag%Map_DryDepMix%nSlots = nSlots
-          ALLOCATE( State_Diag%Map_DryDepMix%slot2Id(nSlots), STAT=RC )
-          CALL GC_CheckVar( 'State_Diag%Map_DryDepMix%slot2Id', 0, RC )
+          State_Diag%Map_DryDepFlx%nSlots = nSlots
+          ALLOCATE( State_Diag%Map_DryDepFlx%slot2Id(nSlots), STAT=RC )
+          CALL GC_CheckVar( 'State_Diag%Map_DryDepFlx%slot2Id', 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           IF ( isDryDep ) THEN
-             State_Diag%Map_DryDepMix%slot2Id =                              &
+             State_Diag%Map_DryDepFlx%slot2Id =                              &
                   State_Diag%Map_DryDep%slot2Id
           ELSE IF ( isSatDgn ) THEN
-             State_Diag%Map_DryDepMix%slot2Id =                              &
+             State_Diag%Map_DryDepFlx%slot2Id =                              &
                State_Diag%Map_SatDiagnDryDep%slot2Id
           ENDIF
 
           ! Initialize id2slot vector
-          State_Diag%Map_DryDepMix%nIds = nIds
-          ALLOCATE( State_Diag%Map_DryDepMix%id2slot(nIds), STAT=RC )
-          CALL GC_CheckVar( 'State_Diag%Map_DryDepMix%id2slot', 0, RC )
+          State_Diag%Map_DryDepFlx%nIds = nIds
+          ALLOCATE( State_Diag%Map_DryDepFlx%id2slot(nIds), STAT=RC )
+          CALL GC_CheckVar( 'State_Diag%Map_DryDepFlx%id2slot', 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           IF ( isDryDep ) THEN
-             State_Diag%Map_DryDepMix%id2slot =                              &
+             State_Diag%Map_DryDepFlx%id2slot =                              &
                   State_Diag%Map_DryDep%id2slot
           ELSE IF ( isSatDgn ) THEN
-             State_Diag%Map_DryDepMix%id2slot =                              &
+             State_Diag%Map_DryDepFlx%id2slot =                              &
                   State_Diag%Map_SatDiagnDryDep%id2slot
           ENDIF
        ENDIF
     ENDIF
 
-  END SUBROUTINE Init_NoRegister_DryDepChmMix
+  END SUBROUTINE Init_NoRegister_DryDepChmFlx
 !EOC
 END MODULE State_Diag_Mod

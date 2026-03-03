@@ -1231,10 +1231,22 @@ CONTAINS
        endif
        CALL MAPL_TimerOn( STATE, 'GC_DRYDEP' )
 
-       ! Do dry deposition
+       ! Compute dry deposition velocities & frequencies
        CALL Do_DryDep ( Input_Opt, State_Chm, State_Diag, &
                         State_Grid, State_Met, RC )
        _ASSERT(RC==GC_SUCCESS, 'Error calling Do_DryDep')
+
+       ! Update dry-deposition velocities for full PBL mixing
+       ! by adding the sea-air deposition velocity from HEMCO
+       CALL Set_DryDepVel_Diagnostics( Input_Opt,  State_Chm,  State_Diag,   &
+                                       State_Grid, State_Met,  RC           )
+       _ASSERT(RC==GC_SUCCESS, 'Error calling SET_DRYDEPVEL_DIAGNOSTICS')
+
+       ! Apply dry deposition frequencies to species concentrations
+       ! to compute removal of species by dry deposition
+       CALL Do_DryDep_Removal( Input_Opt,  State_Chm, State_Diag,            &
+                               State_Grid, State_Met, RC                    )
+       _ASSERT(RC==GC_SUCCESS, 'Error calling DO_DRYDEP_REMOVAL')
 
        CALL MAPL_TimerOff( STATE, 'GC_DRYDEP' )
        if(Input_Opt%AmIRoot.and.NCALLS<10) write(*,*) ' --- Drydep done!'
@@ -1305,12 +1317,6 @@ CONTAINS
           _ASSERT(RC==GC_SUCCESS, 'Error calling COMPUTE_SFLX_FOR_VDIFF')
 
        ENDIF
-
-       ! Update dry-deposition velocities for full PBL mixing
-       ! by adding the sea-air deposition velocity from HEMCO
-       CALL Set_DryDepVel_Diagnostics( Input_Opt,  State_Chm,  State_Diag,   &
-                                       State_Grid, State_Met,  RC           )
-       _ASSERT(RC==GC_SUCCESS, 'Error calling SET_DRYDEPVEL_DIAGNOSTICS')
 
        ! Do mixing and apply tendencies. This will use the dynamic time step,
        ! which is fine since this call will be executed on every time step.
