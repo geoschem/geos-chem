@@ -4662,7 +4662,7 @@ CONTAINS
     !=======================================================================
     ! Compute_Sflx_For_Vdiff begins here!
     !
-    ! NOTE: The State_Chm%DryDepMix is zeroed in routine
+    ! NOTE: The State_Chm%DryDepFlx is zeroed in routine
     ! "Zero_Diagnostics_StartOfTimestep", so we have removed
     ! the code to zero them again here.
     !=======================================================================

@@ -166,7 +166,7 @@ CONTAINS
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
           State_Diag%DryDep(I,J,S) = State_Diag%DryDepChm(I,J,S)             &
-                                   + State_Diag%DryDepMix(I,J,S)
+                                   + State_Diag%DryDepFlx(I,J,S)
        ENDDO
        ENDDO
        ENDDO
@@ -185,7 +185,7 @@ CONTAINS
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
           State_Diag%SatDiagnDryDep(I,J,S) = State_Diag%DryDepChm(I,J,S)  &
-                                           + State_Diag%DryDepMix(I,J,S)
+                                           + State_Diag%DryDepFlx(I,J,S)
        ENDDO
        ENDDO
        ENDDO
@@ -394,8 +394,8 @@ CONTAINS
              State_Diag%DryDepChm = 0.0_f4
           ENDIF
        ENDIF
-       IF ( State_Diag%Archive_DryDepMix .or. State_Diag%Archive_DryDep ) THEN
-          State_Diag%DryDepMix = 0.0_f4
+       IF ( State_Diag%Archive_DryDepFlx .or. State_Diag%Archive_DryDep ) THEN
+          State_Diag%DryDepFlx = 0.0_f4
        ENDIF
     ENDIF
 

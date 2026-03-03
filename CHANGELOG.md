@@ -11,6 +11,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added routine `Do_Drydep_Removal` to `GeosCore/drydep_mod.F90` to apply dry deposition loss to species
 - Added `BudgetDryDep*` History diagnostics
 
+### Changed
+- Updated `main.F90` and `gchp_chunk_mod.F90` to so that dry deposition (and removal of species by dry deposition) is done after emissions
+- Renamed `State_Diag%DryDepMix` to `State_Diag%DryDepFlx` to denote that this field is no longer updated in mixing
+- Renamed routine `Init_NoRegister_DryDepChemMix` to `Init_NoRegister_DryDepChmMix` to `Init_NoRegister_DryDepChmFlx` in `Headers/state_diag_mod.F90`
+
 ## [Unreleased] - TBD
 ### Added
 - Added PSO4AQ and PH2SO4 as a product to certain reactions; see `KPP/fullchem/CHANGELOG_fullchem.md`
