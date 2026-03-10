@@ -1206,7 +1206,7 @@ COLLECTIONS: @#'DefaultCollection',
                           'DryDepVel_SO4        ', 'GCHPchem',
                           'DryDep_O3            ', 'GCHPchem',
                           'DryDepChm_O3         ', 'GCHPchem',
-                          'DryDepMix_O3         ', 'GCHPchem',
+                          'DryDepFlx_O3         ', 'GCHPchem',
 ::
 #==============================================================================
 # %%%%% THE JValues COLLECTION %%%%%
