@@ -164,7 +164,6 @@ CONTAINS
     USE GcKpp_Monitor,            ONLY : SPC_NAMES, FAM_NAMES, EQN_NAMES
     USE GcKpp_Parameters
     USE GcKpp_Integrator,         ONLY : Integrate
-    USE GcKpp_Function
     USE GcKpp_Global
     USE GcKpp_Rates,              ONLY : UPDATE_RCONST, RCONST
     USE GcKpp_Util,               ONLY : Get_OHreactivity
@@ -255,7 +254,6 @@ CONTAINS
 
     ! OH reactivity and KPP reaction rate diagnostics
     REAL(fp) :: OHreact
-    REAL(dp) :: Vloc(NVAR),     Aout(NREACT)
 
 #ifdef MODEL_CLASSIC
 #ifndef NO_OMP
@@ -325,57 +323,7 @@ CONTAINS
 
     ! Zero diagnostic archival arrays to make sure that we don't have any
     ! leftover values from the last timestep near the top of the chemgrid
-    IF (State_Diag%Archive_Loss           ) State_Diag%Loss           = 0.0_f4
-    IF (State_Diag%Archive_Prod           ) State_Diag%Prod           = 0.0_f4
-    IF (State_Diag%Archive_Jval           ) State_Diag%Jval           = 0.0_f4
-    IF (State_Diag%Archive_JvalO3O1D      ) State_Diag%JvalO3O1D      = 0.0_f4
-    IF (State_Diag%Archive_JvalO3O3P      ) State_Diag%JvalO3O3P      = 0.0_f4
-    IF (State_Diag%Archive_JNoon          ) State_Diag%JNoon          = 0.0_f4
-    IF (State_Diag%Archive_ProdCOfromCH4  ) State_Diag%ProdCOfromCH4  = 0.0_f4
-    IF (State_Diag%Archive_ProdCOfromNMVOC) State_Diag%ProdCOfromNMVOC= 0.0_f4
-    IF (State_Diag%Archive_OHreactivity   ) State_Diag%OHreactivity   = 0.0_f4
-    IF (State_Diag%Archive_RxnRate        ) State_Diag%RxnRate        = 0.0_f4
-    IF (State_Diag%Archive_RxnConst       ) State_Diag%RxnConst       = 0.0_f4
-    IF (State_Diag%Archive_SatDiagnRxnRate) State_Diag%SatDiagnRxnRate= 0.0_f4
-    IF (State_Diag%Archive_KppDiags) THEN
-       IF (State_Diag%Archive_KppIntCounts) State_Diag%KppIntCounts   = 0.0_f4
-       IF (State_Diag%Archive_KppJacCounts) State_Diag%KppJacCounts   = 0.0_f4
-       IF (State_Diag%Archive_KppTotSteps ) State_Diag%KppTotSteps    = 0.0_f4
-       IF (State_Diag%Archive_KppAccSteps ) State_Diag%KppAccSteps    = 0.0_f4
-       IF (State_Diag%Archive_KppRejSteps ) State_Diag%KppRejSteps    = 0.0_f4
-       IF (State_Diag%Archive_KppLuDecomps) State_Diag%KppLuDecomps   = 0.0_f4
-       IF (State_Diag%Archive_KppSubsts   ) State_Diag%KppSubsts      = 0.0_f4
-       IF (State_Diag%Archive_KppSmDecomps) State_Diag%KppSmDecomps   = 0.0_f4
-       IF (State_Diag%Archive_KppAutoReducerNVAR)                            &
-                                      State_Diag%KppAutoReducerNVAR   = 0.0_f4
-       IF (State_Diag%Archive_KppcNONZERO)  State_Diag%KppcNONZERO    = 0.0_f4
-       IF (State_Diag%Archive_KppNegatives) State_Diag%KppNegatives   = 0.0_f4
-       IF (State_Diag%Archive_KppNegatives0) State_Diag%KppNegatives0 = 0.0_f4
-    ENDIF
-
-    ! Also zero satellite diagnostic archival arrays
-    IF ( State_Diag%Archive_SatDiagnLoss ) State_Diag%SatDiagnLoss    = 0.0_f4
-    IF ( State_Diag%Archive_SatDiagnProd ) State_Diag%SatDiagnProd    = 0.0_f4
-    IF ( State_Diag%Archive_SatDiagnJval ) THEN
-       State_Diag%SatDiagnJval = 0.0_f4
-    ENDIF
-    IF ( State_Diag%Archive_SatDiagnJvalO3O1D ) THEN
-       State_Diag%SatDiagnJvalO3O1D = 0.0_f4
-    ENDIF
-    IF ( State_Diag%Archive_SatDiagnJvalO3O3P ) THEN
-       State_Diag%SatDiagnJvalO3O3P = 0.0_f4
-    ENDIF
-
-    ! Keep track of the boxes where it is local noon in the JNoonFrac
-    ! diagnostic. When time-averaged, this will be the fraction of time
-    ! that local noon occurred at a grid box. (bmy, 4/2/19)
-    IF ( State_Diag%Archive_JNoonFrac ) THEN
-       WHERE( State_Met%IsLocalNoon )
-          State_Diag%JNoonFrac = 1.0_f4
-       ELSEWHERE
-          State_Diag%JNoonFrac = 0.0_f4
-       ENDWHERE
-    ENDIF
+    CALL Zero_Diagnostics_at_Start_of_FullChem( State_Diag, State_Met, RC )
 
 #if defined( MODEL_GEOS )
     IF ( State_Diag%Archive_NoxTau     ) State_Diag%NoxTau(:,:,:) = 0.0_f4
@@ -386,9 +334,7 @@ CONTAINS
     ENDIF
 #endif
 
-    !========================================================================
     ! Zero out certain dummy species
-    !========================================================================
     CALL Zero_Dummy_Species( Input_Opt, State_Chm, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in "Zero_Dummy_Species"'
@@ -458,6 +404,7 @@ CONTAINS
 #endif
 
     !=======================================================================
+    ! HISTORY diagnostics
     ! Archive concentrations before chemistry (if necessary)
     !=======================================================================
     CALL Archive_ConcBeforeChem( State_Chm, State_Diag, RC )
@@ -566,16 +513,18 @@ CONTAINS
     !========================================================================
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I,        J,        L,       N                           )&
-    !$OMP PRIVATE( ICNTRL,   C_before_integrate                             )&
-    !$OMP PRIVATE( KPPH_before_integrate,       local_RCONST                )&
-    !$OMP PRIVATE( SO4_FRAC, IERR,     RCNTRL,  ISTATUS,   RSTATE           )&
-    !$OMP PRIVATE( SpcID,    KppID,    F,       P,         Vloc             )&
-    !$OMP PRIVATE( Aout,     Thread,   RC,      S,         LCH4             )&
-    !$OMP PRIVATE( OHreact,  PCO_TOT,  PCO_CH4, PCO_NMVOC, SR               )&
-    !$OMP PRIVATE( SIZE_RES, LWC                                            )&
+    !$OMP PRIVATE( I,                     J,            L                   )&
+    !$OMP PRIVATE( N,                     ICNTRL,       C_before_integrate  )&
+    !$OMP PRIVATE( KPPH_before_integrate, local_RCONST, IERR                )&
+    !$OMP PRIVATE( RCNTRL,                ISTATUS,      RSTATE              )&
+    !$OMP PRIVATE( SpcID,                 KppID,        F                   )&
+    !$OMP PRIVATE( P,                     Thread,       S                   )&
+    !$OMP PRIVATE( LCH4,                  OHreact,      PCO_TOT             )&
+    !$OMP PRIVATE( PCO_CH4,               PCO_NMVOC,    SR                  )&
+    !$OMP PRIVATE( SIZE_RES,              LWC                               )&
 #ifdef MODEL_GEOS
-    !$OMP PRIVATE( NOxTau,     NOxConc, NOx_weight, NOx_tau_weighted        )&
+    !$OMP PRIVATE( NOxTau,                NOxConc,      NOx_weight          )&
+    !$OMP PRIVATE( NOx_tau_weighted                                         )&
 #endif
     !$OMP COLLAPSE( 3                                                       )&
     !$OMP SCHEDULE( DYNAMIC, 24                                             )&
@@ -815,61 +764,15 @@ CONTAINS
 
        !=====================================================================
        ! Update reaction rates
+       ! (See gckpp_Monitor.F90 for a list of chemical reactions)
        !=====================================================================
 
        ! Update the array of rate constants
        CALL Update_RCONST()
 
-       !=====================================================================
-       ! HISTORY (aka netCDF diagnostics)
-       !
-       ! Archive KPP reaction rates [molec cm-3 s-1]
-       ! See gckpp_Monitor.F90 for a list of chemical reactions
-       !
-       ! NOTE: In KPP 2.5.0+, VAR and FIX are now private to the integrator
-       ! and point to C.  Therefore, pass C(1:NVAR) instead of VAR and
-       ! C(NVAR+1:NSPEC) instead of FIX to routine FUN.
-       !
-       ! TODO: Abstract this to a subroutine, to simplify DO_FULLCHEM
-       !=====================================================================
-       IF ( State_Diag%Archive_RxnRate                                  .or. &
-            State_Diag%Archive_SatDiagnRxnRate                        ) THEN
-  
-          ! Get equation rates (Aout)
-          CALL Fun( V       = C(1:NVAR),                                     &
-                    F       = C(NVAR+1:NSPEC),                               &
-                    RCT     = RCONST,                                        &
-                    Vdot    = Vloc,                                          &
-                    Aout    = Aout                                          )
-
-          ! Archive the RxnRate diagnostic collection
-          IF ( State_Diag%Archive_RxnRate ) THEN
-             DO S = 1, State_Diag%Map_RxnRate%nSlots
-                N = State_Diag%Map_RxnRate%slot2Id(S)
-                State_Diag%RxnRate(I,J,L,S) = Aout(N)
-             ENDDO
-          ENDIF
-
-          ! Archive the SatDiagnRxnRate diagnostic collection
-          IF ( State_Diag%Archive_SatDiagnRxnRate ) THEN
-             DO S = 1, State_Diag%Map_SatDiagnRxnRate%nSlots
-                N = State_Diag%Map_SatDiagnRxnRate%slot2Id(S)
-                State_Diag%SatDiagnRxnRate(I,J,L,S) = Aout(N)
-             ENDDO
-          ENDIF
-       ENDIF
-
-       ! Archive KPP reaction rate constants (RCONST). The units vary.
-       ! They are already updated in Update_RCONST, and do not require
-       ! a call of Fun(). (hplin, 3/28/23)
-       IF ( State_Diag%Archive_RxnConst ) THEN
-
-          DO S = 1, State_Diag%Map_RxnConst%nSlots
-             N = State_Diag%Map_RxnConst%slot2Id(S)
-             State_Diag%RxnConst(I,J,L,S) = RCONST(N)
-          ENDDO
-
-       ENDIF
+       ! HISTORY: Archive KPP reaction rate diagnostics [molec cm-3 s-1]
+       CALL Archive_RxnRate_Diags( Input_Opt, State_Chm, State_Diag,         &
+                                   I,         J,         L,          RC     )
 
 #ifdef KPP_INTEGRATOR_AUTOREDUCE
        !=====================================================================
@@ -3260,6 +3163,193 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: Zero_Diagnostics_At_Start_of_Fullchem
+!
+! !DESCRIPTION: Zeroes certain counter and diagnostic species
+!  before the call to the chemistry solver.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Zero_Diagnostics_at_Start_of_Fullchem( State_Diag, State_Met, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE State_Diag_Mod, ONLY : DgnState
+    USE State_Met_Mod,  ONLY : MetState
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(MetState), INTENT(IN)    :: State_Met    ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag   ! Diagnostics State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC           ! Success or failure?
+!
+! !REVISION HISTORY:
+!  11 Mar 2026 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    ! Initialize
+    RC = GC_SUCCESS
+
+    !========================================================================
+    ! Zero diagnostic archival arrays to make sure that we don't have any
+    ! leftover values from the last timestep near the top of the chemgrid
+    !========================================================================
+    IF ( State_Diag%Archive_Loss ) THEN
+       State_Diag%Loss = 0.0_f4
+    ENDIF
+
+    IF ( State_Diag%Archive_Prod ) THEN
+       State_Diag%Prod = 0.0_f4
+    ENDIF
+
+    IF ( State_Diag%Archive_Jval ) THEN
+       State_Diag%Jval = 0.0_f4
+    ENDIF
+
+    IF ( State_Diag%Archive_JvalO3O1D ) THEN
+       State_Diag%JvalO3O1D = 0.0_f4
+    ENDIF
+
+    IF ( State_Diag%Archive_JvalO3O3P ) THEN
+       State_Diag%JvalO3O3P = 0.0_f4
+    ENDIF
+
+    IF ( State_Diag%Archive_JNoon ) THEN
+       State_Diag%JNoon = 0.0_f4
+    ENDIF
+
+    IF ( State_Diag%Archive_ProdCOfromCH4 ) THEN
+       State_Diag%ProdCOfromCH4 = 0.0_f4
+    ENDIF
+
+    IF ( State_Diag%Archive_ProdCOfromNMVOC ) THEN
+       State_Diag%ProdCOfromNMVOC= 0.0_f4
+    ENDIF
+
+    IF ( State_Diag%Archive_OHreactivity ) THEN
+       State_Diag%OHreactivity = 0.0_f4
+    ENDIF
+
+    IF ( State_Diag%Archive_RxnRate ) THEN
+       State_Diag%RxnRate = 0.0_f4
+    ENDIF
+
+    IF ( State_Diag%Archive_RxnConst ) THEN
+       State_Diag%RxnConst = 0.0_f4
+    ENDIF
+
+    IF ( State_Diag%Archive_SatDiagnRxnRate ) THEN
+       State_Diag%SatDiagnRxnRate= 0.0_f4
+    ENDIF
+
+    !========================================================================
+    ! Zero KPP diagnostic arrays
+    !========================================================================
+    IF ( State_Diag%Archive_KppDiags ) THEN
+
+       IF ( State_Diag%Archive_KppIntCounts ) THEN
+          State_Diag%KppIntCounts = 0.0_f4
+       ENDIF
+
+       IF ( State_Diag%Archive_KppJacCounts ) THEN
+          State_Diag%KppJacCounts = 0.0_f4
+       ENDIF
+
+       IF ( State_Diag%Archive_KppTotSteps  ) THEN
+          State_Diag%KppTotSteps = 0.0_f4
+       ENDIF
+
+       IF ( State_Diag%Archive_KppAccSteps  ) THEN
+          State_Diag%KppAccSteps = 0.0_f4
+       ENDIF
+
+       IF ( State_Diag%Archive_KppRejSteps  ) THEN
+          State_Diag%KppRejSteps = 0.0_f4
+       ENDIF
+
+       IF ( State_Diag%Archive_KppLuDecomps ) THEN
+          State_Diag%KppLuDecomps = 0.0_f4
+       ENDIF
+
+       IF ( State_Diag%Archive_KppSubsts    ) THEN
+          State_Diag%KppSubsts = 0.0_f4
+       ENDIF
+
+       IF ( State_Diag%Archive_KppSmDecomps ) THEN
+          State_Diag%KppSmDecomps = 0.0_f4
+       ENDIF
+
+       IF ( State_Diag%Archive_KppAutoReducerNVAR ) THEN
+            State_Diag%KppAutoReducerNVAR = 0.0_f4
+       ENDIF
+
+       IF ( State_Diag%Archive_KppcNONZERO ) THEN
+          State_Diag%KppcNONZERO = 0.0_f4
+       ENDIF
+
+       IF ( State_Diag%Archive_KppNegatives ) THEN
+          State_Diag%KppNegatives   = 0.0_f4
+       ENDIF
+
+       IF ( State_Diag%Archive_KppNegatives0 ) THEN
+          State_Diag%KppNegatives0 = 0.0_f4
+       ENDIF
+    ENDIF
+
+    !========================================================================
+    ! Zero satellite diagnostic arrays
+    !========================================================================
+    IF ( State_Diag%Archive_SatDiagnLoss ) THEN
+       State_Diag%SatDiagnLoss = 0.0_f4
+    ENDIF
+
+    IF ( State_Diag%Archive_SatDiagnProd ) THEN
+       State_Diag%SatDiagnProd    = 0.0_f4
+    ENDIF
+
+    IF ( State_Diag%Archive_SatDiagnJval ) THEN
+       State_Diag%SatDiagnJval = 0.0_f4
+    ENDIF
+
+    IF ( State_Diag%Archive_SatDiagnJvalO3O1D ) THEN
+       State_Diag%SatDiagnJvalO3O1D = 0.0_f4
+
+    ENDIF
+    IF ( State_Diag%Archive_SatDiagnJvalO3O3P ) THEN
+       State_Diag%SatDiagnJvalO3O3P = 0.0_f4
+    ENDIF
+
+    !========================================================================
+    ! Keep track of the boxes where it is local noon in the JNoonFrac
+    ! diagnostic. When time-averaged, this will be the fraction of time
+    ! that local noon occurred at a grid box. (bmy, 4/2/19)
+    !========================================================================
+    IF ( State_Diag%Archive_JNoonFrac ) THEN
+       WHERE( State_Met%IsLocalNoon )
+          State_Diag%JNoonFrac = 1.0_f4
+       ELSEWHERE
+          State_Diag%JNoonFrac = 0.0_f4
+       ENDWHERE
+    ENDIF
+
+  END SUBROUTINE Zero_Diagnostics_at_Start_of_Fullchem
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: Zero_Dummy_Species
 !
 ! !DESCRIPTION: Zeroes certain counter and diagnostic species
@@ -3756,6 +3846,114 @@ CONTAINS
     mapData => NULL()
 
   END SUBROUTINE Archive_ConcBeforeChem
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Archive_RxnRate_Diags
+!
+! !DESCRIPTION: Archives the RxnRate, SatDiagnRxnRate, and RxnConst
+!  History diagnostics.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Archive_RxnRate_Diags( Input_Opt, State_Chm, State_Diag,        &
+                                    I,         J,         L,          RC    )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE GcKpp_Global
+    USE GcKpp_Function
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Chm_Mod,  ONLY : ChmState
+    USE State_Diag_Mod, ONLY : DgnState
+    USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,        INTENT(IN)    :: I, J, L      ! Grid box indices
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt    ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm    ! Chemistry State object
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag   ! Diagnostics State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC           ! Success or failure?
+!
+! !REMARKS:
+!  This routine must be called after Update_RCONST.
+!
+! !REVISION HISTORY:
+!  11 Mar 2026 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER  :: N, S
+
+    ! Arrays
+    REAL(dp) :: Vloc(NVAR), Aout(NREACT)
+
+    !=====================================================================
+    ! HISTORY (aka netCDF diagnostics)
+    !
+    ! Archive KPP reaction rates [molec cm-3 s-1]
+    ! See gckpp_Monitor.F90 for a list of chemical reactions
+    !
+    ! NOTE: In KPP 2.5.0+, VAR and FIX are now private to the integrator
+    ! and point to C.  Therefore, pass C(1:NVAR) instead of VAR and
+    ! C(NVAR+1:NSPEC) instead of FIX to routine FUN.
+    !=====================================================================
+    IF ( State_Diag%Archive_RxnRate                                     .or. &
+         State_Diag%Archive_SatDiagnRxnRate                           ) THEN
+
+       ! Get equation rates (Aout)
+       CALL Fun( V       = C(1:NVAR),                                        &
+                 F       = C(NVAR+1:NSPEC),                                  &
+                 RCT     = RCONST,                                           &
+                 Vdot    = Vloc,                                             &
+                 Aout    = Aout                                             )
+
+       ! Archive the RxnRate diagnostic collection
+       IF ( State_Diag%Archive_RxnRate ) THEN
+          DO S = 1, State_Diag%Map_RxnRate%nSlots
+             N = State_Diag%Map_RxnRate%slot2Id(S)
+             State_Diag%RxnRate(I,J,L,S) = Aout(N)
+          ENDDO
+       ENDIF
+
+       ! Archive the SatDiagnRxnRate diagnostic collection
+       IF ( State_Diag%Archive_SatDiagnRxnRate ) THEN
+          DO S = 1, State_Diag%Map_SatDiagnRxnRate%nSlots
+             N = State_Diag%Map_SatDiagnRxnRate%slot2Id(S)
+             State_Diag%SatDiagnRxnRate(I,J,L,S) = Aout(N)
+          ENDDO
+       ENDIF
+    ENDIF
+
+    ! Archive KPP reaction rate constants (RCONST). The units vary.
+    ! They are already updated in Update_RCONST, and do not require
+    ! a call of Fun(). (hplin, 3/28/23)
+    IF ( State_Diag%Archive_RxnConst ) THEN
+       DO S = 1, State_Diag%Map_RxnConst%nSlots
+          N = State_Diag%Map_RxnConst%slot2Id(S)
+          State_Diag%RxnConst(I,J,L,S) = RCONST(N)
+       ENDDO
+
+    ENDIF
+
+    END SUBROUTINE Archive_RxnRate_Diags
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
