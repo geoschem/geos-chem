@@ -338,7 +338,7 @@ CONTAINS
                        Cat       = Cat,                                      &
                        Hier      = -1,                                       &
                        HcoID     = id_BCPI,                                  &
-                       SpaceDim  = 2,                                        &
+                       SpaceDim  = 3,                                        &
                        LevIDx    = -1,                                       &
                        OutUnit   = 'kg/m2/s',                                &
                        COL       = HcoState%Diagn%HcoDiagnIDManual,          &
@@ -362,7 +362,7 @@ CONTAINS
                        Cat       = Cat,                                      &
                        Hier      = -1,                                       &
                        HcoID     = id_BCPO,                                  &
-                       SpaceDim  = 2,                                        &
+                       SpaceDim  = 3,                                        &
                        LevIDx    = -1,                                       &
                        OutUnit   = 'kg/m2/s',                                &
                        COL       = HcoState%Diagn%HcoDiagnIDManual,          &
@@ -386,7 +386,7 @@ CONTAINS
                        Cat       = Cat,                                      &
                        Hier      = -1,                                       &
                        HcoID     = id_OCPI,                                  &
-                       SpaceDim  = 2,                                        &
+                       SpaceDim  = 3,                                        &
                        LevIDx    = -1,                                       &
                        OutUnit   = 'kg/m2/s',                                &
                        COL       = HcoState%Diagn%HcoDiagnIDManual,          &
@@ -410,7 +410,7 @@ CONTAINS
                        Cat       = Cat,                                      &
                        Hier      = -1,                                       &
                        HcoID     = id_OCPO,                                  &
-                       SpaceDim  = 2,                                        &
+                       SpaceDim  = 3,                                        &
                        LevIDx    = -1,                                       &
                        OutUnit   = 'kg/m2/s',                                &
                        COL       = HcoState%Diagn%HcoDiagnIDManual,          &
