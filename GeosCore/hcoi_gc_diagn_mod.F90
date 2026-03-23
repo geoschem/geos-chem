@@ -192,7 +192,7 @@ CONTAINS
     CHARACTER(LEN=31)  :: DiagnName
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'DIAGN_TOMAS (hcoi_gc_diagn_mod.F90)'
-
+    LOGICAL                  :: BB3D = .TRUE. !naj TOMAS BBPIH 6/26/2024  
     !=======================================================================
     ! Define diagnostics (TOMAS-related emissions)
     !=======================================================================
@@ -332,6 +332,7 @@ CONTAINS
     ! %%%%% BPCI from BIOB (Category ? or species BCPI_bb)  %%%%%
     !-----------------------------------------------------------------
     DiagnName = 'BCPI_BB'
+    IF (BB3D) THEN
     CALL Diagn_Create( HcoState  = HcoState,                                 &
                        cName     = TRIM( DiagnName ),                        &
                        ExtNr     = ExtNr,                                    &
@@ -344,7 +345,20 @@ CONTAINS
                        COL       = HcoState%Diagn%HcoDiagnIDManual,          &
                        AutoFill  = 1,                                        &
                        RC        = RC                                       )
-
+    ELSE
+    CALL Diagn_Create( HcoState  = HcoState,                                 &
+                       cName     = TRIM( DiagnName ),                        &
+                       ExtNr     = ExtNr,                                    &
+                       Cat       = Cat,                                      &
+                       Hier      = -1,                                       &
+                       HcoID     = id_BCPI,                                  &
+                       SpaceDim  = 2,                                        &
+                       LevIDx    = -1,                                       &
+                       OutUnit   = 'kg/m2/s',                                &
+                       COL       = HcoState%Diagn%HcoDiagnIDManual,          &
+                       AutoFill  = 1,                                        &
+                       RC        = RC                                       )
+    ENDIF
     ! Trap potential errors
     IF ( RC /= HCO_SUCCESS ) THEN
        Msg = 'Error encountered when defining "BCPI_BB" diagnostic!'
@@ -356,6 +370,7 @@ CONTAINS
     ! %%%%% BPCO from BIOB (Category ? or species BCPO_bb)  %%%%%
     !-----------------------------------------------------------------
     DiagnName = 'BCPO_BB'
+    IF (BB3D) THEN
     CALL Diagn_Create( HcoState  = HcoState,                                 &
                        cName     = TRIM( DiagnName ),                        &
                        ExtNr     = ExtNr,                                    &
@@ -368,7 +383,20 @@ CONTAINS
                        COL       = HcoState%Diagn%HcoDiagnIDManual,          &
                        AutoFill  = 1,                                        &
                        RC        = RC                                       )
-
+    ELSE
+    CALL Diagn_Create( HcoState  = HcoState,                                 &
+                       cName     = TRIM( DiagnName ),                        &
+                       ExtNr     = ExtNr,                                    &
+                       Cat       = Cat,                                      &
+                       Hier      = -1,                                       &
+                       HcoID     = id_BCPO,                                  &
+                       SpaceDim  = 2,                                        &
+                       LevIDx    = -1,                                       &
+                       OutUnit   = 'kg/m2/s',                                &
+                       COL       = HcoState%Diagn%HcoDiagnIDManual,          &
+                       AutoFill  = 1,                                        &
+                       RC        = RC                                       )
+    ENDIF
     ! Trap potential errors
     IF ( RC /= HCO_SUCCESS ) THEN
        Msg = 'Error encountered when defining "BCPO_BB" diagnostic!'
@@ -380,6 +408,7 @@ CONTAINS
     ! %%%%% OCPI from BIOB (Category ? or species OCPI_bb)  %%%%%
     !-----------------------------------------------------------------
     DiagnName = 'OCPI_BB'
+    IF (BB3D) THEN
     CALL Diagn_Create( HcoState  = HcoState,                                 &
                        cName     = TRIM( DiagnName ),                        &
                        ExtNr     = ExtNr,                                    &
@@ -392,7 +421,20 @@ CONTAINS
                        COL       = HcoState%Diagn%HcoDiagnIDManual,          &
                        AutoFill  = 1,                                        &
                        RC        = RC                                       )
-
+    ELSE
+    CALL Diagn_Create( HcoState  = HcoState,                                 &
+                       cName     = TRIM( DiagnName ),                        &
+                       ExtNr     = ExtNr,                                    &
+                       Cat       = Cat,                                      &
+                       Hier      = -1,                                       &
+                       HcoID     = id_OCPI,                                  &
+                       SpaceDim  = 2,                                        &
+                       LevIDx    = -1,                                       &
+                       OutUnit   = 'kg/m2/s',                                &
+                       COL       = HcoState%Diagn%HcoDiagnIDManual,          &
+                       AutoFill  = 1,                                        &
+                       RC        = RC                                       )
+    ENDIF
     ! Trap potential errors
     IF ( RC /= HCO_SUCCESS ) THEN
        Msg = 'Error encountered when defining "OCPI_BB" diagnostic!'
@@ -404,6 +446,7 @@ CONTAINS
     ! %%%%% OCPO from BIOB (Category ? or species OCPI_bb)  %%%%%
     !-----------------------------------------------------------------
     DiagnName = 'OCPO_BB'
+    IF (BB3D) THEN
     CALL Diagn_Create( HcoState  = HcoState,                                 &
                        cName     = TRIM( DiagnName ),                        &
                        ExtNr     = ExtNr,                                    &
@@ -416,7 +459,20 @@ CONTAINS
                        COL       = HcoState%Diagn%HcoDiagnIDManual,          &
                        AutoFill  = 1,                                        &
                        RC        = RC                                       )
-
+    ELSE
+    CALL Diagn_Create( HcoState  = HcoState,                                 &
+                       cName     = TRIM( DiagnName ),                        &
+                       ExtNr     = ExtNr,                                    &
+                       Cat       = Cat,                                      &
+                       Hier      = -1,                                       &
+                       HcoID     = id_OCPO,                                  &
+                       SpaceDim  = 2,                                        &
+                       LevIDx    = -1,                                       &
+                       OutUnit   = 'kg/m2/s',                                &
+                       COL       = HcoState%Diagn%HcoDiagnIDManual,          &
+                       AutoFill  = 1,                                        &
+                       RC        = RC                                       )
+    ENDIF
     ! Trap potential errors
     IF ( RC /= HCO_SUCCESS ) THEN
        Msg = 'Error encountered when defining "OCPO_BB" diagnostic!'
