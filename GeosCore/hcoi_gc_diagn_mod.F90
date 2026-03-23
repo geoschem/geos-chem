@@ -192,7 +192,7 @@ CONTAINS
     CHARACTER(LEN=31)  :: DiagnName
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'DIAGN_TOMAS (hcoi_gc_diagn_mod.F90)'
-    LOGICAL                  :: BB3D = .TRUE. !naj TOMAS BBPIH 6/26/2024  
+    LOGICAL                  :: BB3D = .FALSE. !naj TOMAS BBPIH 6/26/2024  
     !=======================================================================
     ! Define diagnostics (TOMAS-related emissions)
     !=======================================================================
