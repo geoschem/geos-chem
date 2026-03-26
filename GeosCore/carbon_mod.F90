@@ -4994,6 +4994,9 @@ CONTAINS
    REAL(fp)                 :: OC2OM = 1.8d0
    LOGICAL                  :: SGCOAG = .FALSE. ! bc,jrp turn off subgrid coag 18/12/23
    LOGICAL                  :: BB3D = .FALSE. !naj TOMAS BBPIH 6/26/2024
+                                  ! set to TRUE and in hcoi_gc_diag_mod.F90 to use 3D GFAS
+                                  ! and need to modify HEMCO_Config.rc and ExtData.rc
+                                  ! need to eventually move this switch to HEMCO_Config.rc, bc, jrp 26/03/2026
    INTEGER                  :: L, K, EMTYPE
    INTEGER                  :: ii=53, jj=29
    INTEGER                  :: previous_units

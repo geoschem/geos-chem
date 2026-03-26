@@ -192,7 +192,10 @@ CONTAINS
     CHARACTER(LEN=31)  :: DiagnName
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'DIAGN_TOMAS (hcoi_gc_diagn_mod.F90)'
-    LOGICAL                  :: BB3D = .FALSE. !naj TOMAS BBPIH 6/26/2024  
+    LOGICAL                  :: BB3D = .FALSE. !naj TOMAS BBPIH 6/26/2024
+                        ! set to TRUE and in carbon_mod.F90 to use 3D GFAS                                                                                 
+                        ! and need to modify HEMCO_Config.rc and ExtData.rc
+                        ! need to eventually move this switch to HEMCO_Config.rc, bc, jrp 26/03/2026      
     !=======================================================================
     ! Define diagnostics (TOMAS-related emissions)
     !=======================================================================

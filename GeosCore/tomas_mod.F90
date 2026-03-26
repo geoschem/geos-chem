@@ -1788,24 +1788,25 @@ CONTAINS
 ! SamO ==============================================
 #if defined(TOMAS12) || defined(TOMAS15)
   !alpha = alpha1
+     ! comment out accomodation coeff updates pending evaluation
      ! SamO - if sulfate, use constant alpha
-     IF (spec==srtso4) THEN
+     !IF (spec==srtso4) THEN
        alpha = alpha1
-     ELSE
-       !alpha = alpha2
-       ! SamO - organic, call getAccomCoef
-       CALL getAccomCoef(Nko, Mko, alpha,RHTOMAS,TEMPTMS,I1,J1,L1)
-
-     ENDIF 
+     !ELSE
+     !  alpha = alpha2
+        ! SamO - organic, call getAccomCoef
+       !CALL getAccomCoef(Nko, Mko, alpha,RHTOMAS,TEMPTMS,I1,J1,L1)
+     !ENDIF 
 #endif
 
 #if defined(TOMAS40)
   !alpha = alpha3
-     IF (spec==srtso4) THEN
+     ! comment out accomodation coeff updates pending evaluation
+     !IF (spec==srtso4) THEN
        alpha = alpha3
-     ELSE
-       alpha = alpha4
-     ENDIF 
+     !ELSE
+     !  alpha = alpha4
+     !ENDIF 
 #endif
 ! SamO ==============================================
 
