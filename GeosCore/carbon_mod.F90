@@ -883,7 +883,7 @@ CONTAINS
          !IF (I.eq.40 .and. J.eq.46 .and. L.eq.1) THEN  ! SGP for 0.25x0.3125
          IF (I.eq.17 .and. J.eq.32 .and. L.eq.1) THEN  ! SGP for 4x5
          !print*,'---------------------------------------------------------------------'
-          print*,'TEMPTMS, RHTOMAS in chemcarbon =',TEMPTMS,RHTOMAS,I,J,L
+         ! print*,'TEMPTMS, RHTOMAS in chemcarbon =',TEMPTMS,RHTOMAS,I,J,L
          ENDIF
          PRES    = GET_PCENTER(I,j,L)*100.0 ! in Pa
          IF ( NEWSOA > 0.0e+0_fp ) THEN
@@ -5492,7 +5492,7 @@ CONTAINS
          
          IF (I.eq.17 .and. J.eq.32) THEN  ! SGP for 4x5
          !IF (I.eq.40 .and. J.eq.46) THEN  ! SGP for 0.25x0.3125
-          print*,'TEMPTMS, RHTOMAS in emisscarb =',TEMPTMS,RHTOMAS,I,J
+         ! print*,'TEMPTMS, RHTOMAS in emisscarb =',TEMPTMS,RHTOMAS,I,J
          ENDIF 
          CALL SOACOND( TERP_ORGC(I,J), I, J, 1, BOXVOL, TEMPTMS, PRES, BOXMASS,&
                        State_Chm, State_Grid, State_Diag, RC, RHTOMAS)
