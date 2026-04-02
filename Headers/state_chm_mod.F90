@@ -4844,83 +4844,81 @@ CONTAINS
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
-       CASE( 'ISORROPAEROPHACCUM' )
-          IF ( isDesc  ) Desc  = 'ISORROPIA aerosol pH, accumulation mode'
+       CASE( 'ATEAEROPHACCUM' )
+          IF ( isDesc  ) Desc  = 'Aerosol pH (accumulation mode) from ATE'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
-       CASE( 'ISORROPAEROPHCOARSE' )
-          IF ( isDesc  ) Desc  = 'ISORROPIA aerosol pH, accumulation mode'
+       CASE( 'ATEAEROPHCOARSE' )
+          IF ( isDesc  ) Desc  = 'Aerosol pH (accumulation mode) from ATE'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
-       CASE( 'ISORROPHPLUSACCUM' )
+       CASE( 'ATEHPLUSACCUM' )
           IF ( isDesc  ) Desc  = &
-             'ISORROPIA H+ concentration, accumulation mode'
+               'H+ concentration (accumulation mode) from ATE'
           IF ( isUnits ) Units = 'mol L-1'
           IF ( isRank  ) Rank  = 3
 
-       CASE( 'ISORROPIONIC' )
-          IF ( isDesc  ) Desc  = &
-             'ISORROPIA  IONIC strength'
+       CASE( 'ATEIONIC' )
+          IF ( isDesc  ) Desc  = 'Ionic strength'
           IF ( isUnits ) Units = 'mol L-1' ! check
           IF ( isRank  ) Rank  = 3
 
-       CASE( 'ISORROPOH' )
-          IF ( isDesc  ) Desc  = &
-             'ISORROPIA  hydroxide'
+       CASE( 'ATEOH' )
+          IF ( isDesc  ) Desc  = 'Hydroxide from ATE'
           IF ( isUnits ) Units = 'mol L-1' ! check
           IF ( isRank  ) Rank  = 3
 
-       CASE( 'ISORROPHPLUSCOARSE' )
-          IF ( isDesc  ) Desc  = 'ISORROPIA H+ concentration, coarse mode'
+       CASE( 'ATEHPLUSCOARSE' )
+          IF ( isDesc  ) Desc  = 'H+ concentration (coarse mode) from ATE'
           IF ( isUnits ) Units = 'mol L-1'
           IF ( isRank  ) Rank  = 3
 
-       CASE( 'ISORROPAEROH2OACCUM' )
+       CASE( 'ATEAEROH2OACCUM' )
           IF ( isDesc  ) Desc  = &
-             'ISORROPIA aerosol water concentration, accumulation mode'
+             'Aerosol water concentration (accumulation mode) from ATE'
           IF ( isUnits ) Units = 'ug m-3'
           IF ( isRank  ) Rank  = 3
 
-       CASE( 'ISORROPAEROH2OCOARSE' )
+       CASE( 'ATEAEROH2OCOARSE' )
           IF ( isDesc  ) Desc  = &
-             'ISORROPIA aerosol water concentration, coarse mode'
+             'Aerosol water concentration (coarse mode) from ATE'
           IF ( isUnits ) Units = 'ug m-3'
           IF ( isRank  ) Rank  = 3
 
-       CASE( 'ISORROPSULFATE' )
-          IF ( isDesc  ) Desc  = 'ISORROPIA sulfate concentration'
+       CASE( 'ATESULFATE' )
+          IF ( isDesc  ) Desc  = 'Sulfate concentration from ATE'
           IF ( isUnits ) Units = 'mol L-1'
           IF ( isRank  ) Rank  = 3
 
-       CASE( 'ISORROPNITRATEACCUM' )
+       CASE( 'ATENITRATEACCUM' )
           IF ( isDesc  ) Desc  = &
-             'ISORROPIA nitrate concentration, accumulation mode'
+             'Nitrate concentration (accumulation mode) from ATE'
           IF ( isUnits ) Units = 'mol L-1'
           IF ( isRank  ) Rank  = 3
 
-       CASE( 'ISORROPNITRATECOARSE' )
+       CASE( 'ATENITRATECOARSE' )
           IF ( isDesc  ) Desc  = &
-             'ISORROPIA nitrate concentration, coarse mode'
+             'Nitrate concentration (coarse mode) from ATE'
           IF ( isUnits ) Units = 'mol L-1'
           IF ( isRank  ) Rank  = 3
 
-       CASE( 'ISORROPCHLORIDEACCUM' )
+       CASE( 'ATECHLORIDEACCUM' )
           IF ( isDesc  ) Desc  = &
-             'ISORROPIA chloride concentration, accumulation mode'
+             'Chloride concentration (accumulation mode) from ATE'
           IF ( isUnits ) Units = 'mol/L'
           IF ( isRank  ) Rank  = 3
 
-       CASE( 'ISORROPCHLORIDECOARSE' )
+       CASE( 'ATECHLORIDECOARSE' )
           IF ( isDesc  ) Desc  = &
-             'ISORROPIA chloride concentration, coarse mode'
+             'Chloride concentration (coarse mode) from ATE'
           IF ( isUnits ) Units = 'mol/L'
           IF ( isRank  ) Rank  = 3
 
-       CASE( 'ISORROPBISULFATE' )
-          IF ( isDesc  ) Desc  = 'ISORROPIA Bisulfate (general acid)' &
-                                 // ' concentration'
+       CASE( 'ATEBISULFATE' )
+          IF ( isDesc  ) Desc  = &
+               'Bisulfate (general acid) concentration from ATE'
           IF ( isUnits ) Units = 'mol L-1'
           IF ( isRank  ) Rank  =  3
 
