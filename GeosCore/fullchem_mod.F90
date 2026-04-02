@@ -36,10 +36,12 @@ MODULE FullChem_Mod
 ! !PRIVATE TYPES:
 !
   ! Species ID flags (and logicals to denote if species are present)
-  INTEGER               :: id_OH,  id_HO2,  id_O3P,  id_O1D, id_CH4
-  INTEGER               :: id_PCO, id_LCH4, id_NH3,  id_SO4
-  INTEGER               :: id_SALAAL, id_SALCAL, id_SALC, id_SALA
-  INTEGER               :: id_PSO4
+  INTEGER               :: id_OH,      id_HO2,     id_O3P,     id_O1D
+  INTEGER               :: id_CH4,     id_PCO,     id_LCH4,    id_NH3
+  INTEGER               :: id_SO4,     id_SALAAL,  id_SALCAL,  id_SALC
+  INTEGER               :: id_SALA,    id_DSTbin1, id_DSTbin2, id_DSTbin3
+  INTEGER               :: id_DSTbin4, id_DSTbin5, id_DSTbin6, id_DSTbin7
+  INTEGER               :: id_SO2,     id_pFe,     id_PSO4
 #ifdef TOMAS
   INTEGER               :: id_NK05, id_NK08, id_NK10, id_NK20
 #endif
@@ -882,18 +884,28 @@ CONTAINS
        !=====================================================================
 
        ! Populate fields of the State_Het object
-       CALL fullchem_SetStateHet( I         = I,                             &
-                                  J         = J,                             &
-                                  L         = L,                             &
-                                  id_SALA   = id_SALA,                       &
-                                  id_SALAAL = id_SALAAL,                     &
-                                  id_SALC   = id_SALC,                       &
-                                  id_SALCAL = id_SALCAL,                     &
-                                  Input_Opt = Input_Opt,                     &
-                                  State_Chm = State_Chm,                     &
-                                  State_Met = State_Met,                     &
-                                  H         = State_Het,                     &
-                                  RC        = RC                            )
+       CALL fullchem_SetStateHet( I          = I,                            &
+                                  J          = J,                            &
+                                  L          = L,                            &
+                                  id_DSTbin1 = id_DSTbin1,                   &
+                                  id_DSTbin2 = id_DSTbin2,                   &
+                                  id_DSTbin3 = id_DSTbin3,                   &
+                                  id_DSTbin4 = id_DSTbin4,                   &
+                                  id_DSTbin5 = id_DSTbin5,                   &
+                                  id_DSTbin6 = id_DSTbin6,                   &
+                                  id_DSTbin7 = id_DSTbin7,                   &
+                                  id_pFe     = id_pFe,                       &
+                                  id_SALA    = id_SALA,                      &
+                                  id_SALAAL  = id_SALAAL,                    &
+                                  id_SALC    = id_SALC,                      &
+                                  id_SALCAL  = id_SALCAL,                    &
+                                  id_SO2     = id_SO2,                       &
+                                  id_SO4     = id_SO4,                       &
+                                  Input_Opt  = Input_Opt,                    &
+                                  State_Chm  = State_Chm,                    &
+                                  State_Met  = State_Met,                    &
+                                  H          = State_Het,                    &
+                                  RC         = RC                           )
 
        !=====================================================================
        ! CHEMISTRY MECHANISM INITIALIZATION (#5)
@@ -2792,12 +2804,21 @@ CONTAINS
     ENDIF
 
     ! Initialize species flags
-    id_CH4      = Ind_( 'CH4', 'A'     ) ! CH4 advected species
+    id_CH4      = Ind_( 'CH4',    'A'  ) ! CH4 advected species
+    id_DSTbin1  = Ind_( 'DSTbin1'      )
+    id_DSTbin2  = Ind_( 'DSTbin2'      )
+    id_DSTbin3  = Ind_( 'DSTbin3'      )
+    id_DSTbin4  = Ind_( 'DSTbin4'      )
+    id_DSTbin5  = Ind_( 'DSTbin5'      )
+    id_DSTbin6  = Ind_( 'DSTbin6'      )
+    id_DSTbin7  = Ind_( 'DSTbin7'      )
     id_HO2      = Ind_( 'HO2'          )
     id_NH3      = Ind_( 'NH3'          )
     id_O3P      = Ind_( 'O'            )
     id_O1D      = Ind_( 'O1D'          )
     id_OH       = Ind_( 'OH'           )
+    id_pFe      = Ind_( 'pFe'          )
+    id_SO2      = Ind_( 'SO2'          )
     id_SO4      = Ind_( 'SO4'          )
     id_SALA     = Ind_( 'SALA'         )
     id_SALAAL   = Ind_( 'SALAAL'       )

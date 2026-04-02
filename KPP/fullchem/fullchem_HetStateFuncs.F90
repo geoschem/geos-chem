@@ -46,10 +46,14 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE fullChem_SetStateHet( I,         J,         L,                  &
-                                   id_SALA,   id_SALAAL, id_SALC,            &
-                                   id_SALCAL, Input_Opt, State_Chm,          &
-                                   State_Met, H,         RC                 )
+  SUBROUTINE fullChem_SetStateHet( I,          J,          L,                &
+                                   id_DSTbin1, id_DSTbin2, id_DSTbin3,       &
+                                   id_DSTbin4, id_DSTbin5, id_DSTbin6,       &
+                                   id_DSTbin7, id_pFe,     id_SALA,          &
+                                   id_SALAAL,  id_SALC,    id_SALCAL,        &
+                                   id_SO2,     id_SO4,     Input_Opt,        &
+                                   State_Chm,  State_Met,  H,                &
+                                   RC                                       )
 !
 ! !USES:
 !
@@ -59,7 +63,7 @@ CONTAINS
     USE PhysConstants,    ONLY : AVO, PI, AIRMW
     USE Input_Opt_Mod,    ONLY : OptInput
     USE rateLawUtilFuncs
-    USE State_Chm_Mod,    ONLY : ChmState, Ind_
+    USE State_Chm_Mod,    ONLY : ChmState
     USE State_Met_Mod,    ONLY : MetState
     USE Henry_Mod,        ONLY : Calc_KH
     USE Henry_Mod,        ONLY : Calc_Heff
@@ -72,10 +76,20 @@ CONTAINS
     INTEGER,        INTENT(IN)    :: I          ! Lon (or X-dim) gridbox index
     INTEGER,        INTENT(IN)    :: J          ! Lat (or Y-dim) gridbox index
     INTEGER,        INTENT(IN)    :: L          ! Vertical level index
-    INTEGER ,       INTENT(IN)    :: id_SALA    ! Indices of SALA, SALAAL
-    INTEGER,        INTENT(IN)    :: id_SALAAL  !  SALC, and SALCAL species
-    INTEGER,        INTENT(IN)    :: id_SALC    !  in the State_Chm%Species
-    INTEGER,        INTENT(IN)    :: id_SALCAL  !  object
+    INTEGER,        INTENT(IN)    :: id_DSTbin1 ! DSTbin1 species index
+    INTEGER,        INTENT(IN)    :: id_DSTbin2 ! DSTbin2 species index
+    INTEGER,        INTENT(IN)    :: id_DSTbin3 ! DSTbin3 species index
+    INTEGER,        INTENT(IN)    :: id_DSTbin4 ! DSTbin4 species index
+    INTEGER,        INTENT(IN)    :: id_DSTbin5 ! DSTbin5 species index
+    INTEGER,        INTENT(IN)    :: id_DSTbin6 ! DSTbin6 species index
+    INTEGER,        INTENT(IN)    :: id_DSTbin7 ! DSTbin7 species index
+    INTEGER,        INTENT(IN)    :: id_pFe     ! pFe     species index
+    INTEGER,        INTENT(IN)    :: id_SALA    ! SALA    species index
+    INTEGER,        INTENT(IN)    :: id_SALAAL  ! SALAAL  species index
+    INTEGER,        INTENT(IN)    :: id_SALC    ! SALC    species index
+    INTEGER,        INTENT(IN)    :: id_SALCAL  ! SALCAL  species index
+    INTEGER,        INTENT(IN)    :: id_SO2     ! SO2     species index
+    INTEGER,        INTENT(IN)    :: id_SO4     ! SO4     species index
     TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
     TYPE(ChmState), INTENT(IN)    :: State_Chm  ! Chemistry State object
     TYPE(MetState), INTENT(IN)    :: State_Met  ! Meterology State object
@@ -125,41 +139,28 @@ CONTAINS
     REAL(dp) :: KO0, KO1, KO2, KspFeOH3, KspMnOH2
     REAL(dp) :: hydroxide, FeIII_max, MnII_max, SIV_a
     REAL(dp) :: Ks1, Ks2, HCSO2_a
-    REAL(dp) :: XSO2g_a, PATM, SO2, CNVFAC, RHO,RHO_num, id_pFe
+    REAL(dp) :: XSO2g_a, PATM, SO2, CNVFAC, RHO,RHO_num
     REAL(dp) :: ff, k9, k10,A, B, Beta, b1
-    INTEGER  :: id_NO2, id_O3, id_SO2, id_DSTbin1, id_DSTbin2, id_DSTbin3
-    INTEGER  :: id_DSTbin4, id_DSTbin5, id_DSTbin6, id_DSTbin7
 
     ! Pointers
     TYPE(SpcConc), POINTER :: Spc(:)
-    pH_a                        = State_Chm%AteAeropH(I,J,L,1)
-    Hplus_a                     = 10**(-1.0_dp * pH_a)
-    hydroxide = 10.0_fp**(-14.0_fp + pH_a) ! OH- concentration, M
-    KspFeOH3 = 2.6e-38_fp
-    KspMnOH2 = 1.6e-13_fp
+
     !========================================================================
     ! Populate fields of the HetState object in gckpp_Global
     !========================================================================
 
     ! Initialization
-    RC = GC_SUCCESS
-    NA = State_Chm%nAeroType
-    Spc                         => State_Chm%Species
-    RHO                         = State_Met%AIRDEN(I,J,L)
-    RHO_num                     = State_Met%AIRNUMDEN(I,J,L)
-    CNVFAC    = 1.E3_fp * AIRMW / ( RHO * AVO ) !mcl/cm3->v/v
-    !========================================================================
-    ! Populate fields of the HetState object in gckpp_Global
-    !========================================================================
-    id_SO2          = Ind_( 'SO2'     )
-    id_DSTbin1      = Ind_( 'DSTbin1' )
-    id_DSTbin2      = Ind_( 'DSTbin2' )
-    id_DSTbin3      = Ind_( 'DSTbin3' )
-    id_DSTbin4      = Ind_( 'DSTbin4' )
-    id_DSTbin1      = Ind_( 'DSTbin5' )
-    id_DSTbin2      = Ind_( 'DSTbin6' )
-    id_DSTbin3      = Ind_( 'DSTbin7' )
-    id_pFe          = Ind_( 'pFe'     )
+    RC              =  GC_SUCCESS
+    NA              =  State_Chm%nAeroType
+    Spc             => State_Chm%Species
+    RHO             =  State_Met%AIRDEN(I,J,L)
+    RHO_num         =  State_Met%AIRNUMDEN(I,J,L)
+    CNVFAC          =  1.E3_fp * AIRMW / ( RHO * AVO ) !mcl/cm3->v/v
+    pH_a            =  State_Chm%AteAeropH(I,J,L,1)
+    Hplus_a         =  10**(-1.0_dp * pH_a)
+    hydroxide       =  10.0_fp**(-14.0_fp + pH_a) ! OH- concentration, M
+    KspFeOH3        =  2.6e-38_fp
+    KspMnOH2        =  1.6e-13_fp
 
     ! Identify a box for debug printout within rate-law functions
     debugBox        = .FALSE.
