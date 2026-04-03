@@ -59,9 +59,9 @@ MODULE fullchem_RateLawFuncs
   INTEGER,  PRIVATE, PARAMETER :: HOBr_plus_HBr  = 11 ! KHETI_SLA(11)= 0
 
   ! Critical RH [%] for uptake of GLYX, MGLYX, and GLYC:
-  REAL(dp), PRIVATE, PARAMETER :: CRITRH         = 35.0_dp
+  REAL(dp), PRIVATE, PARAMETER :: RH_35_PERCENT         = 35.0_dp
   ! Critical RH [%] for uptake of SO2:
-  REAL(dp), PRIVATE, PARAMETER :: CRITRH2        = 50.0_dp
+  REAL(dp), PRIVATE, PARAMETER :: RH_50_PERCENT  = 50.0_dp
 
   ! Conversion factor from atm to bar
   REAL(dp), PRIVATE, PARAMETER :: CON_ATM_BAR    = 1.0_dp / 1.01325_dp
@@ -1208,7 +1208,7 @@ CONTAINS
     srMw  = SR_MW(ind_SO2)
     !
     ! Uptake by tropospheric sulfate, if RH is above the threshold
-    IF ( RELHUM >= CRITRH2 ) THEN
+    IF ( RELHUM >= RH_50_PERCENT ) THEN
        k = k + Ars_L1k( H%xArea(SUL), H%xRadi(SUL), gamma, srMw )
        k = k + Ars_L1k( H%xArea(ORC), H%xRadi(ORC), gamma, srMw )
     ENDIF
@@ -1229,7 +1229,7 @@ CONTAINS
     srMw  = SR_MW(ind_SO2)
     !
     ! Uptake by tropospheric sulfate, if RH is above the threshold
-    IF ( RELHUM .ge. CRITRH2 ) THEN
+    IF ( RELHUM >= RH_50_PERCENT ) THEN
        k = k + Ars_L1k( H%xArea(SUL), H%xRadi(SUL), gamma, srMw )
        k = k + Ars_L1k( H%xArea(ORC), H%xRadi(ORC), gamma, srMw )
        !
@@ -1254,7 +1254,7 @@ CONTAINS
     srMw  = SR_MW(ind_SO2)
     !
     ! Uptake by tropospheric sulfate, if RH is above the threshold
-    IF ( RELHUM >= CRITRH2 ) THEN
+    IF ( RELHUM >= RH_50_PERCENT ) THEN
        k = k + Ars_L1k( H%xArea(SUL), H%xRadi(SUL), gamma, srMw )
        k = k + Ars_L1k( H%xArea(ORC), H%xRadi(ORC), gamma, srMw )
        !
@@ -1279,7 +1279,7 @@ CONTAINS
     srMw  = SR_MW(ind_SO2)
     !
     ! Uptake by tropospheric sulfate, if RH is above the threshold
-    IF ( RELHUM >= CRITRH2 ) THEN
+    IF ( RELHUM >= RH_50_PERCENT ) THEN
        k = k + Ars_L1k( H%xArea(SUL), H%xRadi(SUL), gamma, srMw )
        k = k + Ars_L1k( H%xArea(ORC), H%xRadi(ORC), gamma, srMw )
        !
@@ -1304,7 +1304,7 @@ CONTAINS
     srMw  = SR_MW(ind_SO2)
     !
     ! Uptake by tropospheric sulfate, if RH is above the threshold
-    IF ( RELHUM >= CRITRH2 ) THEN
+    IF ( RELHUM >= RH_50_PERCENT ) THEN
        k = k + Ars_L1k( H%xArea(SUL), H%xRadi(SUL), gamma, srMw )
        k = k + Ars_L1k( H%xArea(ORC), H%xRadi(ORC), gamma, srMw )
        !
@@ -3443,7 +3443,7 @@ CONTAINS
     gamma = 0.0_dp
     !
     ! Uptake by tropospheric sulfate
-    IF ( RELHUM >= CRITRH ) THEN
+    IF ( RELHUM >= RH_35_PERCENT ) THEN
        IF ( SUNCOS > 0.0_dp ) THEN
           gamma = 4.4e-3_dp   ! cf Liggio et al 2005
        ELSE
@@ -3539,7 +3539,7 @@ CONTAINS
     gamma = 0.0_dp
     !
     ! Only consider inorganic aqueous aerosols with RH > 35%.
-    IF ( RELHUM >= CRITRH ) THEN
+    IF ( RELHUM >= RH_35_PERCENT ) THEN
        !
        ! Get GAMMA for IEPOX hydrolysis
        gamma = EpoxUptkGamma( srMw, H )
@@ -3566,7 +3566,7 @@ CONTAINS
     gamma = 0.0_dp
     !
     ! Only consider inorganic aqueous aerosols with RH > 35%.
-    IF ( RELHUM >= CRITRH ) THEN
+    IF ( RELHUM >= RH_35_PERCENT ) THEN
        !
        ! Define gamma for MGLY: Obtained by scaling gamma GLYX by the
        ! ratio of effective Henry's law constants for GLYX (3d7) and
@@ -3590,7 +3590,7 @@ CONTAINS
     k  = 0.0_dp
     !
     ! Only consider inorganic aqueous aerosols with RH > 35%.
-    IF ( RELHUM >= CRITRH ) THEN
+    IF ( RELHUM >= RH_35_PERCENT ) THEN
        k = k + Ars_L1k( H%xArea(SUL), H%xRadi(SUL), gamma, srMw )
        k = k + Ars_L1k( H%xArea(BKC), H%xRadi(BKC), gamma, srMw )
        k = k + Ars_L1k( H%xArea(ORC), H%xRadi(ORC), gamma, srMw )
