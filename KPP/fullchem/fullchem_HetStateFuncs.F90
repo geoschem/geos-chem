@@ -129,7 +129,7 @@ CONTAINS
     REAL(dp) :: kchemNO2, kchemO3, kchemH2O2, kchemTMI, kchemCH2O
     REAL(dp) :: gammaO3, gammaH2O2, gammaNO2, gammaTMI, gammaCH2O
     REAL(dp) :: Kw1, KHMS, KHMS2, dOH
-    REAL(dp) :: f_x, y, corr, x, xradi, l_r
+    REAL(dp) :: f_x, y, corr, x, l_r
     REAL(dp) :: D_aSO2, D_aO3, D_aNO2, D_aCH2O
     REAL(dp) :: HEFF, HEFF_H2O2, speed, M_SO2
     !REAL(dp) :: Eff_Fe, Eff_Mn, Eff_H2O2
@@ -140,7 +140,7 @@ CONTAINS
     REAL(dp) :: hydroxide, FeIII_max, MnII_max, SIV_a
     REAL(dp) :: Ks1, Ks2, HCSO2_a
     REAL(dp) :: XSO2g_a, PATM, SO2, CNVFAC, RHO,RHO_num
-    REAL(dp) :: ff, k9, k10,A, B, Beta, b1
+    REAL(dp) :: ff, k9, k10,A, B, Beta, b1, dummy
 
     ! Pointers
     TYPE(SpcConc), POINTER :: Spc(:)
@@ -228,370 +228,442 @@ CONTAINS
     H%SSC_is_Acid   = ( .not.  H%SSC_is_Alk          )
 
     ! Aerosol fields: HSO3 and SO3 concentrations in aerosol [mol/L]
-    H%HSO3_aq_a       = State_Chm%HSO3_aq_a(I,J,L)
-    H%SO3_aq_a        = State_Chm%SO3_aq_a(I,J,L)
-    H%SO2_aq_a        = State_Chm%SO2_aq_a(I,J,L)
+    H%HSO3_aq_a     = State_Chm%HSO3_aq_a(I,J,L)
+    H%SO3_aq_a      = State_Chm%SO3_aq_a(I,J,L)
+    H%SO2_aq_a      = State_Chm%SO2_aq_a(I,J,L)
 
-    H%SO2             = C(ind_SO2)*CNVFAC
+    H%SO2           = C(ind_SO2) * CNVFAC
     
     ! Other fields
     H%gamma_HO2     = Input_Opt%gamma_HO2
 
-      ! Get Henry's law parameters
-    K0   = HENRY_K0(ind_SO2)!SpcInfo%Henry_K0
-    CR   = HENRY_CR(ind_SO2)!SpcInfo%Henry_CR
-    pKa = 1.81_dp
-    TK = State_Met%T(I,J,L)
+    ! Get Henry's law parameters
+    K0              = HENRY_K0(ind_SO2)
+    CR              = HENRY_CR(ind_SO2)
+    pKa             = 1.81_dp
+    TK              = State_Met%T(I,J,L)
     
-    ! Calculate the Henry's law constant
-   ! CALL CALC_KH( K0, CR, TK, K0, RC )
-
     ! Calculate effective Henry's law constant, corrected for pH
     ! (for those species that have a defined pKa value)
-  !  CALL CALC_HEFF( pKa, H%pHSSA(1), K0, HEFF, RC )
-  !  H%HEFF_a = HEFF
-    Ks1    = 1.30e-2_dp * EXP( 6.75e+0_dp * ( 298.15e+0_dp / TK - 1.e+0_dp ) )
-    Ks2    = 6.31e-8_dp * EXP( 5.05e+0_dp * ( 298.15e+0_dp / TK - 1.e+0_dp ) )
+    Ks1             = 1.30e-2_dp *                                           &
+                      EXP( 6.75e+0_dp * ( 298.15e+0_dp / TK - 1.e+0_dp ) )
+    Ks2             = 6.31e-8_dp *                                           &
+                      EXP( 5.05e+0_dp * ( 298.15e+0_dp / TK - 1.e+0_dp ) )
 
    ! Henry's constant [mol/l-atm] and Effective Henry's constant for SO2
-    HCSO2_a  = 1.22e+0_dp * EXP( 10.55e+0_dp * ( 298.15e+0_dp / Tk - 1.e+0_dp) )
-    H%HEFF_a = HCSO2_a * (1.e+0_dp + (Ks1/Hplus_a) + (Ks1*Ks2 / (Hplus_a*Hplus_a)))
+    HCSO2_a         = 1.22e+0_dp * &
+                      EXP( 10.55e+0_dp * ( 298.15e+0_dp / Tk - 1.e+0_dp) )
+    H%HEFF_a        = HCSO2_a * ( 1.0_dp    + ( Ks1    / Hplus_a  ) +        &
+                                ( Ks1 * Ks2 / ( Hplus_a * Hplus_a ) ) )
 
-     !===============================================================
+    !========================================================================
     !  Do sulfur fraction for aerosols (krt, 1/11/24)
-    !=================================================================
-    PATM = State_Met%PMID_DRY( I, J, L ) / ( ATM * 1.e-2_dp ) ! Press, dry [atm]
+    !========================================================================
+
+    ! Press, dry [atm]
+    PATM            = State_Met%PMID_DRY( I, J, L ) / ( ATM * 1.0e-2_dp )
+
     ! SIV Fraction for aerosols
-    XSO2aq_a = 1.e+0_dp/(1.e+0_dp + Ks1/Hplus_a + Ks1*Ks2/(Hplus_a*Hplus_a))
-    XHSO3_a  = 1.e+0_dp/(1.e+0_dp + Hplus_a/Ks1 + Ks2/Hplus_a)
-    XSO3_a   = 1.e+0_dp/(1.e+0_dp + Hplus_a/Ks2 + Hplus_a*Hplus_a/(Ks1*Ks2))
+    XSO2aq_a        = 1.0_dp/(1.0_dp + Ks1/Hplus_a + Ks1*Ks2/(Hplus_a*Hplus_a))
+    XHSO3_a         = 1.0_dp/(1.0_dp + Hplus_a/Ks1 + Ks2/Hplus_a)
+    XSO3_a          = 1.0_dp/(1.0_dp + Hplus_a/Ks2 + Hplus_a*Hplus_a/(Ks1*Ks2))
 
      ! For aerosols (krt)
-    ALWC         = State_Chm%AteAeroH2O(I,J,L,1) ! ug/m3 air
+    ALWC            = State_Chm%AteAeroH2O(I,J,L,1) ! ug/m3 air
+
     ! convert ALWC from ug/m3 to m3/m3
-    ALWC = ALWC * 1e-9_dp * 1e-3_dp
+    ALWC            = ALWC * 1e-9_dp * 1e-3_dp
     
     ! QL can sometimes be negative, so force LWC to be positive
-    ALWC = MAX( 0.0_dp, ALWC )
+    ALWC            = MAX( 0.0_dp, ALWC )
     
-    XSO2g_a  = 1.e+0_dp / ( 1.e+0_dp + ( H%HEFF_a * R * Tk * ALWC ) )
-    SIV_a    = H%HEFF_a * XSO2g_a * H%SO2 * PATM
+    XSO2g_a         = 1.0_dp / ( 1.0_dp + ( H%HEFF_a * R * Tk * ALWC ) )
+    SIV_a           = H%HEFF_a * XSO2g_a * H%SO2 * PATM
 
     ! Effective HSO3aq 
-    HSO3aq_a = SIV_a * XHSO3_a           ! unit: M (qjc, 06/10/16)
+    HSO3aq_a        = SIV_a * XHSO3_a           ! unit: M (qjc, 06/10/16)
 
     ! Effective SO3aq for HOBr+SO3
-    SO3aq_a  = SIV_a * XSO3_a            ! unit: M (qjc, 06/10/16)
+    SO3aq_a         = SIV_a * XSO3_a            ! unit: M (qjc, 06/10/16)
+    SO2aq_a         = SIV_a * XSO2aq_a
 
-    SO2aq_a = SIV_a * XSO2aq_a
     ! == Calculate gamma for uptake of SO2 to Sulfate and organic aerosol ====
-    MACOEFF_SO2  = 0.11_dp
-    MACOEFF_NO2  = 2e-4_dp
-    MACOEFF_O3   = 2e-3_dp
-    MACOEFF_H2O2 = 0.11_dp
-    MACOEFF_CH2O = 0.04_dp
+    MACOEFF_SO2     = 0.11_dp
+    MACOEFF_NO2     = 2.0e-4_dp
+    MACOEFF_O3      = 2.0e-3_dp
+    MACOEFF_H2O2    = 0.11_dp
+    MACOEFF_CH2O    = 0.04_dp
+
     ! Ionic strength from HETP (M)
-    IONIC_a = State_Chm%AteIONIC(I,J,L) 
+    IONIC_a         = State_Chm%AteIONIC(I,J,L)
+
     ! Molecular speed
-    M_SO2 = State_Chm%SpcData(id_SO2)%Info%MW_g   * 1.0e-3_dp
-    speed = ( SQRT( EIGHT_RSTARG_T / ( PI * M_SO2 ) ))*100.0_dp
+    M_SO2           = State_Chm%SpcData(id_SO2)%Info%MW_g * 1.0e-3_dp
+    speed           = ( SQRT( EIGHT_RSTARG_T / ( PI * M_SO2 ) ) ) *100.0_dp
+
     ! Aqueous phase diffusion 
-    D_aSO2  = 1.32e-5_dp
-    D_aO3   = 1.10e-2_dp*exp(-1896_dp/Tk)
-    D_aNO2  = 2.0e-5_dp
-    D_aCH2O = 1.52e-6_dp ! no idea
+    D_aSO2          = 1.32e-5_dp
+    D_aO3           = 1.10e-2_dp * EXP( -1896.0_dp / Tk )
+    D_aNO2          = 2.0e-5_dp
+    D_aCH2O         = 1.52e-6_dp ! no idea
     
     ! Get FeIII
-    FeIII_a   = 0.0
-    FeIII_Max = 0.0
-    MnII_a    = 0.0
-    MnII_Max  = 0.0
+    FeIII_a         = 0.0_dp
+    FeIII_Max       = 0.0_dp
+    MnII_a          = 0.0_dp
+    MnII_Max        = 0.0_dp
+
+    !-----------------------------------------------------------------------
     ! Metal catalyzed oxidation of SO2 pathway
-    !--------------------------------------------------------
+    !-----------------------------------------------------------------------
     ! Get dust concentrations [MND -> ng/m3]
     ! Get the MW_g from DSTbin1, all dust bins have the same MW
-    DUST = ( Spc(id_DSTbin1)%Conc(I,J,L) +                                  &
-             Spc(id_DSTbin2)%Conc(I,J,L) +                                  &
-             Spc(id_DSTbin3)%Conc(I,J,L) +                                  &
-             Spc(id_DSTbin4)%Conc(I,J,L) +                                  &
-             Spc(id_DSTbin5)%Conc(I,J,L) +                                  &
-             Spc(id_DSTbin6)%Conc(I,J,L) +                                  &
-             Spc(id_DSTbin7)%Conc(I,J,L)   )                                &
-         * 1.e+15_dp                                                        &
-         * State_Chm%SpcData(id_DSTbin1)%Info%MW_g                          &
-         / AVO
+    !-----------------------------------------------------------------------
+    DUST            = ( Spc(id_DSTbin1)%Conc(I,J,L) +                        &
+                        Spc(id_DSTbin2)%Conc(I,J,L) +                        &
+                        Spc(id_DSTbin3)%Conc(I,J,L) +                        &
+                        Spc(id_DSTbin4)%Conc(I,J,L) +                        &
+                        Spc(id_DSTbin5)%Conc(I,J,L) +                        &
+                        Spc(id_DSTbin6)%Conc(I,J,L) +                        &
+                        Spc(id_DSTbin7)%Conc(I,J,L)   )                      &
+                    * 1.e+15_dp                                              &
+                    * State_Chm%SpcData(id_DSTbin1)%Info%MW_g                &
+                    / AVO
 
     ! Calculate Fe and Mn natural [ng m-3]
     ! Assume that Fe is 3.5% of total dust mass based on
     ! Taylor and McLennan [1985]
-    Fe_nat = DUST * 35e-3_dp
+    Fe_nat          = DUST * 35.0e-3_dp
+
     ! and Mn is 50 times less than Fe based on Desbouefs et al.[2005]
     !Mn_nat = Fe_nat / 50e+0_dp
     ! Use Cai et al
-    Mn_nat = DUST * 3E-3_dp
+    Mn_nat          = DUST * 3.0e-3_dp
     
     ! Anthropogenic Fe concentrations [mcl/cm3 -> ng/m3]
-    Fe_ant = Spc(id_pFe)%Conc(I,J,L) * CNVFAC * &
-         1.e+12_dp * State_Met%AD(I,J,L) &
-         / ( AIRMW / State_Chm%SpcData(id_pFe)%Info%MW_g ) &
-         / State_Met%AIRVOL(I,J,L)
-    !             Fe_ant = Spc(id_pFe)%Conc(I,J,L) * 1.e+15_fp * &
-    !                  State_Chm%SpcData(id_DST1)%Info%MW_g / AVO
+    Fe_ant          = Spc(id_pFe)%Conc(I,J,L)                                &
+                    * CNVFAC                                                 &
+                    * 1.e+12_dp                                              &
+                    * State_Met%AD(I,J,L)                                    &
+                    / ( AIRMW / State_Chm%SpcData(id_pFe)%Info%MW_g )        &
+                    / State_Met%AIRVOL(I,J,L)
  
     ! Calculate Mn anthropogenic [ng m-3]
     ! assume anthropogenic Mn is 1/30 times anthropogenic Fe
-    Mn_ant = Fe_ant / 10e+0_dp
+    Mn_ant          = Fe_ant / 10.0_dp
     
     ! Calculate total Mn and Fe [ng m-3]
-    Mn_tot = Mn_ant + Mn_nat
-    Fe_tot = Fe_ant + Fe_nat
+    Mn_tot          = Mn_ant + Mn_nat
+    Fe_tot          = Fe_ant + Fe_nat
     
     ! Convert Mn and Fe [ng m-3] to [mole l-1]
-    ! Below I guess we are making the assumption that we wont have LWC and ALWC at the same time in one grid box?
+    ! Below I guess we are making the assumption that we won't have
+    ! LWC and ALWC at the same time in one grid box?
     ! Are the aerosols scavenged before this occurs?  Are we double counting?
     !krt, for aerosols
     
-    Mn_d_a             = 0e+0_dp
-    IF (ALWC > 0e+0_dp) THEN
+    Mn_d_a          = 0.0_dp
+    IF ( ALWC > 0.0_dp ) THEN
        ! Units: ng/m3 * (g/ng) / (g/mol) / (m3 H2O / m3 air) * (m3/L)
        ! max possible dissolved Mn
-       MnII_max = Mn_tot * 1.0e-9_dp / 54.94e+0_dp / ALWC * 1.0e-3_dp
-       MnII_max = MnII_max *0.5e+0_fp ! Maximum fractional solubility
+       MnII_max     = Mn_tot   * 1.0e-9_dp / 54.94_dp / ALWC * 1.0e-3_dp
+       MnII_max     = MnII_max * 0.5_fp ! Maximum fractional solubility
 
-       Mn_d_a = KspMnOH2/(hydroxide**2.0_dp)
+       Mn_d_a       = KspMnOH2 / ( hydroxide**2 )
+
        ! can't have more dissolved Mn than available in gas phase
-       Mn_d_a = MIN(Mn_d_a, MnII_max) ! can't have more dissolved Mn than available in gas phase
+       Mn_d_a       = MIN( Mn_d_a, MnII_max )
        
     ENDIF
           
     ! Solubility of Fe is 10% for anthropogenic, and 1% for dust
-    Fe_d_a     = 0e+0_fp
+    Fe_d_a          = 0.0_fp
     IF ( ALWC > 0e+0_fp ) THEN
-       Fe_d_ant_a = Fe_ant * 1e-9_fp / &
-            State_Chm%SpcData(id_pFe)%Info%MW_g / &
-            ALWC * 1.0e-3_fp
-       Fe_d_nat_a = Fe_nat * 1.0e-9_fp / &
-            State_Chm%SpcData(id_pFe)%Info%MW_g / &
-            ALWC * 1.0e-3_fp
+       Fe_d_ant_a   = Fe_ant                                                 &
+                    * 1e-9_fp                                                &
+                    / State_Chm%SpcData(id_pFe)%Info%MW_g                    &
+                    / ALWC                                                   &
+                    * 1.0e-3_fp
+
+       Fe_d_nat_a   = Fe_nat                                                 &
+                    * 1.0e-9_fp                                              &
+                    / State_Chm%SpcData(id_pFe)%Info%MW_g                    &
+                    / ALWC                                                   &
+                    * 1.0e-3_fp
+
        ! currently not sure how to account for different
        ! solubility between anthropogenic and natural
        ! Max possible solubility
-       FeIII_Max = Fe_d_ant_a*0.1e+0_fp + Fe_d_nat_a*0.1e+0_fp
+       FeIII_Max    = ( Fe_d_ant_a * 0.1_fp ) + ( Fe_d_nat_a * 0.1_fp )
 
-       IF ( State_Met%SUNCOS(I,J) > 0e+0_fp ) THEN
+       IF ( State_Met%SUNCOS(I,J) > 0.0_fp ) THEN
           ! Assume 10% of dissolved Fe is in Fe(III)
           !oxidation state during the daytime
-          FeIII_Max = FeIII_Max * 0.1e+0_fp
+          FeIII_Max = FeIII_Max * 0.1_fp
        ELSE
           ! Assume 90% of dissolved Fe is in Fe(III)
           ! oxidation state during the nighttime
-          FeIII_Max = FeIII_Max * 0.9e+0_fp
+          FeIII_Max = FeIII_Max * 0.9_fp
        ENDIF
 
-       Fe_d_a = KspFeOH3/(hydroxide**3.0_fp)
-       Fe_d_a = MIN(Fe_d_a, FeIII_Max)
+       Fe_d_a       = KspFeOH3 / ( hydroxide*3 )
+       Fe_d_a       = MIN( Fe_d_a, FeIII_Max )
     ENDIF
     
     ! Assume that dissolved Mn is in Mn(II) oxidation state all of
     ! the time
-    MnII = Mn_d
-    MnII_a = Mn_d_a
-    FeIII_a = Fe_d_a
+    MnII            = Mn_d
+    MnII_a          = Mn_d_a
+    FeIII_a         = Fe_d_a
     
-    ! Add to diagnostic
-    State_Chm%FeIII_A(I,J,L) = FeIII_a 
-    State_Chm%MnII_A(I,J,L)  = MnII_a
+    !------------------------------------------------------------------------
+    ! Add to State_Chm and State_Het (aka H) arrays
+    !------------------------------------------------------------------------
+    State_Chm%FeIII_A(I,J,L)    = FeIII_a
+    State_Chm%MnII_A(I,J,L)     = MnII_a
     State_Chm%FeIII_AMAX(I,J,L) = FeIII_Max
     State_Chm%MnII_AMAX(I,J,L)  = MnII_Max
-    H%FeIII_a       = State_Chm%FEIII_A(I,J,L)
-    H%MnII_a        = State_Chm%MNII_A(I,J,L)
+    H%FeIII_a                   = State_Chm%FEIII_A(I,J,L)
+    H%MnII_a                    = State_Chm%MNII_A(I,J,L)
 
+    !------------------------------------------------------------------------
     ! ==== TMI/O2 ====
-    ! First order in SO2
-    val1TMI = ( 1.0_dp / MACOEFF_SO2 )
+    !------------------------------------------------------------------------
 
-    !IF (IONIC_a .gt. 2.0e+0_fp ) THEN
-    !   IONIC_aMAX = 2.0e+0_fp
-    !ENDIF
-    IONIC_aMAX = IONIC_a
-    IF (IONIC_a .gt. 1.0e+0_fp ) THEN
-       IONIC_aMAX = 1.0e+0_fp
+    ! First order in SO2
+    val1TMI       = 1.0_dp / MACOEFF_SO2
+
+    IONIC_aMAX    = IONIC_a
+    IF ( IONIC_a > 1.0_fp ) THEN
+       IONIC_aMAX = 1.0_fp
     ENDIF
 
     ! Ionic strenght correction
     !Eff_Mn = 10.0_dp**(-4.0_dp*(SQRT(IONIC_aMAX)/(1.0_dp+SQRT(IONIC_aMAX))))
     !Eff_Fe = 10.0_dp**(-4.0_dp*(SQRT(IONIC_aMAX)/(1.0_dp+SQRT(IONIC_aMAX))))
 
-    ff = 10.0_dp**(-4.0_dp*(SQRT(IONIC_aMAX)/(1.0_dp+SQRT(IONIC_aMAX))))
+    ff            = 10.0_dp**(-4.0_dp*                                       &
+                             ( SQRT(IONIC_aMAX) / (1.0_dp+SQRT(IONIC_aMAX))))
 
-    kTMI6 = 3.72e+7_dp*exp(-8431.6_dp*(1.0e+0_dp/Tk - 1.0e+0_dp/297.0_dp)) ! M-2 s-1
-    kTMI7 = 2.51e+13_dp* exp(-8431.6_dp*(1.0e+0_dp/Tk - 1.0e+0_dp/297.0_dp))
+    ! M-2 s-1
+    kTMI6         = 3.72e+7_dp  * EXP( -8431.6_dp *                          &
+                                        ( 1.0_dp/Tk - 1.0_dp/297.0_dp ) )
+
+    kTMI7         = 2.51e+13_dp * EXP( -8431.6_dp *                          &
+                                        ( 1.0_dp/Tk - 1.0_dp/297.0_dp ) )
     
-    !IF ( pH_a .le. 4.2_dp ) THEN
-    !   kchemTMI = kTMI6*Hplus_a**(-0.74_dp)* &
-    !        (MnII_a*FeIII_a*Eff_Fe*Eff_Mn)
-    !ELSE
-    !   kchemTMI = kTMI7*Hplus_a**(0.67_dp)* &
-    !        (MnII_a*FeIII_a*Eff_Fe*Eff_Mn)
-    !ENDIF
-    IF ( pH_a .le. 4.2_dp ) THEN 
-       kchemTMI = kTMI6*Hplus_a**(-0.74_dp)*(MnII_a*FeIII_a)
+    IF ( pH_a <= 4.2_dp ) THEN
+       kchemTMI   = kTMI6 * Hplus_a**(-0.74_dp) * ( MnII_a * FeIII_a )
     ELSE
-       kchemTMI = kTMI7*Hplus_a**(0.67_dp)*(MnII_a*FeIII_a)
+       kchemTMI   = kTMI7 * Hplus_a**( 0.67_dp) * ( MnII_a * FeIII_a )
     ENDIF
 
     ! IONIC strength impact
-    kchemTMI = kchemTMI * ff
+    kchemTMI      = kchemTMI * ff
     
-    M_SO2 = State_Chm%SpcData(id_SO2)%Info%MW_g   * 1.0e-3_dp    
+    M_SO2         = State_Chm%SpcData(id_SO2)%Info%MW_g * 1.0e-3_dp
 
     ! Get Henry's law parameters
     ! No idea why this is not working so hard coding...
-    K0   = 1.22_dp! HENRY_K0(ind_SO2)!SpcInfo%Henry_K0
-    CR   = 3100.0_dp!HENRY_CR(ind_SO2)!SpcInfo%Henry_CR
-    pKa = 1.81_dp
-    D_aSO2 = 1.32e-5_dp
-    
-    !CALL CALC_KH( K0, CR, TK, K0, RC )
-    !CALL CALC_HEFF( pKa, pH_a, K0, HEFF, RC )
-    
-    Ks1    = 1.30e-2_fp * EXP( 6.75e+0_fp * ( 298.15e+0_fp / TK - 1.e+0_fp ) )
-    Ks2    = 6.31e-8_fp * EXP( 5.05e+0_fp * ( 298.15e+0_fp / TK - 1.e+0_fp ) )
+    K0            = 1.22_dp   !HENRY_K0(ind_SO2)!SpcInfo%Henry_K0
+    CR            = 3100.0_dp !HENRY_CR(ind_SO2)!SpcInfo%Henry_CR
+    pKa           = 1.81_dp
+    D_aSO2        = 1.32e-5_dp
+    Ks1           = 1.30e-2_fp * EXP( 6.75_fp * ( 298.15_fp / TK - 1.0_fp ) )
+    Ks2           = 6.31e-8_fp * EXP( 5.05_fp * ( 298.15_fp / TK - 1.0_fp ) )
     
     ! Henry's constant [mol/l-atm] and Effective Henry's constant for SO2
-    HCSO2_a  = 1.22e+0_fp * EXP( 10.55e+0_fp * ( 298.15e+0_fp / TK - 1.e+0_fp) )
-    HEFF = HCSO2_a * (1.e+0_fp + (Ks1/Hplus_a) + (Ks1*Ks2 / (Hplus_a*Hplus_a)))
+    HCSO2_a       = 1.22_fp * EXP( 10.55_fp * ( 298.15_fp / TK - 1.0_fp) )
+    HEFF          = HCSO2_a                                                  &
+                  * ( 1.0_fp +  ( Ks1     / Hplus_a )                        &
+                  + ( Ks1*Ks2 / ( Hplus_a * Hplus_a ) ) )
     
-    val2TMI = speed/((FOUR_RGASLATM_T * HEFF)*SQRT(D_aSO2*kchemTMI))
-    
-    l_r = SQRT(D_aSO2/kchemTMI)
-    xRadi = State_Chm%AeroRadi(I,J,L,SUL) 
-    val3TMI = ReactoDiff_Corr(xRadi, l_r)
-    
-    gammaTMI = 1.0_dp/(val1TMI + val2TMI*1/val3TMI)      ! Uptake by various aerosol types
-    
+    ! Prevent div-by-zero when kchemTMI is zero
+    dummy         = ( FOUR_RGASLATM_T * HEFF ) * SQRT( D_aSO2 * kchemTMI )
+    val2TMI       = SafeDiv( speed, dummy, 0.0_dp )
+    dummy         = SafeDiv( D_aSO2, kchemTMI, 0.0_dp )
+    l_r           = SQRT( dummy )
+
+    ! Prevent div-by-zero when l_r is zero
+    val3TMI       = 0.0_dp
+    IF ( l_r > 0.0_dp ) THEN
+       val3TMI    = ReactoDiff_Corr( State_Chm%AeroRadi(I,J,L,SUL), l_r )
+    ENDIF
+
+    ! Uptake by various aerosol types, prevent div-by-zero
+    ! original: gammaTMI = 1.0_dp/(val1TMI + val2TMI*1/val3TMI)
+    !           but note: val2TMI*1/val3TMI reduces to val2TMI/val3TMI
+    ! Prevent div by zero conditions
+    dummy         = SafeDiv( val2TMI, val3TMI,             0.0_dp )
+    gammaTMI      = SafeDiv( 1.0_dp,  ( val1TMI + dummy ), 0.0_dp )
+
+    !------------------------------------------------------------------------
     ! ===== H2O2 =====
-    IONIC_eMAX = IONIC_a
-    IF (IONIC_eMAX .gt. 5.0e+0_fp ) THEN
-       IONIC_eMAX = 5.0e+0_fp
+    !------------------------------------------------------------------------
+    IONIC_eMAX    = IONIC_a
+    IF (IONIC_eMAX > 5.0_fp ) THEN
+       IONIC_eMAX = 5.0_fp
     ENDIF
     
     ! First order in SO2
-    val1H2O2 = (1.0e+0_dp / MACOEFF_SO2)
+    val1H2O2      = 1.0_dp / MACOEFF_SO2
 
-    kH2O2 = 7.45e+7_dp *exp(-4430_dp*(1.0_dp/Tk - 1.0_dp/298.0_dp))
-    kchemH2O2 =(kH2O2*Hplus_a*HSO3aq_a)/(1.0_dp+13.0_dp*Hplus_a)
+    kH2O2         = 7.45e+7_dp                                               &
+                  * EXP( -4430_dp* ( 1.0_dp/Tk - 1.0_dp/298.0_dp ) )
+    kchemH2O2     = ( kH2O2 * Hplus_a * HSO3aq_a)                            &
+                  / ( 1.0_dp + ( 13.0_dp *Hplus_a ) )
 
     ! IONIC strength impact (Cai et al., 2024)
-    A = 0.509_dp
-    B = 0.17_dp
-    Beta = 0.18_dp
-    ff = 10.0_dp**(-(2.0_dp*A*sqrt(IONIC_eMAX))/(1+B*sqrt(IONIC_eMAX)) + 2.0_dp*Beta*IONIC_eMAX)
-    kchemH2O2 = kchemH2O2 * ff
+    A             = 0.509_dp
+    B             = 0.17_dp
+    Beta          = 0.18_dp
+    ff            = 10.0_dp**( -( 2.0_dp * A * SQRT( IONIC_eMAX ) ) /        &
+                                ( 1.0_dp + B * SQRT( IONIC_eMAX ) ) +        &
+                               2.0_dp * Beta * IONIC_eMAX             )
 
-    l_r = SQRT(D_aSO2/kchemH2O2)
-    xRadi = State_Chm%AeroRadi(I,J,L,SUL) 
+    kchemH2O2     = kchemH2O2 * ff
 
-    val3H2O2 = ReactoDiff_Corr(xRadi, l_r)
+    ! Prevent div-by-zero when kchemH2O2 is zero
+    dummy         = SafeDiv( D_aSO2, kchemH2O2, 0.0_dp )
+    l_r           = SQRT( dummy )
+
+    ! Prevent div-by-zero when l_r is zero
+    val3H2O2      = 0.0_dp
+    IF ( l_r > 0.0_dp ) THEN
+       val3H2O2   = ReactoDiff_Corr( State_Chm%AeroRadi(I,J,L,SUL), l_r )
+    ENDIF
 
     ! Calculate the Henry's law constant
-    K0   = 8.3e+4_dp! HENRY_K0(ind_H2O2)!SpcInfo%Henry_K0
-    CR   = 7400.0_dp!HENRY_CR(ind_H2O2)!SpcInfo%Henry_CR
-    pKa  = 11.75_dp
+    K0            = 8.3e+4_dp ! HENRY_K0(ind_H2O2)!SpcInfo%Henry_K0
+    CR            = 7400.0_dp ! HENRY_CR(ind_H2O2)!SpcInfo%Henry_CR
+    pKa           = 11.75_dp
+
     CALL CALC_KH( K0, CR, TK, KH_H2O2, RC )
     ! Calculate effective Henry's law constant, corrected for pH
     ! (for those species that have a defined pKa value)
     CALL CALC_HEFF( pKa, pH_a, KH_H2O2, HEFF_H2O2, RC )
 
     ! Calculate the second uptake parameterization term:
-    val2H2O2 = speed/((FOUR_RGASLATM_T * HEFF_H2O2)*SQRT(D_aSO2*kchemH2O2))
-    gammaH2O2 = 1.0_dp/(val1H2O2 + val2H2O2*1/val3H2O2)      ! Uptake by various aerosol ty
-    
+    ! Prevent div-by-zero when kchemH2O2 is zero
+    dummy         = ( FOUR_RGASLATM_T * HEFF_H2O2 ) * &
+                    SQRT( D_aSO2 * kchemH2O2 )
+    val2H2O2      = SafeDiv( speed, dummy, 0.0_dp )
+
+    ! Uptake by various aerosol types
+    ! original: gammaH2O2 = 1.0_dp/(val1H2O2 + val2H2O2*1/val3H2O2)
+    !           note: val2H2O2*1/val3H2O2 reduces to val2H2O2/val3H2O2
+    ! Prevent div by zero conditions
+    dummy         = SafeDiv( val2H2O2, val3H2O2,              0.0_dp )
+    gammaH2O2     = SafeDiv( 1.0_dp,   ( val1H2O2 + dummy ),  0.0_dp )
+
+    !------------------------------------------------------------------------
     ! ==== O3 ====
-    IONIC_cMAX = IONIC_a
-    IF (IONIC_cMAX .gt. 1.2e+0_fp ) THEN
-       IONIC_cMAX = 1.2e+0_fp
+    !------------------------------------------------------------------------
+    IONIC_cMAX    = IONIC_a
+    IF ( IONIC_cMAX > 1.2_fp ) THEN
+       IONIC_cMAX = 1.2_fp
     ENDIF
     
     ! First order in O3
-    val1O3 = ( 1.0e+0_dp / MACOEFF_O3 )
+    val1O3        = 1.0_dp / MACOEFF_O3
 
-    K0   = 0.0101325e+0_dp!SpcInfo%Henry_K0
-    CR   = 2800e+0_dp !SpcInfo%Henry_CR
+    K0            = 0.0101325_dp !SpcInfo%Henry_K0
+    CR            = 2800.0_dp      !SpcInfo%Henry_CR
 
     CALL CALC_KH( K0, CR, TK, KH_O3, RC )
 
-    KO0 = 2.40e+4_dp
-    kO1 = 3.49e+12_dp * EXP( -4.83e+3_dp / Tk )
-    kO2 = 7.32e+14_dp * EXP( -4.03e+3_dp / Tk )
+    KO0           = 2.40e+4_dp
+    kO1           = 3.49e+12_dp * EXP( -4.83e+3_dp / Tk )
+    kO2           = 7.32e+14_dp * EXP( -4.03e+3_dp / Tk )
 
-    kchemO3 = KO0*SO2aq_a + KO1*HSO3aq_a + KO2*SO3aq_a
+    kchemO3       = ( KO0 * SO2aq_a ) + ( KO1 * HSO3aq_a ) + ( KO2 *SO3aq_a )
+
     ! IONIC strength impact (Cai et al., 2024)
-    b1 = 1.94_dp
-    ff = 1.0_dp + b1 * IONIC_cMAX
-    kchemO3 = kchemO3 * ff
+    b1            = 1.94_dp
+    ff            = 1.0_dp + b1 * IONIC_cMAX
+    kchemO3       = kchemO3 * ff
     
-    val2O3 = speed/((FOUR_RGASLATM_T * KH_O3)*SQRT(D_aO3*kchemO3))
+    ! Prevent div-by-zero when kchemO3 is zero
+    dummy         = ( FOUR_RGASLATM_T * KH_O3 ) * SQRT( D_aO3 * kchemO3 )
+    val2O3        = SafeDiv( speed, dummy, 0.0_dp )
+    dummy         = SafeDiv( D_aO3, kchemO3, 0.0_dp )
+    l_r           = SQRT( dummy )
 
-    l_r = SQRT(D_aO3/kchemO3)
+    ! Prevent div by zero when l_r is zero
+    val3O3        = 0.0_dp
+    IF ( l_r > 0.0_dp ) THEN
+       val3O3     = ReactoDiff_Corr( State_Chm%AeroRadi(I,J,L,SUL), l_r )
+    ENDIF
 
-    xRadi = State_Chm%AeroRadi(I,J,L,SUL) 
+    ! Uptake by various aerosol types
+    ! original: gammaO3 = 1.0_dp/(val1O3 + val2O3*1/val3O3)
+    !           note: val2O3*1/val3O3 reduces to val2O3/val3O3
+    ! Prevent div-by-zero conditions
+    dummy         = SafeDiv( val2O3, val3O3,             0.0_dp )
+    gammaO3       = SafeDiv( 1.0_dp, ( val1O3 + dummy ), 0.0_dp )
 
-    val3O3 = ReactoDiff_Corr(xRadi, l_r)
-
-    gammaO3 = 1.0_dp/(val1O3 + val2O3*1/val3O3)      ! Uptake by various aerosol ty
-    
+    !------------------------------------------------------------------------
     ! ==== NO2 ====
-    ! First order in NO2
-    val1NO2 = (1.0e+0_dp / MACOEFF_NO2)
+    !------------------------------------------------------------------------
 
-    K0   = 0.012159e+0_dp!SpcInfo%Henry_K0
-    CR   = 2400e+0_dp !SpcInfo%Henry_CR
+    ! First order in NO2
+    val1NO2       = 1.0_dp / MACOEFF_NO2
+
+    K0            = 0.012159_dp   !SpcInfo%Henry_K0
+    CR            = 2400.0_dp     !SpcInfo%Henry_CR
 
     CALL CALC_KH( K0, CR, TK, KH_NO2, RC )
 
-    kNO2 = 0.0_dp
-    IF ( pH_a .lt. 5.0_dp ) THEN
-       kNO2 = 2.0e+6_dp
-    ELSE IF (pH_a .gt. 5.8_dp ) THEN
-       kNO2 = 1.67e+7_dp
+    IF ( pH_a < 5.0_dp ) THEN
+       kNO2       = 2.0e+6_dp
+    ELSE IF ( pH_a > 5.8_dp ) THEN
+       kNO2       = 1.67e+7_dp
     ELSE
        ! linearly interpolate
-       kNO2 = 2.0E+6_dp + (pH_a - 5.0_dp) * &
-            (1.67E+7_dp-2.0E+6_dp)/(5.8_dp-5.0_dp)
+       kNO2       = 2.0E+6_dp                                                &
+                  + ( pH_a       - 5.0_dp    )                               &
+                  * ( 1.67E+7_dp - 2.0E+6_dp ) / ( 5.8_dp - 5.0_dp )
     ENDIF
     
-    kchemNO2 =(kNO2*SIV_a)
+    kchemNO2      = kNO2 * SIV_a
 
-    l_r = SQRT(D_aNO2/kchemNO2)
+    ! Prevent div-by-zero when kchemNO2 is zero
+    dummy         = ( FOUR_RGASLATM_T * KH_NO2 ) * SQRT( D_aNO2 * kchemNO2 )
+    val2NO2       = SafeDiv( speed, dummy, 0.0_dp )
+    dummy         = SafeDiv( D_aNO2, kchemNO2, 0.0_dp )
+    l_r           = SQRT( dummy )
 
-    xRadi = State_Chm%AeroRadi(I,J,L,SUL) 
+    ! Prevent div-by-zero when l_r is zero
+    val3NO2       = 0.0_dp
+    IF ( l_r > 0.0_dp ) THEN
+       val3NO2    = ReactoDiff_Corr( State_Chm%AeroRadi(I,J,L,SUL), l_r )
+    ENDIF
 
-    val3NO2 = ReactoDiff_Corr(xRadi, l_r)
+    ! Uptake by various aerosol types
+    ! original: gammaO3 = 1.0_dp/(val1NO2 + val2NO2*1/val3NO2)  
+    !           note: val2NO2*1/val3NO2 reduces to val2NO2/val3NO2
+    ! Prevent div-by-zero conditions
+    dummy         = SafeDiv( val2NO2, val3NO2,             0.0_dp )
+    gammaNO2      = SafeDiv( 1.0_dp,  ( val1NO2 + dummy ), 0.0_dp )
 
-    val2NO2 = speed/((FOUR_RGASLATM_T * KH_NO2)*SQRT(D_aNO2*kchemNO2))
+    !------------------------------------------------------------------------
+    ! ==== CH2O ====
+    !------------------------------------------------------------------------
 
-    gammaNO2 = 1.0_dp/(val1NO2 + val2NO2*1/val3NO2)      ! Uptake by various aerosol ty
-
-      ! ==== CH2O ====
     ! First order in CH2O
-    IONIC_bMAX = IONIC_a
-    IF (IONIC_bMAX .gt. 16.0e+0_fp ) THEN
-       IONIC_bMAX = 16.0e+0_fp
+    IONIC_bMAX    = IONIC_a
+    IF (IONIC_bMAX > 16.0_fp ) THEN
+       IONIC_bMAX = 16.0_fp
     ENDIF
     
-    val1CH2O = ( 1.0e+0_dp / MACOEFF_CH2O )
+    val1CH2O      = 1.0_dp / MACOEFF_CH2O
 
-    !K0   = 3.24e+3_dp!SpcInfo%Henry_K0
-    !CR   = 6800.0e+0_dp !SpcInfo%Henry_CR
-    !CALL CALC_KH( K0, CR, TK, KH_CH2O, RC )
-  
     ! I was using too high a value, not considering that most HCHO is the diol
-    KH_CH2O  = 2.5e+0_fp * EXP( 21.6e+0_fp &
-         *  (298.15e+0_fp / Tk - 1.e+0_fp) )
+    KH_CH2O       = 2.5_fp * EXP( 21.6_fp * ( 298.15_fp / Tk - 1.0_fp ) )
     
-    !=================================================================
-    ! Ratio of methanediol to aqeuous HCHO if I want to include this chemistry
+    !========================================================================
+    ! Ratio of methanediol to aqeuous HCHO if I want to include
+    ! this chemistry
     ! HCHO equilibrium reaction
     ! HCHO(aq) + H2O   = HCH(OH)2
     !
@@ -603,70 +675,81 @@ CONTAINS
     !  Sienfeld and Pandis      2.53E3    13.48  [2016]
     !
     ! (jmm, 06/15/18)
-    !=================================================================
-    Khc1 = 2.53e+3_fp * EXP( 13.48e+0_fp &
-         * ( 298.15e+0_fp / Tk - 1.e+0_fp ) )
+    !========================================================================
+    Khc1          = 2.53e+3_fp * EXP( 13.48_fp * ( 298.15_fp / Tk - 1.0_fp ) )
 
     ! not sure where I got this from!
     ! Initial rates are from Cai et al. But T dependence?
-    k9  = 7.9e+2_dp * EXP( -4.9e+3_dp / Tk ) ! M/s
-    k10 = 2.5e+7_dp * EXP( -1.8e+3_dp / Tk ) ! M/s
-    ! Now taken from HMS implementation in fullchem_SulfurChemFuncs.F90
-    !k9 = 7.9e+2_fp * EXP( -16.44e+0_fp & ! L/mol/s
-    !     * ( 298.15e+0_fp / Tk - 1.e+0_fp ) )
-    !k10 = 2.5e+7_fp * EXP( -6.04e+0_fp  & ! L/mol/s
-    !     * ( 298.15e+0_fp / Tk - 1.e+0_fp ) )
-    
-    kchemCH2O =  k9*HSO3aq_a + k10*SO3aq_a
+    k9            = 7.9e+2_dp * EXP( -4.9e+3_dp / Tk ) ! M/s
+    k10           = 2.5e+7_dp * EXP( -1.8e+3_dp / Tk ) ! M/s
+    kchemCH2O     = ( k9 * HSO3aq_a ) + ( k10 * SO3aq_a )
+
     ! IONIC strength impact (Cai et al., 2024)
-    A = 0.509_dp
-    B = 0.17_dp
-    Beta = 0.18_dp
-    ff = 10.0_dp**(-(2.0_dp*A*sqrt(IONIC_bMAX))/ &
-         (1.0_dp+B*sqrt(IONIC_bMAX)) + 2.0_dp*Beta*IONIC_bMAX)
-    kchemCH2O = kchemCH2O * ff
+    A             = 0.509_dp
+    B             = 0.17_dp
+    Beta          = 0.18_dp
+    ff            = 10.0_dp**( -( 2.0_dp * A *    SQRT( IONIC_bMAX ) ) /     &
+                                ( 1.0_dp + B *    SQRT( IONIC_bMAX ) ) +     &
+                                  2.0_dp * Beta * IONIC_bMAX             )
+
+    kchemCH2O     = kchemCH2O * ff
     
-    val2CH2O = speed/((FOUR_RGASLATM_T * KH_CH2O)*SQRT(D_aCH2O*kchemCH2O))
+    ! Prevent div-by-zero when kchemCH2O is zero
+    dummy         = ( FOUR_RGASLATM_T * KH_CH2O ) * SQRT( D_aCH2O * kchemCH2O )
+    val2CH2O      = SafeDiv( speed, dummy, 0.0_dp )
+    dummy         = SafeDiv( D_aCH2O, kchemCH2O, 0.0_dp )
+    l_r           = SQRT( dummy )
 
-    l_r = SQRT(D_aCH2O/kchemCH2O)
+    ! Prevent div-by-zero when l_r is zero
+    val3CH2O      = 0.0_dp
+    IF ( l_r  > 0.0_dp ) THEN
+       val3CH2O   = ReactoDiff_Corr( State_Chm%AeroRadi(I,J,L,SUL), l_r )
+    ENDIF
 
-    xRadi = State_Chm%AeroRadi(I,J,L,SUL) 
-
-    val3CH2O = ReactoDiff_Corr(xRadi, l_r)
-
-    gammaCH2O = 1.0_dp/(val1CH2O + val2CH2O*1/val3CH2O)      ! Uptake by various aerosol ty
+    ! Uptake by various aerosol types
+    ! original: gammaCH2O = 1.0_dp/(val1CH2O + val2CH2O*1/val3CH2O)
+    !           note: val2CH2O*1/val3CH2O reduces to val2CH2O/val3CH2O
+    ! Prevent div-by-zero conditions
+    dummy         = SafeDiv( val2CH2O, val3CH2O,             0.0_dp )
+    gammaCH2O     = SafeDiv( 1.0_dp,   ( val1CH2O + dummy ), 0.0_dp )
 
     ! Now do rate for HMS decomposition back to SO2 + CH2O
-    Kw1 = 1e-14_fp * EXP( -22.51e+0_fp &
-         *  ( 298.15e+0_fp / Tk - 1.e+0_fp ) )
+    Kw1           = 1e-14_fp                                                 &
+                  * EXP( -22.51_fp * ( 298.15_fp / Tk - 1.0_fp ) )
     
     ! Conversion rate from HMS to SO2 via reaction with OH-
     ! (jmm, 06/15/18; MSL 1/18/22)
-    KHMS   = 3.6e+3_fp * EXP( -15.09e+0_fp & ! L/mol/s
-         * ( 298.15e+0_fp / Tk - 1.e+0_fp ) )
-    H%KaqHMS = KHMS * ( Kw1 / Hplus_a ) ! unit is allegedly [s-1]
+    KHMS          = 3.6e+3_fp * EXP( -15.09_fp    & ! L/mol/s
+                  * ( 298.15_fp / Tk - 1.0_fp ) )
+    H%KaqHMS      = KHMS * ( Kw1 / Hplus_a )        ! unit is allegedly [s-1]
 
     ! Now do rate of HMS + OH --> 2SO4 + CH2O - SO2
-    KHMS2  = 2.65e+8_fp * EXP( -5.03e+0_fp & ! L/mol/s
-         * ( 298.15e+0_fp / Tk - 1.e+0_fp ) )
+    KHMS2         = 2.65e+8_fp                                               &
+                  * EXP( -5.03_fp * ( 298.15_fp / Tk - 1.0_fp ) ) ! L/mol/s
 
-    dOH = hydroxide/RHO_num ! M cm3 molec -1
-    H%KaqHMS2 = KHMS2 * dOH ! [cm3/molec/s]
+    ! Prevent div-by-zero conditions
+    dOH           = SafeDiv( hydroxide, RHO_num, 0.0_dp )
+    H%KaqHMS2     = KHMS2 * dOH                              ! [cm3/molec/s]
 
+    !------------------------------------------------------------------------
+    ! Update gamma values if RH is above the threshold
+    !------------------------------------------------------------------------
     IF ( RELHUM >= 50.0_dp ) THEN
-       State_Chm%GammaSO2(I,J,L,1) = gammaTMI ! TMI
-       State_Chm%GammaSO2(I,J,L,2) = gammaO3 ! O3
+       State_Chm%GammaSO2(I,J,L,1) = gammaTMI  ! TMI
+       State_Chm%GammaSO2(I,J,L,2) = gammaO3   ! O3
        State_Chm%GammaSO2(I,J,L,3) = gammaH2O2 ! H2O2
-       State_Chm%GammaSO2(I,J,L,4) = gammaNO2 ! NO2
+       State_Chm%GammaSO2(I,J,L,4) = gammaNO2  ! NO2
        State_Chm%GammaSO2(I,J,L,5) = gammaCH2O ! CH2O
     ENDIF
 
+    ! Save into fields of the State_Het object
     H%gamma_SO2_TMI   = gammaTMI
     H%gamma_SO2_O3    = gammaO3
     H%gamma_SO2_H2O2  = gammaH2O2
     H%gamma_SO2_NO2   = gammaNO2
     H%gamma_SO2_CH2O  = gammaCH2O
-    ! ===========================================================
+
+    ! ======================================================================
     
     ! Correction factors for HOBr and HOCl removal by SO2 [1]
     H%fupdateHOBr  = State_Chm%fupdateHOBr(I,J,L)
