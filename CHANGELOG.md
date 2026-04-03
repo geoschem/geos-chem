@@ -57,6 +57,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed timestep mismatch between GCHP C180 and GCC 0.5x0.625
 - Fixed incorrect dust species names in `run/GCClassic/HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.fullchem.onlineE` 
 - Fixed incorrect extension number for `InvDustL23M` entries in `run/GCHP/HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.fullchem`
+- Fixed incorrect `InvAFCID` diagnostic entries `HEMCO_Diagn.rc.fullchem` and `HISTORY.rc.fullchem` template files
 
 ### Removed
 - Removed `ARCTAS_SHIP`, `CORBETT_SHIP`, `ICOADS_SHIP` from `HEMCO_Config.rc` template files

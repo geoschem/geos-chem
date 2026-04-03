@@ -681,7 +681,10 @@ HcoConvectiveCloudTopHeight     -1 103 -1 -1 2 level           Convective_cloud_
 #=============================
 # AFCID emissions
 #=============================
-#InvAFCID_DST1        DST1   0    1  -1   2   kg/m2/s  DST1_emission_flux_from_AFCID_inventory
+#InvAFCID_DSTbin1     DSTbin1   0    1  -1   2   kg/m2/s  DSTbin1_emission_flux_from_AFCID_inventory
+#InvAFCID_DSTbin2     DSTbin2   0    1  -1   2   kg/m2/s  DSTbin2_emission_flux_from_AFCID_inventory
+#InvAFCID_DSTbin3     DSTbin3   0    1  -1   2   kg/m2/s  DSTbin3_emission_flux_from_AFCID_inventory
+#InvAFCID_DSTbin4     DSTbin4   0    1  -1   2   kg/m2/s  DSTbin4_emission_flux_from_AFCID_inventory
 
 #=============================
 # Seaflux extension
