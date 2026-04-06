@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added methanediol (MDL) as a transported gas-phase species and to the KPP fullchem and custom mechanisms
 - Added routine `Cloud_CH2O_MDL` in `KPP/fullchem/fullchem_SulfurChemFuncs.F90`
 
+### Fixed
+- Fixed incorrect Arrhenius "A" coefficient (1.97d-12 --> 1.97d-11) in C3H8 + OH = A3O2 rxn
+
 ## [14.7.1] - 2026-04-08
 ### Added
 - Added `HTAP_SHIP` toggle in `HEMCO_Config.rc.carbon` templates for GC-Classic and GCHP

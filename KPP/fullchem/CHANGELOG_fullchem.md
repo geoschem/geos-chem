@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added PSO4AQ as a product to the SO2 {+O2} rxn
 - Added PH2SO4 as a product to the HOCl + SO2 rxn
 - Added PH2SO4 as a product to the HOBr + SO2 rxn
+- Fixed incorrect Arrhenius "A" coefficient (1.97d-12 --> 1.97d-11) in C3H8 + OH = A3O2 rxn
 
 ## [14.5.0] - TBD
 - Added four new species ALK4N1, ALK4N2, ALK4O2, and ALK4P to address issues in ALK4 and R4N2 chemistry following Brewer et al. (2023, JGR)
