@@ -238,9 +238,6 @@ CONTAINS
     H%gamma_HO2     = Input_Opt%gamma_HO2
 
     ! Get Henry's law parameters
-    K0              = HENRY_K0(ind_SO2)
-    CR              = HENRY_CR(ind_SO2)
-    pKa             = 1.81_dp
     TK              = State_Met%T(I,J,L)
     
     ! Calculate effective Henry's law constant, corrected for pH
@@ -465,8 +462,8 @@ CONTAINS
 
     ! Get Henry's law parameters
     ! No idea why this is not working so hard coding...
-    K0            = 1.22_dp   !HENRY_K0(ind_SO2)!SpcInfo%Henry_K0
-    CR            = 3100.0_dp !HENRY_CR(ind_SO2)!SpcInfo%Henry_CR
+    K0            = HENRY_K0(ind_SO2)
+    CR            = HENRY_CR(ind_SO2) 
     pKa           = 1.81_dp
     D_aSO2        = 1.32e-5_dp
     Ks1           = 1.30e-2_fp * EXP( 6.75_fp * ( 298.15_fp / TK - 1.0_fp ) )
@@ -534,8 +531,8 @@ CONTAINS
     ENDIF
 
     ! Calculate the Henry's law constant
-    K0            = 8.3e+4_dp ! HENRY_K0(ind_H2O2)!SpcInfo%Henry_K0
-    CR            = 7400.0_dp ! HENRY_CR(ind_H2O2)!SpcInfo%Henry_CR
+    K0            = HENRY_K0(ind_H2O2)
+    CR            = HENRY_CR(ind_H2O2)
     pKa           = 11.75_dp
 
     CALL CALC_KH( K0, CR, TK, KH_H2O2, RC )
@@ -567,8 +564,9 @@ CONTAINS
     ! First order in O3
     val1O3        = 1.0_dp / MACOEFF_O3
 
-    K0            = 0.0101325_dp !SpcInfo%Henry_K0
-    CR            = 2800.0_dp      !SpcInfo%Henry_CR
+    ! Get Henry's law parameters
+    K0            = HENRY_K0(ind_O3)
+    CR            = HENRY_CR(ind_O3)
 
     CALL CALC_KH( K0, CR, TK, KH_O3, RC )
 
@@ -609,8 +607,8 @@ CONTAINS
     ! First order in NO2
     val1NO2       = 1.0_dp / MACOEFF_NO2
 
-    K0            = 0.012159_dp   !SpcInfo%Henry_K0
-    CR            = 2400.0_dp     !SpcInfo%Henry_CR
+    K0            = HENRY_K0(ind_NO2)
+    CR            = HENRY_CR(ind_NO2)
 
     CALL CALC_KH( K0, CR, TK, KH_NO2, RC )
 
