@@ -406,7 +406,7 @@ CONTAINS
           FeIII_Max = FeIII_Max * 0.9_fp
        ENDIF
 
-       Fe_d_a       = KspFeOH3 / ( hydroxide*3 )
+       Fe_d_a       = KspFeOH3 / ( hydroxide**3 )
        Fe_d_a       = MIN( Fe_d_a, FeIII_Max )
     ENDIF
     
@@ -727,8 +727,7 @@ CONTAINS
     KHMS2         = 2.65e+8_fp                                               &
                   * EXP( -5.03_fp * ( 298.15_fp / Tk - 1.0_fp ) ) ! L/mol/s
 
-    ! Prevent div-by-zero conditions
-    dOH           = SafeDiv( hydroxide, RHO_num, 0.0_dp )
+    dOH           = hydroxide / RHO_num
     H%KaqHMS2     = KHMS2 * dOH                              ! [cm3/molec/s]
 
     !------------------------------------------------------------------------
