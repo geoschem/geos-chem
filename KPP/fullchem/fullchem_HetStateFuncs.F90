@@ -109,8 +109,6 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER :: NA
-    REAL(dp), PARAMETER   :: R = 0.08205e+0_dp
-    INTEGER,   PARAMETER  :: SUL            = 8  ! Tropospheric Sulfate!
     REAL(dp) :: K0, TK
     REAL(dp) :: FeIII, MnII
     REAL(dp) :: XSO2aq_a, XSO3_a, XHSO3_a
@@ -132,7 +130,6 @@ CONTAINS
     REAL(dp) :: f_x, y, corr, x, l_r
     REAL(dp) :: D_aSO2, D_aO3, D_aNO2, D_aCH2O
     REAL(dp) :: HEFF, HEFF_H2O2, speed, M_SO2
-    !REAL(dp) :: Eff_Fe, Eff_Mn, Eff_H2O2
     REAL(dp) :: pKa, CR, KH_NO2, KH_O3, KH_SO2, KH_H2O2
     REAL(dp) :: IONIC_a, IONIC_aMAX, IONIC_bMAX, IONIC_cMAX, IONIC_eMAX
     REAL(dp) :: kH2O2,kH_CH2O, Khc1, kNO2, kTMI6, kTMI7
@@ -141,9 +138,16 @@ CONTAINS
     REAL(dp) :: Ks1, Ks2, HCSO2_a
     REAL(dp) :: XSO2g_a, PATM, SO2, CNVFAC, RHO,RHO_num
     REAL(dp) :: ff, k9, k10,A, B, Beta, b1, dummy
+    REAL(dp) :: Inv_TK, T298_over_TK_m1
 
     ! Pointers
     TYPE(SpcConc), POINTER :: Spc(:)
+!
+! !DEFINED PARAMETERS:
+!
+    INTEGER,  PARAMETER :: SUL      = 8                   ! Trop. Sulfate
+    REAL(dp), PARAMETER :: R        = 0.08205e+0_dp
+    REAL(dp), PARAMETER :: Inv_T297 = 1.0_dp / 297.0_dp
 
     !========================================================================
     ! Populate fields of the HetState object in gckpp_Global
@@ -237,20 +241,21 @@ CONTAINS
     ! Other fields
     H%gamma_HO2     = Input_Opt%gamma_HO2
 
-    ! Get Henry's law parameters
+    ! Temperature terms
     TK              = State_Met%T(I,J,L)
-    
+    Inv_TK          = 1.0_dp    / TK
+    T298_over_TK_m1 = 298.15_dp / TK - 1.0_fp
+
     ! Calculate effective Henry's law constant, corrected for pH
     ! (for those species that have a defined pKa value)
-    Ks1             = 1.30e-2_dp *                                           &
-                      EXP( 6.75e+0_dp * ( 298.15e+0_dp / TK - 1.e+0_dp ) )
-    Ks2             = 6.31e-8_dp *                                           &
-                      EXP( 5.05e+0_dp * ( 298.15e+0_dp / TK - 1.e+0_dp ) )
+    ! Use the precomputed 298.15/TK - 1 term for efficiency
+    Ks1             = 1.30e-2_dp * EXP( 6.75_dp * T298_over_TK_m1 )
+    Ks2             = 6.31e-8_dp * EXP( 5.05_dp * T298_over_TK_m1 )
 
-   ! Henry's constant [mol/l-atm] and Effective Henry's constant for SO2
-    HCSO2_a         = 1.22e+0_dp * &
-                      EXP( 10.55e+0_dp * ( 298.15e+0_dp / Tk - 1.e+0_dp) )
-    H%HEFF_a        = HCSO2_a * ( 1.0_dp    + ( Ks1    / Hplus_a  ) +        &
+    ! Henry's constant [mol/l-atm] and Effective Henry's constant for SO2
+    ! Use the precomputed 298.15/TK - 1 term for efficiency
+    HCSO2_a         = 1.22e+0_dp * EXP( 10.55_dp * T298_over_TK_m1 )
+    H%HEFF_a        = HCSO2_a * ( 1.0_dp    + ( Ks1     / Hplus_a  ) +       &
                                 ( Ks1 * Ks2 / ( Hplus_a * Hplus_a ) ) )
 
     !========================================================================
@@ -420,8 +425,8 @@ CONTAINS
     State_Chm%MnII_A(I,J,L)     = MnII_a
     State_Chm%FeIII_AMAX(I,J,L) = FeIII_Max
     State_Chm%MnII_AMAX(I,J,L)  = MnII_Max
-    H%FeIII_a                   = State_Chm%FEIII_A(I,J,L)
-    H%MnII_a                    = State_Chm%MNII_A(I,J,L)
+    H%FeIII_a                   = State_Chm%FeIII_A(I,J,L)
+    H%MnII_a                    = State_Chm%MnII_A(I,J,L)
 
     !------------------------------------------------------------------------
     ! ==== TMI/O2 ====
@@ -443,11 +448,9 @@ CONTAINS
                              ( SQRT(IONIC_aMAX) / (1.0_dp+SQRT(IONIC_aMAX))))
 
     ! M-2 s-1
-    kTMI6         = 3.72e+7_dp  * EXP( -8431.6_dp *                          &
-                                        ( 1.0_dp/Tk - 1.0_dp/297.0_dp ) )
-
-    kTMI7         = 2.51e+13_dp * EXP( -8431.6_dp *                          &
-                                        ( 1.0_dp/Tk - 1.0_dp/297.0_dp ) )
+    ! Use precomputed 1/TK and 1/297 terms for efficiency
+    kTMI6         = 3.72e+7_dp  * EXP( -8431.6_dp * ( Inv_TK - Inv_T297 ) )
+    kTMI7         = 2.51e+13_dp * EXP( -8431.6_dp * ( Inv_TK - Inv_T297 ) )
     
     IF ( pH_a <= 4.2_dp ) THEN
        kchemTMI   = kTMI6 * Hplus_a**(-0.74_dp) * ( MnII_a * FeIII_a )
@@ -460,20 +463,19 @@ CONTAINS
     
     M_SO2         = State_Chm%SpcData(id_SO2)%Info%MW_g * 1.0e-3_dp
 
-    ! Get Henry's law parameters
-    ! No idea why this is not working so hard coding...
+    ! Get Henry's law parameters for SO2
     K0            = HENRY_K0(ind_SO2)
     CR            = HENRY_CR(ind_SO2) 
     pKa           = 1.81_dp
     D_aSO2        = 1.32e-5_dp
-    Ks1           = 1.30e-2_fp * EXP( 6.75_fp * ( 298.15_fp / TK - 1.0_fp ) )
-    Ks2           = 6.31e-8_fp * EXP( 5.05_fp * ( 298.15_fp / TK - 1.0_fp ) )
-    
+
     ! Henry's constant [mol/l-atm] and Effective Henry's constant for SO2
-    HCSO2_a       = 1.22_fp * EXP( 10.55_fp * ( 298.15_fp / TK - 1.0_fp) )
+    ! Use precomputed 298.15/TK - 1 term for efficiency
+    ! Also note Ks1 and Ks2 have been computed above
+    HCSO2_a       = 1.22_fp * EXP( 10.55_fp * T298_over_TK_m1 )
     HEFF          = HCSO2_a                                                  &
-                  * ( 1.0_fp +  ( Ks1     / Hplus_a )                        &
-                  + ( Ks1*Ks2 / ( Hplus_a * Hplus_a ) ) )
+                  * ( 1.0_fp    + ( Ks1     / Hplus_a     )                  &
+                  + ( Ks1 * Ks2 / ( Hplus_a * Hplus_a ) ) )
     
     ! Prevent div-by-zero when kchemTMI is zero
     dummy         = ( FOUR_RGASLATM_T * HEFF ) * SQRT( D_aSO2 * kchemTMI )
@@ -507,7 +509,7 @@ CONTAINS
 
     kH2O2         = 7.45e+7_dp                                               &
                   * EXP( -4430_dp* ( 1.0_dp/Tk - 1.0_dp/298.0_dp ) )
-    kchemH2O2     = ( kH2O2 * Hplus_a * HSO3aq_a)                            &
+    kchemH2O2     = ( kH2O2 * Hplus_a * HSO3aq_a    )                        &
                   / ( 1.0_dp + ( 13.0_dp *Hplus_a ) )
 
     ! IONIC strength impact (Cai et al., 2024)
@@ -530,7 +532,7 @@ CONTAINS
        val3H2O2   = ReactoDiff_Corr( State_Chm%AeroRadi(I,J,L,SUL), l_r )
     ENDIF
 
-    ! Calculate the Henry's law constant
+    ! Get Henry's law parameters for H2O2
     K0            = HENRY_K0(ind_H2O2)
     CR            = HENRY_CR(ind_H2O2)
     pKa           = 11.75_dp
@@ -571,8 +573,8 @@ CONTAINS
     CALL CALC_KH( K0, CR, TK, KH_O3, RC )
 
     KO0           = 2.40e+4_dp
-    kO1           = 3.49e+12_dp * EXP( -4.83e+3_dp / Tk )
-    kO2           = 7.32e+14_dp * EXP( -4.03e+3_dp / Tk )
+    kO1           = 3.49e+12_dp * EXP( -4.83e+3_dp / TK )
+    kO2           = 7.32e+14_dp * EXP( -4.03e+3_dp / TK )
 
     kchemO3       = ( KO0 * SO2aq_a ) + ( KO1 * HSO3aq_a ) + ( KO2 *SO3aq_a )
 
@@ -607,6 +609,7 @@ CONTAINS
     ! First order in NO2
     val1NO2       = 1.0_dp / MACOEFF_NO2
 
+    ! Get Henry constants for NO2
     K0            = HENRY_K0(ind_NO2)
     CR            = HENRY_CR(ind_NO2)
 
@@ -657,7 +660,8 @@ CONTAINS
     val1CH2O      = 1.0_dp / MACOEFF_CH2O
 
     ! I was using too high a value, not considering that most HCHO is the diol
-    KH_CH2O       = 2.5_fp * EXP( 21.6_fp * ( 298.15_fp / Tk - 1.0_fp ) )
+    ! Use precomputed 298.15/TK - 1 term for efficiency
+    KH_CH2O       = 2.5_fp * EXP( 21.6_fp * T298_over_TK_m1 )
     
     !========================================================================
     ! Ratio of methanediol to aqeuous HCHO if I want to include
@@ -674,7 +678,9 @@ CONTAINS
     !
     ! (jmm, 06/15/18)
     !========================================================================
-    Khc1          = 2.53e+3_fp * EXP( 13.48_fp * ( 298.15_fp / Tk - 1.0_fp ) )
+
+    ! Use precomputed 298.15/TK - 1 term for efficiency
+    Khc1          = 2.53e+3_fp * EXP( 13.48_fp * T298_over_TK_m1 )
 
     ! not sure where I got this from!
     ! Initial rates are from Cai et al. But T dependence?
@@ -712,18 +718,18 @@ CONTAINS
     gammaCH2O     = SafeDiv( 1.0_dp,   ( val1CH2O + dummy ), 0.0_dp )
 
     ! Now do rate for HMS decomposition back to SO2 + CH2O
-    Kw1           = 1e-14_fp                                                 &
-                  * EXP( -22.51_fp * ( 298.15_fp / Tk - 1.0_fp ) )
+    ! Use precomputed 298.15/TK - 1 term for efficiency
+    Kw1           = 1e-14_fp * EXP( -22.51_fp * T298_over_TK_m1 )
     
     ! Conversion rate from HMS to SO2 via reaction with OH-
     ! (jmm, 06/15/18; MSL 1/18/22)
-    KHMS          = 3.6e+3_fp * EXP( -15.09_fp    & ! L/mol/s
-                  * ( 298.15_fp / Tk - 1.0_fp ) )
-    H%KaqHMS      = KHMS * ( Kw1 / Hplus_a )        ! unit is allegedly [s-1]
+    ! Use precomputed 298.15/TK - 1 term for efficiency
+    KHMS          = 3.6e+3_fp * EXP( -15.09_fp * T298_over_TK_m1 ) ! L/mol/s
+    H%KaqHMS      = KHMS * ( Kw1 / Hplus_a )                       ! [s-1]
 
     ! Now do rate of HMS + OH --> 2SO4 + CH2O - SO2
-    KHMS2         = 2.65e+8_fp                                               &
-                  * EXP( -5.03_fp * ( 298.15_fp / Tk - 1.0_fp ) ) ! L/mol/s
+    ! Use precomputed 298.15/TK - 1 term for efficiency
+    KHMS2         = 2.65e+8_fp * EXP( -5.03_fp * T298_over_TK_m1 ) ! L/mol/s
 
     dOH           = hydroxide / RHO_num
     H%KaqHMS2     = KHMS2 * dOH                              ! [cm3/molec/s]
