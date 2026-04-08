@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Renamed `State_Chm%Isorrop*` fields to `State_Chm%Ate*` (aerosol thermodynamical equilibrium), as ISORROPIA is no longer used
 - Updated routine `fullchem_SetStateHet` to accept `id_DSTbin{1..7}`, `id_pFe`, `id_SO2`, and `id_SO4` as arguments
 - Renamed `CRITRH` to `RH_35_PERCENT` and `CRITRH2` to `RH_50_PERCENT` in `KPP/fullchem/fullchem_RateLawFuncs.F90`
+- Added DSTbin{1..7}, SO2, SO4, and pFE species ID flags to the `SetStateHet` routine in `KPP/fullchem_HetStateFuncs.F90` and `KPP/stubs/stub_fullchem_HetStateFuncs.F90`
 
 ## [14.7.0] - 2026-02-05
 ### Added

@@ -68,8 +68,6 @@ CONTAINS
     USE Henry_Mod,        ONLY : Calc_KH
     USE Henry_Mod,        ONLY : Calc_Heff
     USE Species_Mod,      ONLY : SpcConc
-    
-  ! Species ID flags
 !
 ! !INPUT PARAMETERS:
 !
