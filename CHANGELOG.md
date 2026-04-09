@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased] -TBD
 ### Added
 - Added multiphase sulfate chemistry and cloud Hplus diagnostic for Travis et al. (2025)
+- Added `IONIC` output argument in calls to HETP driver routine `MACH_HETP_Main`15Cases`
 
 ### Changed
 - Renamed `State_Chm%Isorrop*` fields to `State_Chm%Ate*` (aerosol thermodynamical equilibrium), as ISORROPIA is no longer used

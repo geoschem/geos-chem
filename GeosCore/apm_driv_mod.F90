@@ -510,7 +510,7 @@ CONTAINS
     REAL*8                   :: HETP_HCl,   HETP_Na,   HETP_Ca,    HETP_K
     REAL*8                   :: HETP_Mg,    HETP_H,    HETP_OH,    HETP_LWC
     REAL*8                   :: HETP_frNa,  HETP_frCa, HETP_frK,   HETP_frMg
-    REAL*8                   :: HETP_frSO4, HETP_num
+    REAL*8                   :: HETP_frSO4, IONIC,     HETP_num
 
     !--------------------------------------------------------------------------
     ! These do not appear to be used anymore (bmy, 6/18/19)
@@ -738,7 +738,7 @@ CONTAINS
        !$OMP PRIVATE( HETP_HCl,   HETP_Na,   HETP_Ca,    HETP_K               ) &
        !$OMP PRIVATE( HETP_Mg,    HETP_H,    HETP_OH,    HETP_LWC             ) &
        !$OMP PRIVATE( HETP_frNa,  HETP_frCa, HETP_frK,   HETP_frMg            ) &
-       !$OMP PRIVATE( HETP_frSO4, HETP_num                                    ) &
+       !$OMP PRIVATE( HETP_frSO4, HETP_num,  IONIC                            ) &
        !$OMP COLLAPSE( 3                                                      ) &
        !$OMP SCHEDULE( DYNAMIC, 8                                             )
        DO L = 1, State_Grid%NZ
@@ -856,14 +856,14 @@ CONTAINS
              ! For safety
              GAS = 0.0d0
              AERLIQ = 0.0d0
-             Call MACH_HETP_Main_15Cases( WI(2), WI(3), WI(4), WI(1), WI(5),            &
-                                          WI(6), WI(7), WI(8), TEMPI, RHI,              &
-                                          HETP_SO4,   HETP_HSO4, HETP_CaSO4, HETP_NH4,  &
-                                          HETP_NH3,   HETP_NO3,  HETP_HNO3,  HETP_Cl,   &
-                                          HETP_HCl,   HETP_Na,   HETP_Ca,    HETP_K,    &
-                                          HETP_Mg,    HETP_H,    HETP_OH,    HETP_LWC,  &
-                                          HETP_frNa,  HETP_frCa, HETP_frK,   HETP_frMg, &
-                                          HETP_frSO4, HETP_num                          )
+             Call MACH_HETP_Main_15Cases(                                    &
+                  WI(2),      WI(3),     WI(4),      WI(1),    WI(5),        &
+                  WI(6),      WI(7),     WI(8),      TEMPI,    RHI,          &
+                  HETP_SO4,   HETP_HSO4, HETP_CaSO4, HETP_NH4, HETP_NH3,     &
+                  HETP_NO3,   HETP_HNO3, HETP_Cl,    HETP_HCl, HETP_Na,      &
+                  HETP_Ca,    HETP_K,    HETP_Mg,    HETP_H,   HETP_OH,      &
+                  HETP_LWC,   HETP_frNa, HETP_frCa,  HETP_frK, HETP_frMg,    &
+                  HETP_frSO4, IONIC,     HETP_num                           )
              ! Spoof ISORROPIA outputs which are still used
              GAS1(1) = HETP_NH3
              GAS1(2) = HETP_HNO3
