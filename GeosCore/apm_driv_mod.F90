@@ -510,7 +510,7 @@ CONTAINS
     REAL*8                   :: HETP_HCl,   HETP_Na,   HETP_Ca,    HETP_K
     REAL*8                   :: HETP_Mg,    HETP_H,    HETP_OH,    HETP_LWC
     REAL*8                   :: HETP_frNa,  HETP_frCa, HETP_frK,   HETP_frMg
-    REAL*8                   :: HETP_frSO4, IONIC,     HETP_num
+    REAL*8                   :: HETP_frSO4, HETP_num,  HETP_IONIC
 
     !--------------------------------------------------------------------------
     ! These do not appear to be used anymore (bmy, 6/18/19)
@@ -723,24 +723,25 @@ CONTAINS
     !$OMP END PARALLEL DO
 
     if(IFDOISRP==1.or.IFDOISRP==2.or.IFDOISRP==3.or.IFDOISRP==4)then
-       !******* DO ISORROPIA *******
-       !$OMP PARALLEL DO                                                      &
-       !$OMP DEFAULT( SHARED )                                                &
-       !$OMP PRIVATE( I,    J,      L,       N,      WI,   WT,  GAS1,  TEMPI )&
-       !$OMP PRIVATE( RHI,  VOL,    TSO4,    TNH3,   TNA,  TCL, ANO3, GNO3  ) &
-       !$OMP PRIVATE( TCA,  TMG,    TK,      SCASI                          ) &
-       !$OMP PRIVATE( TNO3, AERLIQ, OTHER,   TNH4,   TNIT                   ) &
-       !$OMP PRIVATE( TSO4COAT ,DNH3MAX            )                          &
-       !$OMP PRIVATE( TH2O, XM,VRATIO)                                        &
-       !$OMP PRIVATE( SO4_bin_sum, SEA_bin_sum)                               &
-       !$OMP PRIVATE( HETP_SO4,   HETP_HSO4, HETP_CaSO4, HETP_NH4             ) &
-       !$OMP PRIVATE( HETP_NH3,   HETP_NO3,  HETP_HNO3,  HETP_Cl              ) &
-       !$OMP PRIVATE( HETP_HCl,   HETP_Na,   HETP_Ca,    HETP_K               ) &
-       !$OMP PRIVATE( HETP_Mg,    HETP_H,    HETP_OH,    HETP_LWC             ) &
-       !$OMP PRIVATE( HETP_frNa,  HETP_frCa, HETP_frK,   HETP_frMg            ) &
-       !$OMP PRIVATE( HETP_frSO4, HETP_num,  IONIC                            ) &
-       !$OMP COLLAPSE( 3                                                      ) &
-       !$OMP SCHEDULE( DYNAMIC, 8                                             )
+       !******* DO AEROSOL THERMODYNAMICAL EQUILIBRIUM *******
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED )                                               &
+       !$OMP PRIVATE( I,          J,          L,           M                )&
+       !$OMP PRIVATE( N,          WI,         WT,          GAS1             )&
+       !$OMP PRIVATE( TEMPI,      RHI,        VOL,         TSO4             )&
+       !$OMP PRIVATE( TNH3,       TNA,        TCL,         ANO3             )&
+       !$OMP PRIVATE( GNO3,       TCA,        TMG,         TK               )&
+       !$OMP PRIVATE( TNO3,       AERLIQ,     OTHER,       TNH4             )&
+       !$OMP PRIVATE( TNIT,       TSO4COAT,   DNH3MAX,     TH2O             )&
+       !$OMP PRIVATE( XM,         VRATIO,     SO4_bin_sum, SEA_bin_sum      )&
+       !$OMP PRIVATE( HETP_SO4,   HETP_HSO4,  HETP_CaSO4,  HETP_NH4         )&
+       !$OMP PRIVATE( HETP_NH3,   HETP_NO3,   HETP_HNO3,   HETP_Cl          )&
+       !$OMP PRIVATE( HETP_HCl,   HETP_Na,    HETP_Ca,     HETP_K           )&
+       !$OMP PRIVATE( HETP_Mg,    HETP_H,     HETP_OH,     HETP_LWC         )&
+       !$OMP PRIVATE( HETP_frNa,  HETP_frCa,  HETP_frK,    HETP_frMg        )&
+       !$OMP PRIVATE( HETP_frSO4, HETP_num,   HETP_IONIC                    )&
+       !$OMP COLLAPSE( 3                                                    )&
+       !$OMP SCHEDULE( DYNAMIC, 8                                           )
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
@@ -852,18 +853,73 @@ CONTAINS
              WI(7)    = MAX( TK,   CONMIN )
              WI(8)    = MAX( TMG,  CONMIN )
 
+             ! Zero variables for safety's sake
+             GAS1       = 0.0d0
+             AERLIQ     = 0.0d0
+             HETP_SO4   = 0.0d0
+             HETP_HSO4  = 0.0d0
+             HETP_CaSO4 = 0.0d0
+             HETP_NH4   = 0.0d0
+             HETP_NH3   = 0.0d0
+             HETP_NO3   = 0.0d0
+             HETP_HNO3  = 0.0d0
+             HETP_Cl    = 0.0d0
+             HETP_HCl   = 0.0d0
+             HETP_Na    = 0.0d0
+             HETP_Ca    = 0.0d0
+             HETP_K     = 0.0d0
+             HETP_Mg    = 0.0d0
+             HETP_H     = 0.0d0
+             HETP_OH    = 0.0d0
+             HETP_LWC   = 0.0d0
+             HETP_frNa  = 0.0d0
+             HETP_frCa  = 0.0d0
+             HETP_frK   = 0.0d0
+             HETP_frMg  = 0.0d0
+             HETP_frSO4 = 0.0d0
+             HETP_IONIC = 0.0d0
+             HETP_num   = 0.0d0
+
              ! Perform aerosol thermodynamic equilibrium
-             ! For safety
-             GAS = 0.0d0
-             AERLIQ = 0.0d0
              Call MACH_HETP_Main_15Cases(                                    &
-                  WI(2),      WI(3),     WI(4),      WI(1),    WI(5),        &
-                  WI(6),      WI(7),     WI(8),      TEMPI,    RHI,          &
-                  HETP_SO4,   HETP_HSO4, HETP_CaSO4, HETP_NH4, HETP_NH3,     &
-                  HETP_NO3,   HETP_HNO3, HETP_Cl,    HETP_HCl, HETP_Na,      &
-                  HETP_Ca,    HETP_K,    HETP_Mg,    HETP_H,   HETP_OH,      &
-                  HETP_LWC,   HETP_frNa, HETP_frCa,  HETP_frK, HETP_frMg,    &
-                  HETP_frSO4, IONIC,     HETP_num                           )
+                  !
+                  ! --- Inputs ---
+                  TS          = WI(2),                                       &
+                  TA          = WI(3),                                       &
+                  TN          = WI(4),                                       &
+                  TNa         = WI(1),                                       &
+                  TCl         = WI(5),                                       &
+                  TCa         = WI(6),                                       &
+                  TK          = WI(7),                                       &
+                  TMg         = WI(8),                                       &
+                  temp        = TEMPI,                                       &
+                  rh          = RHI,                                         &
+                  !
+                  ! --- Outputs ---
+                  SO4         = HETP_SO4,                                    &
+                  HSO4        = HETP_HSO4,                                   &
+                  CaSO4       = HETP_CaSO4,                                  &
+                  NH4         = HETP_NH4,                                    &
+                  NH3         = HETP_NH3,                                    &
+                  NO3         = HETP_NO3,                                    &
+                  HNO3        = HETP_HNO3,                                   &
+                  Cl          = HETP_Cl,                                     &
+                  HCl         = HETP_HCl,                                    &
+                  Na          = HETP_Na,                                     &
+                  Ca          = HETP_Ca,                                     &
+                  K           = HETP_K,                                      &
+                  Mg          = HETP_Mg,                                     &
+                  H           = HETP_H,                                      &
+                  OH          = HETP_OH,                                     &
+                  LWC         = HETP_LWC,                                    &
+                  frNa        = HETP_frNa,                                   &
+                  frCa        = HETP_frCa,                                   &
+                  frK         = HETP_frK,                                    &
+                  frMg        = HETP_frMg,                                   &
+                  frSO4       = HETP_frSO4,                                  &
+                  IONIC       = HETP_IONIC,                                  &
+                  case_number = HETP_num                                    )
+
              ! Spoof ISORROPIA outputs which are still used
              GAS1(1) = HETP_NH3
              GAS1(2) = HETP_HNO3
