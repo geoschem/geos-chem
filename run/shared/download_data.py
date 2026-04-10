@@ -201,6 +201,7 @@ def get_run_info():
     # NOTE: Numbers are returned as strings, and need to be converted
     run_info = {}
     run_info["nest"] = ""
+    run_info["apm"] = False
     run_info["tomas15"] = False
     run_info["tomas40"] = False
     run_info["start_date"] = int(
@@ -224,6 +225,8 @@ def get_run_info():
     run_info["nest"] = get_nest_suffix(
         config["grid"]["longitude"]["range"]
     )
+    run_info["apm"] = \
+        "APMBCBIN01" in config["operations"]["transport"]["transported_species"]
     run_info["tomas15"] = \
         "NK15" in config["operations"]["transport"]["transported_species"]
     run_info["tomas40"] = \
@@ -308,6 +311,8 @@ def get_remote_restart_filename(local_prefix, run_info, rst_info):
 
     # Special handling for fullchem
     if "fullchem" in simulation:
+        if run_info["apm"] is True:
+            return os.path.join(root, rst_info["apm"]["remote"])
         if run_info["tomas15"] is True:
             return os.path.join(root, rst_info["tomas15"]["remote"])
         if run_info["tomas40"] is True:
