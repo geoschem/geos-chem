@@ -1,6 +1,7 @@
-#if defined( MODEL_GEOS ) || defined( MODEL_GCHP )
-#include "MAPL_Generic.h"
-#endif
+! Might actually not need this (ewl)
+!#if defined( MODEL_GEOS ) || defined( MODEL_GCHP )
+!#include "MAPL.h"
+!#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -69,9 +70,9 @@ CONTAINS
     USE Timers_Mod,       ONLY : Timer_End, Timer_Start
     USE UnitConv_Mod
 
-#if defined( MODEL_GEOS ) || defined( MODEL_GCHP )
-    USE ESMF
-    USE MAPL
+#ifdef MAPL_ESMF
+    !USE ESMF ! is this needed?
+    USE MAPL_CommsMod, only: MAPL_CommsAllReduceSum ! Does this still work in mapl3?
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -375,7 +376,7 @@ CONTAINS
           ENDDO
           ENDDO
 
-#if defined( MODEL_GCHP ) || defined( MODEL_GEOS )
+#ifdef MAPL_ESMF
           ! Sum across all nodes
           call MAPL_CommsAllReduceSum(vm, sendbuf=Local_Tally, recvbuf=Total_Area, cnt=1, RC=status)
 #else
@@ -399,7 +400,7 @@ CONTAINS
           ENDDO
           ENDDO
 
-#if defined( MODEL_GCHP ) || defined( MODEL_GEOS )
+#ifdef MAPL_ESMF
           ! Sum across all nodes
           call MAPL_CommsAllReduceSum(vm, sendbuf=Local_Tally, recvbuf=Total_Spc, cnt=1, __RC__)
 #else

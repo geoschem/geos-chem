@@ -22,7 +22,9 @@ MODULE Olson_LandMap_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
+#ifndef MAPL_ESMF
   PUBLIC  :: Init_LandTypeFrac
+#endif
   PUBLIC  :: Compute_Olson_Landmap
 !
 ! !REMARKS:
@@ -317,6 +319,7 @@ CONTAINS
 
   END SUBROUTINE Compute_Olson_Landmap
 !EOC
+#ifndef MAPL_ESMF  
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -417,4 +420,5 @@ CONTAINS
 
   END SUBROUTINE Init_LandTypeFrac
 !EOC
+#endif
 END MODULE Olson_LandMap_Mod

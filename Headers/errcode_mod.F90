@@ -62,10 +62,8 @@ CONTAINS
 #if defined( MODEL_CESM )
     USE CAM_ABORTUTILS, ONLY : ENDRUN
 #endif
-#if defined( ESMF_ )
-#include "MAPL_Generic.h"
-    USE ESMF
-    USE MAPL_Mod
+#ifdef USE_ESMF
+    USE ESMF, ONLY : ESMF_VM, ESMF_VMGet, ESMF_VMGetCurrent
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -86,21 +84,22 @@ CONTAINS
 !BOC
 
     CHARACTER(LEN=1000) :: Message
-#if defined( ESMF_)
+#if USE_ESMF
     INTEGER             :: localPET, STATUS
     CHARACTER(4)        :: localPETchar
     CHARACTER(LEN=1023) :: MSG, MSG1, MSG2
     TYPE(ESMF_VM)       :: VM
 #endif
+
     !=======================================================================
     ! GC_ERROR begins here
     !=======================================================================
 
     ! Construct error message
-#if defined( ESMF_ )
+#if defined( USE_ESMF )
     ! Get current thread number
-    CALL ESMF_VMGetCurrent(VM, RC=STATUS)
-    CALL ESMF_VmGet( VM, localPET=localPET, __RC__ )
+    CALL ESMF_VMGetCurrent(VM, rc=status)
+    CALL ESMF_VmGet( VM, localPET=localPET, rc=status )
     WRITE(localPETchar,'(I4.4)') localPET
     MSG1 = 'GEOS-Chem ERROR ['//TRIM(localPETchar)//']: '//TRIM(ErrMsg)
     MSG2 = ''

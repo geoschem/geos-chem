@@ -352,7 +352,7 @@ CONTAINS
 
           !IF ( Input_Opt%Verbose ) CALL DEBUG_MSG('DONE GET_PEDGE')
 
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( USE_ESMF ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
           !-----------------------------------------------------------
           !       %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
           !

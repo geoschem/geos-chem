@@ -1,14 +1,5 @@
+#ifdef MODEL_CLASSIC
 !BOC
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( MODEL_ )
-!----------------------------------------------------------------------------
-!         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
-!        %%%% GEOS-Chem Coupled with External Models %%%%
-!
-! When GEOS-Chem is connected to an external model or in GCHP,
-! the GEOS-Chem classic main.F90 should not be built.
-!----------------------------------------------------------------------------
-#else
-!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -2657,4 +2648,3 @@ CONTAINS
   END SUBROUTINE Print_Dry_Run_Warning
 !EOC
 END PROGRAM GEOS_Chem
-#endif

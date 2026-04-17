@@ -974,7 +974,7 @@ CONTAINS
     !========================================================================
     ALLOCATE( State_Chm%Species( State_Chm%nSpecies ), STAT=RC )
     DO N = 1, State_Chm%nSpecies
-#if defined ( MODEL_GCHPCTM )
+#if defined ( MODEL_GCHP )
        ! Species concentration array pointers will be set to point
        ! to MAPL internal state every timestep when internal state level
        ! values are flipped to match GEOS-Chem standard
@@ -3444,7 +3444,7 @@ CONTAINS
     IF ( ASSOCIATED ( State_Chm%Species ) ) THEN
        DO N = 1, State_Chm%nSpecies
           IF ( ASSOCIATED( State_Chm%Species(N)%Conc ) ) THEN
-#if !defined( MODEL_GCHPCTM )
+#if !defined( MODEL_GCHP )
              DEALLOCATE( State_Chm%Species(N)%Conc, STAT=RC )
              IF ( RC /= GC_SUCCESS ) RETURN
 #endif

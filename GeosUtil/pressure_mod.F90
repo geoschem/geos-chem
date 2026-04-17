@@ -33,7 +33,7 @@ MODULE PRESSURE_MOD
   PUBLIC  :: INIT_PRESSURE
   PUBLIC  :: SET_FLOATING_PRESSURES
   PUBLIC  :: CLEANUP_PRESSURE
-#if defined( ESMF_ ) || defined( MODEL_ )
+#if defined( USE_ESMF ) || defined( MODEL_ )
   PUBLIC  :: Accept_External_Pedge
 #endif
 #if defined( MODEL_WRF ) || defined( MODEL_CESM )
@@ -78,7 +78,7 @@ MODULE PRESSURE_MOD
   REAL(fp), ALLOCATABLE :: PFLT_WET(:,:)          ! "Floating" wet sfc pres
   REAL(fp), ALLOCATABLE :: AP_FULLGRID(:)         ! "A" term for full grid
   REAL(fp), ALLOCATABLE :: BP_FULLGRID(:)         ! "B" term for full grid
-#if defined( ESMF_ ) || defined( MODEL_ )
+#if defined( USE_ESMF ) || defined( MODEL_ )
   REAL(fp), ALLOCATABLE :: EXTERNAL_PEDGE(:,:,:)  ! Pressure edges from
                                                   !  external grid
 #endif
@@ -284,7 +284,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 
-#if defined( ESMF_ ) || defined( MODEL_ )
+#if defined( USE_ESMF ) || defined( MODEL_ )
     ! Pressure [hPa] at bottom edge of level L (see documentation header)
     ! Taken from the GCM fields
     PEDGE = EXTERNAL_PEDGE(I,J,L)
@@ -570,7 +570,7 @@ CONTAINS
       BP = 0e+0_fp
     END IF
 
-#if defined( ESMF_ ) || defined( MODEL_ ) || defined( MODEL_BCC )
+#if defined( USE_ESMF ) || defined( MODEL_ ) || defined( MODEL_BCC )
     IF (.NOT. ALLOCATED( EXTERNAL_PEDGE )) THEN
       ALLOCATE( EXTERNAL_PEDGE( State_Grid%NX, State_Grid%NY, &
                                 State_Grid%NZ+1 ), &
@@ -1116,7 +1116,7 @@ CONTAINS
        RETURN
     ENDIF
 
-#if ( !defined( ESMF_ ) && !defined( MODEL_ ) ) || defined( MODEL_GEOS )
+#if ( !defined( USE_ESMF ) && !defined( MODEL_ ) ) || defined( MODEL_GEOS )
     ! Echo info to std output (skip if interfacing with external models)
     IF ( Input_Opt%amIRoot .and. ( .not. Input_Opt%DryRun ) ) THEN
        WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
@@ -1158,13 +1158,13 @@ CONTAINS
     IF ( ALLOCATED( BP_FULLGRID ) ) DEALLOCATE( BP_FULLGRID )
     IF ( ALLOCATED( PFLT_DRY    ) ) DEALLOCATE( PFLT_DRY    )
     IF ( ALLOCATED( PFLT_WET    ) ) DEALLOCATE( PFLT_WET    )
-#if defined( ESMF_ ) || defined( MODEL_ ) || defined( MODEL_BCC )
+#if defined( USE_ESMF ) || defined( MODEL_ ) || defined( MODEL_BCC )
     IF ( ALLOCATED( EXTERNAL_PEDGE ) ) DEALLOCATE( EXTERNAL_PEDGE )
 #endif
 
   END SUBROUTINE CLEANUP_PRESSURE
 !EOC
-#if defined( ESMF_ ) || defined( MODEL_ )
+#if defined( USE_ESMF ) || defined( MODEL_ )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------

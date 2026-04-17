@@ -30,7 +30,7 @@ MODULE CALC_MET_MOD
   PUBLIC  :: INTERP
   PUBLIC  :: SET_DRY_SURFACE_PRESSURE
   PUBLIC  :: Set_Clock_Tracer
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID )
+#if defined( USE_ESMF ) || defined( EXTERNAL_GRID )
   PUBLIC  :: GCHP_Cap_Tropopause_Prs
 #endif
 !
@@ -845,7 +845,7 @@ CONTAINS
 
   END SUBROUTINE INTERP
 !EOC
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID )
+#if defined( USE_ESMF ) || defined( EXTERNAL_GRID )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -858,6 +858,8 @@ CONTAINS
 !  troposheric chemistry too high over the poles.  This is done in the
 !  standalone GEOS-Chem, and we also need to apply this when running
 !  GEOS-Chem within the GEOS-5 GCM.
+!
+! ewl question: do we do this in CESM too? If yes, update this description.
 !\\
 !\\
 ! !INTERFACE:

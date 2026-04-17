@@ -59,6 +59,7 @@ MODULE DUST_MOD
   ! Arrays
   REAL(fp), ALLOCATABLE :: FRAC_S(:)
   REAL(fp), ALLOCATABLE :: SRCE_FUNC(:,:,:)
+  ! ewl: it seems srce_func isn't used anywhere in the model. Can we delete?
 
 #ifdef TOMAS
   ! To replicate the obsolete Input_Opt%IDDEP field
@@ -2105,10 +2106,10 @@ CONTAINS
     ENDIF
 #endif
 
-#if defined( ESMF_ ) || defined( TOMAS )
+#if defined( USE_ESMF ) || defined( TOMAS )
     ! EXPERIMENTAL: For archiving the dust source for GCHP
     !
-    ! Changed to use the ESMF_ flag and not EXTERNAL_GRID/EXTERNAL_FORCING, as
+    ! Changed to use the ESMF flag and not EXTERNAL_GRID/EXTERNAL_FORCING, as
     ! WRF-GC which uses these flags does not require SRCE_FUNC (hplin, 1/22/19)
     ALLOCATE( SRCE_FUNC(State_Grid%NX,State_Grid%NY,3), STAT=AS )
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'SRCE_FUNC' )

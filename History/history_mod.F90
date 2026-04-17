@@ -1212,8 +1212,8 @@ CONTAINS
              ! Of all the levels that are specified, store the min and max
              ! in the CollectionLevelInd array.  We will save out all of
              ! the levels between the min and max.
-             ! NOTE: GCHP HISTORY can archive out individual levels, but
-             ! this is trickier to implement in GC "Classic".  It is easier
+             ! NOTE: GCHP HISTORY can archive individual levels, but
+             ! this is trickier to implement in GC-Classic.  It is easier
              ! to point to a contiguous array subslice, so we will just
              ! archive everything between the min and max level for the
              ! time being. (bmy, 7/18/19)
@@ -1415,10 +1415,10 @@ CONTAINS
           ! set FileWriteYmd and FileWriteHms from CollectionFrequency.
           !
           ! NOTE: If CollectionFrequency is 6 digits long, then assume
-          ! that to be FileWriteHms.  If longer, then assume that it is
-          ! both FileWriteYmd and FileWriteHms.  This is a hack that we
-          ! introduced for GEOS-Chem "Classic" only, as this feature is
-          ! not yet supported in MAPL.  (sde, bmy, 8/4/17, 10/26/17)
+          ! that to be FileWriteHms. If longer, then assume that it is
+          ! both FileWriteYmd and FileWriteHms. Note that this is different
+          ! than for GCHP which allows hours to be greater than two digits,
+          ! and requires a different 'monthly' entry for monthly frequenty.
           !
           ! Add capability to set frequency to 'End'. In that case, the
           ! data will be written to the netCDF file at the end of the
@@ -1461,9 +1461,10 @@ CONTAINS
           !
           ! NOTE: If CollectionDuration is 6 digits long, then assume
           ! that to be FileCloseHms.  If longer, then assume that it is
-          ! both FileCloseYmd and FileCloseHms.  This is a hack that we
-          ! introduced for GEOS-Chem "Classic" only, as this feature is
-          ! not yet supported in MAPL.  (sde, bmy, 8/4/17, 10/26/17)
+          ! both FileCloseYmd and FileCloseHms. Note that, like frequency,
+          ! this is differen than for GCHP which allows hours to be
+          ! greater than two digits, and requires a different 'monthly'
+          ! entry for monthly duration.
           !
           ! Add capability to set duration to 'End'. In that case, the
           ! netCDF file will be closed at the end of the simulation.
@@ -1527,9 +1528,8 @@ CONTAINS
              !
              ! NOTE: If CollectionAccInterval is 6 digits long, then assume
              ! that to be UpdateHms.  If longer, then assume that it is
-             ! both UpdateYmd and UpdateHms.  This is a hack that we
-             ! introduced for GEOS-Chem "Classic" only, as this feature is
-             ! not supported in MAPL.  (sde, bmy, 8/4/17, 10/26/17)
+             ! both UpdateYmd and UpdateHms. Note that this is different than
+             ! GCHP in which History always updates every model heartbeat.
              !--------------------------------------------------------------
              IF ( TRIM( CollectionAccInterval(C) ) == UNDEFINED_STR ) THEN
 
