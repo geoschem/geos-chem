@@ -42,7 +42,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Changed definition of `State_Grid%MaxChemLev` and `State_Grid%MaxStratLev` to be the 1 hPa level
 - Moved `MaxChemLev` and `MaxStratLev` fields from `State_Grid` to `State_Met`
 - Removed `State_Grid%MaxTropLev` field
-
+- Changed NK5 to NK05 and NK8 to NK08 in fullchem_mod.F90 to fix missing leading zero bug for TOMAS
+	
 ### Fixed
 - Fixed incorrect unit conversion from v/v -> molec/cm3 in `planeflight_mod.F90`
 - Fixed typo in the call to `Finalize` for the `State_Diag%ProdOCPIfromOCPO` diagnostic array
