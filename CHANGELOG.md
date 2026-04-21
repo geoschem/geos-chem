@@ -9,6 +9,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Changed `NK5` to `NK05` and `NK8` to `NK08` in `fullchem_mod.F90` to fix missing leading zero bug for TOMAS
 - Renamed GCHP history diagnostics for upwards mass flux to remove the `_R4` suffix
 
+### Fixed
+- Restored missing line `CH4_BBN:` to `run/shared/species_database.yml
+
 ## [14.7.1] - 2026-04-08
 ### Added
 - Added `HTAP_SHIP` toggle in `HEMCO_Config.rc.carbon` templates for GC-Classic and GCHP
