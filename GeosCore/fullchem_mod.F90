@@ -3575,8 +3575,8 @@ CONTAINS
     id_SALC     = Ind_( 'SALC'         )
     id_SALCAL   = Ind_( 'SALCAL'       )
 #ifdef TOMAS
-    id_NK05     = Ind_( 'NK5'          )
-    id_NK08     = Ind_( 'NK8'          )
+    id_NK05     = Ind_( 'NK05'          )
+    id_NK08     = Ind_( 'NK08'          )
     id_NK10     = Ind_( 'NK10'         )
     id_NK20     = Ind_( 'NK20'         )
 #endif
