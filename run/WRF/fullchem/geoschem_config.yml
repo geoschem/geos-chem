@@ -69,6 +69,7 @@ operations:
     activate: true
     cloud-j:
       cloudj_input_dir: /n/holyscratch01/external_repos/GEOS-CHEM/gcgrid/data/ExtData/CHEM_INPUTS/CLOUD_J/v2025-01/
+      verbose: false
       num_levs_with_cloud: 20
       cloud_scheme_flag: 3
       opt_depth_increase_factor: 1.050

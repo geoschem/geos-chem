@@ -194,7 +194,7 @@ CS_RES_EFFECTIVE=${CS_RES}
 if [[ ${STRETCH_GRID} == 'ON' ]]; then
     CS_RES_EFFECTIVE=$( echo $CS_RES $STRETCH_FACTOR | awk '{printf "%.0f",$1*$2}' )
 fi
-if [[ $CS_RES_EFFECTIVE -le 180 ]]; then
+if [[ $CS_RES_EFFECTIVE -lt 180 ]]; then
     ChemEmiss_Timestep_sec=1200
     TransConv_Timestep_sec=600
     TransConv_Timestep_HHMMSS=001000
@@ -395,6 +395,13 @@ fi
 # FORWARD for forward model, ADJOINT for adjoint model
 
 Model_Phase=FORWARD
+
+#------------------------------------------------
+#   MAPL ExtData versions
+#------------------------------------------------
+# Set to true to use ExtData2G in MAPL (requires yaml input file)
+
+Use_ExtData2G=false
 
 
 ###############################
@@ -693,6 +700,18 @@ replace_val NX            ${NX}                 GCHP.rc
 replace_val NY            ${NY}                 GCHP.rc
 replace_val CoresPerNode  ${NUM_CORES_PER_NODE} HISTORY.rc
 
+###  Set which version of ExtData will be used
+if [[ ${Use_ExtData2G} == "true" ]]; then
+    replace_val USE_EXTDATA2G  .TRUE.   CAP.rc
+    replace_val USE_EXTDATA2G  .true.   GCHP.rc
+elif [[ ${Use_ExtData2G} == "false" ]]; then
+    replace_val USE_EXTDATA2G  .FALSE. CAP.rc
+    replace_val USE_EXTDATA2G  .false. GCHP.rc
+else
+    echo "ERROR: Use_ExtData2G in setCommonRunSettings.sh must be either true or false."
+    exit 1
+fi
+
 ###  Make sure adjoint diagnostics (if present) are commented out if using
 ### forward model, and uncommented if using adjoint.
 if [[ ${Model_Phase} == "FORWARD" ]]; then
@@ -785,7 +804,7 @@ update_dyn_freq SPHU2 ExtData.rc
 update_dyn_freq TMPU2 ExtData.rc
 if [[ ${MassFlux_Entry} != "missing" ]]; then
     # Mass flux scaling
-    mf_scaling=$(printf "%.7f" $(echo "${TransConv_Timestep_sec} / 450}" | bc -l) | awk '{if ($0 ~ /^\./) print "0" $0; else print $0}')
+    mf_scaling=$(printf "%.7f" $(echo "${TransConv_Timestep_sec} / 450" | bc -l) | awk '{if ($0 ~ /^\./) print "0" $0; else print $0}')
     sed -i -e "0,/MFXC/ s/\(none\)[[:space:]].*\(MFXC\)/\1 ${mf_scaling} \2/" ExtData.rc
 
     # Courant number scaling
@@ -964,6 +983,17 @@ if [[ ${soilExt} != "missing" ]]; then
 	sed -i -e 's|NO     0      3 |NO     104    -1|' HEMCO_Diagn.rc
     else
 	sed -i -e 's|NO     104    -1|NO     0      3 |'  HEMCO_Diagn.rc
+    fi
+fi
+
+# Deactivate PARANOx in HEMCO_Config.rc for C360 or C720 grids
+# but activate it for all other cubed-sphere resolutions
+paranoxExt=$(grep "102.*ParaNOx"  HEMCO_Config.rc || echo "missing")
+if [[ "x${paranoxExt}" != "xmissing" ]]; then
+    if [[ "x${CS_RES}" == "x360" || "x${CS_RES}" == "x720" ]]; then
+        sed -i -E '/ParaNOx/s/: (on |off)/: off/' HEMCO_Config.rc
+    else
+        sed -i -E '/ParaNOx/s/: (on |off)/: on /' HEMCO_Config.rc
     fi
 fi
 

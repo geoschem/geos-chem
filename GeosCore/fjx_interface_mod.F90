@@ -240,8 +240,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Run_FastJX( WLAOD, Input_Opt, State_Chm, State_Diag, &
-                         State_Grid, State_Met, RC )
+  SUBROUTINE Run_FastJX( WLAOD,      Input_Opt,  State_Chm,                  &
+                         State_Diag, State_Grid, State_Met, RC              )
 !
 ! !USES:
 !
@@ -607,24 +607,25 @@ CONTAINS
        ! Path density  (DDJ)    [# molec/cm2]
        ! New methodology for:
        ! Ozone density (OOJ)    [# O3 molec/cm2]
-       CALL SET_PROF_FJX (YLAT,        MONTH,      DAY,         &
-                      T_CTM,       P_CTM,      OPTD,        &
-                      OPTDUST,     OPTAER,     O3_CTM,      &
-                      O3_TOMS,     AERX_COL,   T_CLIM,      &
-                      O3_CLIM,     Z_CLIM,     AIR_CLIM,    &
-                      Input_Opt,   State_Grid, State_Chm )
+       CALL SET_PROF_FJX( YLAT,      MONTH,     DAY,       T_CTM,            &
+                          P_CTM,     OPTD,      OPTDUST,   OPTAER,           &
+                          O3_CTM,    O3_TOMS,   AERX_COL,  T_CLIM,           &
+                          O3_CLIM,   Z_CLIM,    AIR_CLIM,  Input_Opt,        &
+                          State_Chm, State_Met                              )
 
        ! Call FAST-JX routines to compute J-values
-       CALL PHOTO_JX( Input_Opt%amIRoot, Input_Opt%DryRun,          &
-                      U0,        RFL,        SZA,       SOLF,       &
-                      P_CTM,     T_CTM,      AOD999,    NLON,       &
-                      NLAT,      AERX_COL,   T_CLIM,    O3_CLIM,    &
-                      Z_CLIM,    AIR_CLIM,   State_Grid%maxChemLev, &
-                      State_Chm, VALJXX,     FSBOT,     FJBOT,      &
-                      FLXD,      FJFLX,      Input_Opt, State_Diag   )
+       CALL PHOTO_JX( Input_Opt%amIRoot, Input_Opt%DryRun,     U0,           &
+                      RFL,               SZA,                  SOLF,         &
+                      P_CTM,             T_CTM,                AOD999,       &
+                      NLON,              NLAT,                 AERX_COL,     &
+                      T_CLIM,            O3_CLIM,              Z_CLIM,       &
+                      AIR_CLIM,          State_Met%maxChemLev, State_Chm,    &
+                      VALJXX,            FSBOT,                FJBOT,        &
+                      FLXD,              FJFLX,                Input_Opt,    &
+                      State_Diag                                            )
 
        ! Fill out common-block array of J-rates using PHOTO_JX output
-       DO L=1,State_Grid%MaxChemLev
+       DO L=1,State_Met%MaxChemLev
           DO J=1,NRATJ
              IF (JIND(J).gt.0) THEN
                 ZPJ(L,J,NLON,NLAT) = VALJXX(L,JIND(J))*JFACTA(J)
@@ -635,8 +636,8 @@ CONTAINS
        ENDDO
 
        ! Set J-rates outside the chemgrid to zero
-       IF (State_Grid%MaxChemLev.lt.L_) THEN
-          DO L=State_Grid%MaxChemLev+1,L_
+       IF (State_Met%MaxChemLev.lt.L_) THEN
+          DO L=State_Met%MaxChemLev+1,L_
              DO J=1,NRATJ
                 ZPJ(L,J,NLON,NLAT) = 0.e+0_fp
              ENDDO
@@ -743,10 +744,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE SET_PROF_FJX( YLAT,      MONTH,  DAY,     T_CTM,  P_CTM,    &
-                       CLDOD,     DSTOD,  AEROD,   O3_CTM, O3_TOMS,  &
-                       AERCOL,    T_CLIM, O3_CLIM, Z_CLIM, AIR_CLIM, &
-                       Input_Opt, State_Grid,      State_Chm )
+  SUBROUTINE SET_PROF_FJX( YLAT,      MONTH,    DAY,      T_CTM,             &
+                           P_CTM,     CLDOD,    DSTOD,    AEROD,             &
+                           O3_CTM,    O3_TOMS,  AERCOL,   T_CLIM,            &
+                           O3_CLIM,   Z_CLIM,   AIR_CLIM, Input_Opt,         &
+                           State_Chm, State_Met                             )
 !
 ! !USES:
 !
@@ -755,7 +757,7 @@ CONTAINS
     USE Input_Opt_Mod,   ONLY : OptInput
     USE PhysConstants,   ONLY : AIRMW, AVO, g0, BOLTZ
     USE State_Chm_Mod,   ONLY : ChmState
-    USE State_Grid_Mod,  ONLY : GrdState
+    USE State_Met_Mod,   ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -770,8 +772,8 @@ CONTAINS
     REAL(fp), INTENT(IN)       :: AEROD(L_,NRHAER*NRH+NSTRATAER) ! Aerosol OD
     REAL(fp), INTENT(IN)       :: O3_CTM(L1_)       ! CTM ozone (molec/cm3)
     TYPE(OptInput), INTENT(IN) :: Input_Opt         ! Input options
-    TYPE(GrdState), INTENT(IN) :: State_Grid        ! Grid State object
     TYPE(ChmState), INTENT(IN) :: State_Chm         ! Chemistry State object
+    TYPE(MetState), INTENT(IN) :: State_Met         ! Grid State object
 !
 ! !OUTPUT VARIABLES:
 !
@@ -1049,7 +1051,7 @@ CONTAINS
 
        ! Use online O3 values in the chemistry grid if selected
        IF ( (USE_ONLINE_O3) .and. &
-            (I <= State_Grid%MaxChemLev) .and. &
+            (I <= State_Met%MaxChemLev) .and. &
             (O3_CTM(I) > 0e+0_fp) ) THEN
 
           ! Convert from molec/cm3 to molec/cm2

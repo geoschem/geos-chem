@@ -107,8 +107,6 @@ COLLECTIONS:  'SpeciesConc',
 #
 # GEOS-Chem species concentrations
 #
-# Available for all simulations
-#
 # Concentrations may be saved out as SpeciesConcVV  [v/v dry air] or
 #                                    SpeciesConcMND [molec/cm3]
 #==============================================================================

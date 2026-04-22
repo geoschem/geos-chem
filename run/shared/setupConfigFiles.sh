@@ -119,13 +119,6 @@ function set_common_settings() {
 
 	    # Change time cycle flag to allow missing species
 	    sed_ie 's|EFYO|CYS|' HEMCO_Config.rc
-
-	    # Make sure that GC-Classic benchmark simulations read the
-	    # restart file via GEOS-Chem and not HEMCO.  This will ensure
-	    # mass conservation when the run is broken up into several
-	    # stages, since restart file data is stored as REAL*8 but HEMCO
-	    # reads file data as REAL*4.
-	    replace_colon_sep_val "read_restart_as_real8" "true" geoschem_config.yml
 	fi
 
 	#---------------------------------

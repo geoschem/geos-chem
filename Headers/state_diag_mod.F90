@@ -947,6 +947,12 @@ MODULE State_Diag_Mod
      REAL(f8),           POINTER :: SatDiagnTAir(:,:,:)
      LOGICAL                     :: Archive_SatDiagnTAir
 
+     REAL(f8),           POINTER :: SatDiagnCldFrac(:,:,:)
+     LOGICAL                     :: Archive_SatDiagnCldFrac
+
+     REAL(f8),           POINTER :: SatDiagnCldTopP(:,:)
+     LOGICAL                     :: Archive_SatDiagnCldTopP
+
      REAL(f8),           POINTER :: SatDiagnGWETROOT(:,:)
      LOGICAL                     :: Archive_SatDiagnGWETROOT
 
@@ -2399,6 +2405,12 @@ CONTAINS
 
     State_Diag%SatDiagnTAir                        => NULL()
     State_Diag%Archive_SatDiagnTAir                = .FALSE.
+
+    State_Diag%SatDiagnCldFrac                     => NULL()
+    State_Diag%Archive_SatDiagnCldFrac             = .FALSE.
+
+    State_Diag%SatDiagnCldTopP                     => NULL()
+    State_Diag%Archive_SatDiagnCldTopP             = .FALSE.
 
     State_Diag%SatDiagnGWETROOT                    => NULL()
     State_Diag%Archive_SatDiagnGWETROOT            = .FALSE.
@@ -4982,6 +4994,50 @@ CONTAINS
     ENDIF
 
     !------------------------------------------------------------------------
+    ! Satellite diagnostic: Cloud top fraction (unitless)
+    !------------------------------------------------------------------------
+    diagId  = 'SatDiagnCldFrac'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%SatDiagnCldFrac,                        &
+         archiveData    = State_Diag%Archive_SatDiagnCldFrac,                &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Satellite diagnostic: Cloud top pressure (hPa)
+    !------------------------------------------------------------------------
+    diagId  = 'SatDiagnCldTopP'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%SatDiagnCldTopP,                        &
+         archiveData    = State_Diag%Archive_SatDiagnCldTopP,                &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
     ! Satellite diagnostic: Root Zone Soil Moisture (or Wetness): GWETROOT
     !------------------------------------------------------------------------
     diagId  = 'SatDiagnGWETROOT'
@@ -5217,6 +5273,8 @@ CONTAINS
          State_Diag%Archive_SatDiagnPBLHeight                           .or. &
          State_Diag%Archive_SatDiagnPBLTop                              .or. &
          State_Diag%Archive_SatDiagnTAir                                .or. &
+         State_Diag%Archive_SatDiagnCldFrac                             .or. &
+         State_Diag%Archive_SatDiagnCldTopP                             .or. &
          State_Diag%Archive_SatDiagnGWETROOT                            .or. &
          State_Diag%Archive_SatDiagnGWETTOP                             .or. &
          State_Diag%Archive_SatDiagnJval                                .or. &
@@ -5239,7 +5297,6 @@ CONTAINS
          State_Diag%Archive_SatDiagnSLP                                 .or. &
          State_Diag%Archive_SatDiagnSPHU                                .or. &
          State_Diag%Archive_SatDiagnSurfFlux                            .or. &
-         State_Diag%Archive_SatDiagnTAir                                .or. &
          State_Diag%Archive_SatDiagnTROPP                               .or. &
          State_Diag%Archive_SatDiagnTS                                  .or. &
          State_Diag%Archive_SatDiagnWetLossLS                           .or. &
@@ -13017,6 +13074,16 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    CALL Finalize( diagId   = 'SatDiagnCldFrac',                           &
+                   Ptr2Data = State_Diag%SatDiagnCldFrac,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'SatDiagnCldTopP',                           &
+                   Ptr2Data = State_Diag%SatDiagnCldTopP,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
     CALL Finalize( diagId   = 'SatDiagnGWETROOT',                          &
                    Ptr2Data = State_Diag%SatDiagnGWETROOT,                 &
                    RC       = RC                                            )
@@ -13189,7 +13256,7 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
 
     CALL Finalize( diagId   = 'ProdOCPIfromOCPO',                            &
-                   Ptr2Data = State_Diag%ProdBCPIfromBCPO,                   &
+                   Ptr2Data = State_Diag%ProdOCPIfromOCPO,                   &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -15136,6 +15203,16 @@ CONTAINS
        IF ( isDesc    ) Desc  = 'Air temperature'
        IF ( isUnits   ) Units = 'K'
        IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNCLDFRAC' ) THEN
+       IF ( isDesc    ) Desc  = '3D cloud fractions'
+       IF ( isUnits   ) Units = 'unitless'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNCLDTOPP' ) THEN
+       IF ( isDesc    ) Desc  = 'Cloud top pressure'
+       IF ( isUnits   ) Units = 'hPa'
+       IF ( isRank    ) Rank  = 2
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNGWETROOT' ) THEN
        IF ( isDesc    ) Desc  = 'Root Zone Soil Moisture (or Wetness)'

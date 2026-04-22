@@ -49,6 +49,10 @@ CORRECT_MASS_FLUX_FOR_HUMIDITY: 1
 #-----------------------------------------------------------------------
 PRINT_MASS_IN_ADVECTION: 0
 
+# Use ExtData2G? (.true. or .false.)
+#-----------------------------------------------------------------------
+USE_EXTDATA2G: .false.
+
 # Use when running a perturbation
 # scenario with RRTMG's FDH or SEFDH
 # options. Set to 0 to CALCULATE dynamical

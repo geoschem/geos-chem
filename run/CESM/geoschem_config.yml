@@ -48,6 +48,7 @@ operations:
     activate: true
     cloud-j:
       cloudj_input_dir: /see/namelist/file
+      verbose: false
       num_levs_with_cloud: 22
       cloud_scheme_flag: 3
       opt_depth_increase_factor: 1.050

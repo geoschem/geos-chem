@@ -20,7 +20,7 @@ simulation:
     activate: false
     on_cores: root       # Allowed values: root all
   use_gcclassic_timers: ${RUNDIR_USE_GCCLASSIC_TIMERS}
-  read_restart_as_real8: false
+  read_restart_as_real8: ${RUNDIR_READ_RESTART_AS_REAL8}
 
 #============================================================================
 # Grid settings
@@ -91,6 +91,7 @@ operations:
     activate: true
     cloud-j:
       cloudj_input_dir: ${RUNDIR_DATA_ROOT}/CHEM_INPUTS/CLOUD_J/v2025-01/
+      verbose: false
       num_levs_with_cloud: ${RUNDIR_PHOT_CLD_NLEV}
       cloud_scheme_flag: 3
       opt_depth_increase_factor: 1.050

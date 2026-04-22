@@ -50,7 +50,6 @@ PROGRAM GEOS_Chem
   USE PhysConstants         ! Physical constants
   USE PRESSURE_MOD          ! For computing pressure at grid boxes
   USE Print_Mod             ! For verbose printing
-  USE Grid_Registry_Mod     ! Registers horizontal/vertical grid metadata
   USE State_Chm_Mod         ! Derived type for Chemistry State object
   USE State_Diag_Mod        ! Derived type for Diagnostics State object
   USE State_Grid_Mod        ! Derived type for Grid State object
@@ -509,8 +508,8 @@ PROGRAM GEOS_Chem
   ! This removes the init calls from the run-stage, which cannot
   ! happen when connecting GEOS-Chem to external ESMs.
   !--------------------------------------------------------------------------
-  CALL GC_Init_Extra( Diag_List,  Input_Opt,  State_Chm, &
-                      State_Diag, State_Grid, RC )
+  CALL GC_Init_Extra( Diag_List,  Input_Opt,  State_Chm,                     &
+                      State_Diag, State_Grid, State_Met, RC )
   IF ( RC /= GC_SUCCESS ) THEN
      ErrMsg = 'Error encountered in "GC_Init_Extra"!'
      CALL Error_Stop( ErrMsg, ThisLoc )
@@ -580,18 +579,6 @@ PROGRAM GEOS_Chem
      ENDIF
   ENDIF
 #endif
-
-  !--------------------------------------------------------------------------
-  ! Register the horizontal and vertical grid information so that
-  ! the History component can use it for netCDF metadata
-  !--------------------------------------------------------------------------
-  IF ( notDryRun ) THEN
-     CALL Init_Grid_Registry( Input_Opt, State_Grid, RC )
-     IF ( RC /= GC_SUCCESS ) THEN
-        ErrMsg = 'Error encountered in "Init_Grid_Registry"!'
-        CALL Error_Stop( ErrMsg, ThisLoc )
-     ENDIF
-  ENDIF
 
   !--------------------------------------------------------------------------
   ! Added to read input file for Linoz O3
@@ -720,7 +707,8 @@ PROGRAM GEOS_Chem
   IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. &
        Input_Opt%ITS_AN_AEROSOL_SIM .or. &
        Input_Opt%ITS_A_MERCURY_SIM  ) THEN
-     CALL Init_Photolysis( Input_Opt, State_Grid, State_Chm, State_Diag, RC )
+     CALL Init_Photolysis( Input_Opt,  State_Grid, State_Chm,                &
+                           State_Diag, State_Met,  RC                       )
      IF ( RC /= GC_SUCCESS ) THEN
         ErrMsg = 'Error encountered in "Init_Photolysis"!'
         CALL Error_Stop( ErrMsg, ThisLoc )
@@ -824,7 +812,12 @@ PROGRAM GEOS_Chem
 
        ! Write collections (such as BoundaryConditions) that need
        ! to be defined at the start of the run
-       CALL History_Write( Input_Opt, State_Chm, State_Diag, RC )
+       CALL History_Write(                                                   &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Diag = State_Diag,                                         &
+            State_Grid = State_Grid,                                         &
+            RC         = RC                                                 )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -870,8 +863,9 @@ PROGRAM GEOS_Chem
 
           ! If verbose, print global mass per species at start of timestep
           IF ( VerboseAndRoot ) THEN
-             CALL Print_Species_Global_Mass('', Input_Opt, &
-                  State_Chm, State_Met, State_Grid, RC )
+             CALL Print_Species_Global_Mass_from_VVDry(                      &
+                  '',        Input_Opt,  State_Chm,                          &
+                  State_Met, State_Grid, RC                                 )
           ENDIF
 
           !------------------------------------------------------------------
@@ -1986,7 +1980,12 @@ PROGRAM GEOS_Chem
 
           ! Write HISTORY ITEMS in each diagnostic collection to disk
           ! (or skip writing if it is not the proper output time.
-          CALL History_Write( Input_Opt, State_Chm, State_Diag, RC )
+          CALL History_Write(                                                &
+               Input_Opt  = Input_Opt,                                       &
+               State_Chm  = State_Chm,                                       &
+               State_Diag = State_Diag,                                      &
+               State_Grid = State_Grid,                                      &
+               RC         = RC                                              )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN

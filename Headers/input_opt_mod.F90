@@ -195,7 +195,7 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: USE_ONLINE_O3
      LOGICAL                     :: USE_O3_FROM_MET
      LOGICAL                     :: USE_TOMS_O3
-     ! for nitrate aerosol photolysis (TMS, 23/08/2018)
+     LOGICAL                     :: CloudJ_Verbose     ! sets Cloud-J var LPRTJ
      LOGICAL                     :: hvAerNIT
      REAL(fp)                    :: hvAerNIT_JNIT
      REAL(fp)                    :: hvAerNIT_JNITs
@@ -693,11 +693,12 @@ CONTAINS
     Input_Opt%USE_ONLINE_O3         = .FALSE.
     Input_Opt%USE_O3_FROM_MET       = .FALSE.
     Input_Opt%USE_TOMS_O3           = .FALSE.
-    Input_Opt%hvAerNIT               = .FALSE.
-    Input_Opt%hvAerNIT_JNIT          = 0.0_fp
-    Input_Opt%hvAerNIT_JNITs         = 0.0_fp
-    Input_Opt%JNITChanA              = 0.0_fp
-    Input_Opt%JNITChanB              = 0.0_fp
+    Input_Opt%hvAerNIT              = .FALSE.
+    Input_Opt%CloudJ_Verbose        = .FALSE.
+    Input_Opt%hvAerNIT_JNIT         = 0.0_fp
+    Input_Opt%hvAerNIT_JNITs        = 0.0_fp
+    Input_Opt%JNITChanA             = 0.0_fp
+    Input_Opt%JNITChanB             = 0.0_fp
 
     !----------------------------------------
     ! RADIATION MENU fields (for RRTMG only)

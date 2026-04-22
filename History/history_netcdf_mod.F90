@@ -166,7 +166,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE History_Netcdf_Define( Input_Opt, Container, RC )
+  SUBROUTINE History_Netcdf_Define( Input_Opt, State_Grid, Container, RC )
 !
 ! !USES:
 !
@@ -181,18 +181,20 @@ CONTAINS
     USE Ncdf_Mod
     USE netCDF,                 ONLY : NF90_UNLIMITED
     USE Registry_Params_Mod,    ONLY : KINDVAL_F4
+    USE State_Grid_Mod,         ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),      INTENT(IN)  :: Input_Opt   ! Input options
+    TYPE(OptInput),      INTENT(IN)  :: Input_Opt   ! Input Options
+    TYPE(GrdState),      INTENT(IN)  :: State_Grid  ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(HistContainer), POINTER     :: Container  ! Diagnostic collection obj
+    TYPE(HistContainer), POINTER     :: Container   ! Diagnostic collection obj
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,             INTENT(OUT) :: RC         ! Success or failure
+    INTEGER,             INTENT(OUT) :: RC          ! Success or failure
 !
 ! !REMARKS:
 !  For instantaneous file collections, if a file already exists (e.g. at 0h
@@ -425,7 +427,13 @@ CONTAINS
 
        ! Define the linked list of index variables (IndexVarList) that
        ! have the same dimension subsets as the current container
-       CALL IndexVarList_Create( Input_Opt, Container, IndexVarList, RC )
+       CALL IndexVarList_Create(                                             &
+            Input_Opt    = Input_Opt,                                        &
+            State_Grid   = State_Grid,                                       &
+            Container    = Container,                                        &
+            IndexVarList = IndexVarList,                                     &
+            RC           = RC                                               )
+
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "IndexVarList_Create"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -1459,20 +1467,22 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE IndexVarList_Create( Input_Opt, Container, IndexVarList, RC )
+  SUBROUTINE IndexVarList_Create( Input_Opt, State_Grid,                     &
+                                  Container, IndexVarList, RC               )
 !
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Grid_Registry_Mod, ONLY : Lookup_Grid
     USE HistContainer_Mod, ONLY : HistContainer
     USE HistItem_Mod
     USE Input_Opt_Mod,     ONLY : OptInput
     USE MetaHistItem_Mod
+    Use State_Grid_Mod,    ONLY : GrdState, Lookup_Grid
 !
 ! !INPUT PARAMETERS:
 !
     TYPE(OptInput),      INTENT(IN)  :: Input_Opt    ! Input Options object
+    TYPE(GrdState),      INTENT(IN)  :: State_Grid   ! Grid state object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1618,6 +1628,7 @@ CONTAINS
        ! Look up one of the index fields from grid_registry_mod.F90
        !---------------------------------------------------------------------
        CALL Lookup_Grid( Input_Opt      = Input_Opt,                         &
+                         State_Grid     = State_Grid,                        &
                          Variable       = RegistryName(N),                   &
                          Description    = Description,                       &
                          Dimensions     = Dimensions,                        &

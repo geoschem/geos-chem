@@ -1,0 +1,113 @@
+{ carbon.eqn
+===============================================================================
+DESCRIPTION
+===============================================================================
+
+GEOS-Chem KPP file containing species and equations for the carbon
+chemistry mechanism with CH4 Jacobian tracers
+
+===============================================================================
+FILE HISTORY
+===============================================================================
+
+v14.1.0 (release TBD)
+---------------------
+(1) Initial version (MSL)
+
+}
+
+#include atoms.kpp     { Periodic table information               }
+
+#DEFVAR
+CH4                 = IGNORE;  { Active methane species                          }
+CH4_jac0001         = IGNORE;  { Active methane Jacobian tracer)                 }
+CH4_jac0002         = IGNORE;  { Active methane Jacobian tracer)                 }
+CH4_jac0003         = IGNORE;  { Active methane Jacobian tracer)                 }
+CH4_jac0004         = IGNORE;  { Active methane Jacobian tracer)                 }
+CH4_jac0005         = IGNORE;  { Active methane Jacobian tracer)                 }
+CO                  = IGNORE;  { Active carbon monoxide species                  }
+CO2                 = IGNORE;  { Active carbon dioxide species                   }
+PCOfromCH4          = IGNORE;  { Tracks P(CO) from CH4 for diagnostics           }
+PCOfromNMVOC        = IGNORE;  { Tracks P(CO) from NMVOC for diagnostics         }
+LCH4byOH            = IGNORE;  { Dummy spc to track loss of CH4 by OH            }
+LCH4byOH_jac0001    = IGNORE;  { Dummy spc to track loss of CH4_jac0001 by OH    }
+LCH4byOH_jac0002    = IGNORE;  { Dummy spc to track loss of CH4_jac0002 by OH    }
+LCH4byOH_jac0003    = IGNORE;  { Dummy spc to track loss of CH4_jac0003 by OH    }
+LCH4byOH_jac0004    = IGNORE;  { Dummy spc to track loss of CH4_jac0004 by OH    }
+LCH4byOH_jac0005    = IGNORE;  { Dummy spc to track loss of CH4_jac0005 by OH    }
+LCH4byCl            = IGNORE;  { Dummy spc to track loss of CH4 by Cl            }
+LCH4byCl_jac0001    = IGNORE;  { Dummy spc to track loss of CH4_jac0001 by Cl    }
+LCH4byCl_jac0002    = IGNORE;  { Dummy spc to track loss of CH4_jac0002 by Cl    }
+LCH4byCl_jac0003    = IGNORE;  { Dummy spc to track loss of CH4_jac0003 by Cl    }
+LCH4byCl_jac0004    = IGNORE;  { Dummy spc to track loss of CH4_jac0004 by Cl    }
+LCH4byCl_jac0005    = IGNORE;  { Dummy spc to track loss of CH4_jac0005 by Cl    }
+LCH4inStrat         = IGNORE;  { Dummy spc to track loss of CH4 in strat         }
+LCH4inStrat_jac0001 = IGNORE;  { Dummy spc to track loss of CH4_jac0001 in strat }
+LCH4inStrat_jac0002 = IGNORE;  { Dummy spc to track loss of CH4_jac0002 in strat }
+LCH4inStrat_jac0003 = IGNORE;  { Dummy spc to track loss of CH4_jac0003 in strat }
+LCH4inStrat_jac0004 = IGNORE;  { Dummy spc to track loss of CH4_jac0004 in strat }
+LCH4inStrat_jac0005 = IGNORE;  { Dummy spc to track loss of CH4_jac0005 in strat }
+LCObyOH             = IGNORE;  { Dummy spc to track loss of CO by OH             }
+LCOinStrat          = IGNORE;  { Dummy spc to track loss of CO in strat          }
+
+#DEFFIX
+FixedOH               = IGNORE;  { Externally-supplied OH concentration       }
+FixedCl               = IGNORE;  { Externally-supplied Cl concentration       }
+DummyCH4trop          = IGNORE;  { Dummy placeholder for CH4 reactant         }
+DummyCH4strat         = IGNORE;  { Dummy placeholder for CH4 reactant         }
+DummyNMVOC            = IGNORE;  { Dummy placeholder for NMVOC reactant       }
+
+#EQUATIONS
+//
+// %%%%%%%%%%%%%%%%%%%%%%%%
+// %%%%%  TROP CHEM   %%%%%
+// %%%%%%%%%%%%%%%%%%%%%%%%
+//
+// Rate [1/s] is from JPL 1997
+CH4         + FixedOH = LCH4byOH           : 2.45d-12*EXP(-1775.0d0/TEMP)*TROP;
+CH4_jac0001 + FixedOH = LCH4byOH_jac0001   : 2.45d-12*EXP(-1775.0d0/TEMP)*TROP;
+CH4_jac0002 + FixedOH = LCH4byOH_jac0002   : 2.45d-12*EXP(-1775.0d0/TEMP)*TROP;
+CH4_jac0003 + FixedOH = LCH4byOH_jac0003   : 2.45d-12*EXP(-1775.0d0/TEMP)*TROP;
+CH4_jac0004 + FixedOH = LCH4byOH_jac0004   : 2.45d-12*EXP(-1775.0d0/TEMP)*TROP;
+CH4_jac0005 + FixedOH = LCH4byOH_jac0005   : 2.45d-12*EXP(-1775.0d0/TEMP)*TROP;
+//
+// Rate [1/s] is from Kirschke et al, 2013 (Nature Geosci.)
+CH4         + FixedCl = LCH4byCl           : 9.60d-12*EXP(-1360.0d0/TEMP)*TROP;
+CH4_jac0001 + FixedCl = LCH4byCl_jac0001   : 9.60d-12*EXP(-1360.0d0/TEMP)*TROP;
+CH4_jac0002 + FixedCl = LCH4byCl_jac0002   : 9.60d-12*EXP(-1360.0d0/TEMP)*TROP;
+CH4_jac0003 + FixedCl = LCH4byCl_jac0003   : 9.60d-12*EXP(-1360.0d0/TEMP)*TROP;
+CH4_jac0004 + FixedCl = LCH4byCl_jac0004   : 9.60d-12*EXP(-1360.0d0/TEMP)*TROP;
+CH4_jac0005 + FixedCl = LCH4byCl_jac0005   : 9.60d-12*EXP(-1360.0d0/TEMP)*TROP;
+//
+// Rate k_Trop(1) [1/s] is set to HEMCO-supplied P(CO) from CH4
+DummyCH4trop         = CO + PCOfromCH4         : k_Trop(1);
+//
+// Rate k_trop(2) [1/s] is the output of rate law function GC_OHCO
+CO + FixedOH         = LCObyOH                 : k_Trop(2);
+//
+// DummyNMVOC is a placeholder species set to 1 molec/cm3.
+// This is a KPP "trick" in order to set the final CO concentration
+// to k_Trop(3) [molec/cm3/s] * dt [s], where dt is the chemistry
+// timestep.  k_Trop(3) contains externally-supplied P(CO) from NMVOC.
+DummyNMVOC           = CO + PCOfromNMVOC       : k_Trop(3);
+//
+// %%%%%%%%%%%%%%%%%%%%%%%%
+// %%%%%  STRAT CHEM  %%%%%
+// %%%%%%%%%%%%%%%%%%%%%%%%
+//
+// Rate k_Strat(1) [1/s] is set to HEMCO-supplied loss of CH4 by OH
+CH4         = LCH4inStrat          : k_Strat(1);
+CH4_jac0001 = LCH4inStrat_jac0001  : k_Strat(1);
+CH4_jac0002 = LCH4inStrat_jac0002  : k_Strat(1);
+CH4_jac0003 = LCH4inStrat_jac0003  : k_Strat(1);
+CH4_jac0004 = LCH4inStrat_jac0004  : k_Strat(1);
+CH4_jac0005 = LCH4inStrat_jac0005  : k_Strat(1);
+//
+// DummyCH4 is a placeholder species set to 1 molec/cm3.
+// This is a KPP "trick" in order to set the final CO concentration
+// to k_Strat(2) [molec/cm3/s] * dt [s], where dt is the chemistry
+// timestep.  k_Strat(2) contains externally-supplied strat P(CO).
+DummyCH4strat         = CO         : k_Strat(2);
+//
+// Rate k_Strat(3) [1/s] is set to HEMCO-supplied stratospheric loss of CO
+CO                    = LCOinStrat : k_Strat(3);

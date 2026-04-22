@@ -278,6 +278,9 @@ MODULE State_Met_Mod
      REAL(fp), POINTER :: LocalSolarTime(:,:  ) ! Local solar time
      LOGICAL,  POINTER :: IsLocalNoon   (:,:  ) ! Is it local noon (between 11
                                                 !  and 13 local solar time?
+     INTEGER           :: MaxStratLev           ! Maximum extent of the strat
+     INTEGER           :: MaxChemLev            ! Level at the top of the
+                                                !  chemistry grid (1 hPa)
 
      !----------------------------------------------------------------------
      ! Fields for wet scavenging module
@@ -529,6 +532,8 @@ CONTAINS
     State_Met%ICESF          => NULL()
     State_Met%RADCD          => NULL()
 #endif
+    State_Met%MaxChemLev     = 0
+    State_Met%MaxStratLev    = 0
 
   END SUBROUTINE Zero_State_Met
 !EOC

@@ -5580,7 +5580,10 @@ END FUNCTION WASHFRAC_DUSTBIN
     REAL(fp),         INTENT(IN)  :: LOST          !
     TYPE(GrdState),   INTENT(IN)  :: State_Grid    ! Grid State object
     REAL(fp),         INTENT(IN)  :: DSpc(State_Grid%NZ)
-    REAL(fp),         INTENT(IN)  :: Spc(State_Grid%NZ)
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    REAL(fp),         INTENT(INOUT) :: Spc(State_Grid%NZ)
 !
 ! ! OUTPUT PARAMETERS:
 !
@@ -5597,10 +5600,30 @@ END FUNCTION WASHFRAC_DUSTBIN
 !
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
-
+   
     !======================================================================
     ! SAFETY begins here!
     !======================================================================
+
+    ! TL Added: 9/29/25: Start WetDep-Safety-Update 
+    ! TL Added: 9/29/25: Following suggestion by yantosca (https://github.com/geoschem/geos-chem/issues/501)
+    ! TL Added: 2/9/26: Removed Print and Flush Statements and BAD following comment by yantosca (https://github.com/geoschem/geos-chem/pull/3164/changes)
+    
+    
+    ! TL Added: 9/29/25: WetDep-Safety-Update
+    IF ( MINVAL(Spc) < 0.0_fp ) THEN
+       !TL Added: 2/9/26: Wrapped Print in OMP CRITICAL following comment by yantosca (https://github.com/geoschem/geos-chem/pull/3164/changes)
+       !$OMP CRITICAL
+       PRINT*, 'Species', N, 'has a negative value',  &
+                  'at ', I, J, L, 'set to zero'
+       !$OMP END CRITICAL
+    ENDIF
+
+    WHERE ( Spc < 0.0_fp )
+       ! Fix The Negative
+       Spc = 0.0_fp
+    ENDWHERE
+    !TL Added: 9/29/25: End WetDep-Safety-Update
 
     ! Initialize
     RC      = GC_SUCCESS

@@ -100,9 +100,6 @@ VerboseOnCores:              root       # Accepted values: root all
     --> SHIP                   :       true
     --> CEDS_01x01_SHIP        :       ${RUNDIR_USE_CEDS}    # 1980-2019
     --> HTAPv3_SHIP            :       false    # 2000-2018
-    --> ICOADS_SHIP            :       false    # 2002
-    --> ARCTAS_SHIP            :       false    # 2008
-    --> CORBETT_SHIP           :       false    # 1985
 # ----- RCP FUTURE EMISSIONS --------------------------------------------------
     --> RCP_3PD                :       false    # 2005-2100
     --> RCP_45                 :       false    # 2005-2100
@@ -1462,19 +1459,6 @@ VerboseOnCores:              root       # Accepted values: root all
 #     CORBETT, and HTAP for SO2 and ICOADS should be used for CO and NO.
 #==============================================================================
 (((SHIP
-
-(((ARCTAS_SHIP
-0  ARCTAS_SHIP_SO2     $ROOT/ARCTAS_SHIP/v2014-07/ARCTAS_ship.generic.1x1.nc           SO2             2008/1/1/0             C xy kg/m2/s  SO2  11/19       10 1
-)))ARCTAS_SHIP
-
-(((ICOADS_SHIP
-0 ICOADS_SHIP_SO2      $ROOT/ICOADS_SHIP/v2014-07/ICOADS.generic.1x1.nc                SO2             2002/1-12/1/0          C xy kg/m2/s  SO2  11/15/60    10 2
-0 ICOADS_SHIP_SOAP     $ROOT/ICOADS_SHIP/v2014-07/ICOADS.generic.1x1.nc                CO              2002/1-12/1/0          C xy kg/m2/s  SOAP 6/10/280    10 2
-)))ICOADS_SHIP
-
-(((CORBETT_SHIP
-0 CORBETT_SHIP_SO2     $ROOT/CORBETT_SHIP/v2014-07/CORBETT_ship.geos.1x1.nc            SO2_SHIP        1985/1-12/1/0          C xy kg/m2/s  SO2  -           10 3
-)))CORBETT_SHIP
 
 (((HTAPv3_SHIP
 0 HTAPv3_SOAP_SHP $ROOT/HTAPv3/v2022-12/$YYYY/HTAPv3_CO_0.1x0.1_$YYYY.nc  CO_SHP  2000-2018/1-12/1/0 C xy kg/m2/s SOAP  26/280 10 4

@@ -1366,7 +1366,7 @@ CONTAINS
     INTEGER, SAVE          :: id_OH = -1
 
     ! Scalars
-    INTEGER                :: I,    N,      S
+    INTEGER                :: I,    N,      S,   J
     REAL(fp)               :: good, locTime
 
     ! Strings
@@ -1413,7 +1413,7 @@ CONTAINS
     ! Loop over longitudes
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I, locTime, good, S, N                                   )
+    !$OMP PRIVATE( I, J, locTime, good, S, N                                )
     DO I = 1, State_Grid%NX
 
        !---------------------------------------------------------------------
@@ -1452,9 +1452,9 @@ CONTAINS
        ! SatDiagnOH: OH concentration [molec/cm3]:
        !---------------------------------------------------------------------
        IF ( State_Diag%Archive_SatDiagnOH ) THEN
-          State_Diag%SatDiagnOH(I,:,1:State_Grid%MaxChemLev) =               &
-               ( Spc(id_OH)%Conc(I,:,1:State_Grid%MaxChemLev) * good  *      &
-               State_Met%AIRDEN(I,:,1:State_Grid%MaxChemLev)  * AVO ) /      &
+          State_Diag%SatDiagnOH(I,:,1:State_Met%MaxChemLev) =               &
+               ( Spc(id_OH)%Conc(I,:,1:State_Met%MaxChemLev) * good  *      &
+               State_Met%AIRDEN(I,:,1:State_Met%MaxChemLev)  * AVO ) /      &
                ( State_Chm%SpcData(id_OH)%Info%MW_g ) / 1.0e+3_fp
        ENDIF
 
@@ -1529,6 +1529,26 @@ CONTAINS
        !---------------------------------------------------------------------
        IF ( State_Diag%Archive_SatDiagnTAir ) THEN
           State_Diag%SatDiagnTAir(I,:,:) = State_Met%T(I,:,:) * good
+       ENDIF
+
+       ! --------------------------------------------
+       ! 3D cloud fractions [unitless]
+       ! --------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnCldFrac ) THEN          
+          State_Diag%SatDiagnCldFrac(I,:,:) = State_Met%CLDF(I,:,:) * GOOD      
+       ENDIF
+
+       ! --------------------------------------------
+       ! Cloud top height pressure [hPa]
+       ! --------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnCldTopP ) THEN
+
+          ! Loop over latitudes:
+          DO J = 1, State_Grid%NY
+             State_Diag%SatDiagnCldTopP(I,J) = &
+                  State_Met%PEDGE(I,J,State_MET%CLDTOPS(I,J)) * GOOD
+          ENDDO
+          
        ENDIF
 
        !---------------------------------------------------------------------

@@ -579,10 +579,10 @@ CONTAINS
 
        ! Is this grid box within the stratosphere (but not mesosphere)?
        State_Met%InStratosphere(I,J,L) = &
-            ( L <= State_Grid%MaxStratLev .and. State_Met%InStratMeso(I,J,L) )
+            ( L <= State_Met%MaxStratLev .and. State_Met%InStratMeso(I,J,L) )
 
        ! Is grid box (I,J,L) within the chemistry grid?
-       State_Met%InChemGrid(I,J,L) = ( L <= State_Grid%MaxChemLev )
+       State_Met%InChemGrid(I,J,L) = ( L <= State_Met%MaxChemLev )
 
     ENDDO
     ENDDO

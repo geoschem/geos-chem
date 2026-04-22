@@ -54,19 +54,17 @@ GRID_LABELS: #PE24x144-CF
 #==============================================================================
 COLLECTIONS: 'SpeciesConc',
              'Emissions',
-             #'Metrics',
              #'Budget',
-             'Carbon',
              #'CloudConvFlux',
-             #'ConcAfterChem',
              #'FV3Dynamics',
              #'GCHPctmEnvLevCenter',
              #'GCHPctmEnvLevEdge',
              #'KppDiags',
+             'ProdLoss',
              #'RxnConst',
              #'RxnRates',
              'StateMet',
-             #'StateMetLevEdge',
+             'StateMetLevEdge',
 ::
 #==============================================================================
 # Define collections
@@ -89,13 +87,13 @@ COLLECTIONS: 'SpeciesConc',
 #    (2) Frequency keyword sets frequency of data in each output file
 #
 #    (3) Duration keyword sets frequency of output file
-#  
+#
 #    (4) Mode keyword may be 'time-averaged' or 'instantaneous'
 #
 #    (5) See the GRID_LABELS sections above for details about output grids
 #
 #    (6) To output data on a grid other than native res global cubed sphere
-#        include the 'grid_label' field. For example, 
+#        include the 'grid_label' field. For example,
 #
 #           SpeciesConc.grid_label:   REGIONAL1x1
 #
@@ -154,19 +152,6 @@ COLLECTIONS: 'SpeciesConc',
                               'EmisOCS_Ocean        ', 'GCHPchem',
 ::
 #==============================================================================
-  Metrics.template:           '%y4%m2%d2_%h2%n2z.nc4',
-  Metrics.frequency:          'End',
-  Metrics.duration:           'End',
-  Metrics.mode:               'time-averaged'
-  Metrics.fields:             'AirMassColumnFull         ', 'GCHPchem',
-                              'CH4emission               ', 'GCHPchem',
-                              'CH4massColumnFull         ', 'GCHPchem',
-                              'CH4massColumnTrop         ', 'GCHPchem',
-                              'LossOHbyCH4columnTrop     ', 'GCHPchem',
-                              'LossOHbyMCFcolumnTrop     ', 'GCHPchem',
-                              'OHwgtByAirMassColumnFull  ', 'GCHPchem',
-::
-#==============================================================================
   SpeciesConc.template:       '%y4%m2%d2_%h2%n2z.nc4',
   SpeciesConc.format:         'CFIO',
   SpeciesConc.timestampStart: .true.
@@ -206,10 +191,10 @@ COLLECTIONS: 'SpeciesConc',
                               'BudgetConvectionTrop_CH4      ', 'GCHPchem',
                               'BudgetConvectionPBL_CH4       ', 'GCHPchem',
                               'BudgetConvectionLevs1to35_CH4 ', 'GCHPchem',
-                              'BudgetChemistryFull_CH4      ', 'GCHPchem',
-                              'BudgetChemistryTrop_CH4      ', 'GCHPchem',
-                              'BudgetChemistryPBL_CH4       ', 'GCHPchem',
-                              'BudgetChemistryLevs1to35_CH4 ', 'GCHPchem',
+                              'BudgetChemistryFull_CH4       ', 'GCHPchem',
+                              'BudgetChemistryTrop_CH4       ', 'GCHPchem',
+                              'BudgetChemistryPBL_CH4        ', 'GCHPchem',
+                              'BudgetChemistryLevs1to35_CH4  ', 'GCHPchem',
                               'BudgetEmisDryDepFull_CO       ', 'GCHPchem',
                               'BudgetEmisDryDepTrop_CO       ', 'GCHPchem',
                               'BudgetEmisDryDepPBL_CO        ', 'GCHPchem',
@@ -234,7 +219,7 @@ COLLECTIONS: 'SpeciesConc',
                               'BudgetConvectionTrop_CO2      ', 'GCHPchem',
                               'BudgetConvectionPBL_CO2       ', 'GCHPchem',
                               'BudgetConvectionLevs1to35_CO2 ', 'GCHPchem',
-			                  'BudgetEmisDryDepFull_OCS      ', 'GCHPchem',
+                              'BudgetEmisDryDepFull_OCS      ', 'GCHPchem',
                               'BudgetEmisDryDepTrop_OCS      ', 'GCHPchem',
                               'BudgetEmisDryDepPBL_OCS       ', 'GCHPchem',
                               'BudgetEmisDryDepLevs1to35_OCS ', 'GCHPchem',
@@ -246,20 +231,6 @@ COLLECTIONS: 'SpeciesConc',
                               'BudgetConvectionTrop_OCS      ', 'GCHPchem',
                               'BudgetConvectionPBL_OCS       ', 'GCHPchem',
                               'BudgetConvectionLevs1to35_OCS ', 'GCHPchem',
-::
-#==============================================================================
-# Prod and loss terms from the carbon simulation (plus OH conc)
-  Carbon.template:        '%y4%m2%d2_%h2%n2z.nc4',
-  Carbon.format:          'CFIO',
-  Carbon.timestampStart:  .true.
-  Carbon.monthly:         1
-  Carbon.frequency:       010000
-  Carbon.duration:        010000
-  Carbon.mode:            'time-averaged'
-  Carbon.fields:          'OHconcAfterChem', 'GCHPchem',
-                          'ProdCOfromCH4  ', 'GCHPchem',
-                          'ProdCOfromNMVOC', 'GCHPchem',
-                          'ProdCO2fromCO  ', 'GCHPchem',
 ::
 #===============================================================================
 # Cloud convective fluxes
@@ -274,17 +245,6 @@ COLLECTIONS: 'SpeciesConc',
                                 'CloudConvFlux_CO  ', 'GCHPchem',
                                 'CloudConvFlux_CO2 ', 'GCHPchem',
                                 'CloudConvFlux_OCS ', 'GCHPchem',
-::
-#==============================================================================
-# Concentrations of OH immediately after exiting the KPP solver
-  ConcAfterChem.template:       '%y4%m2%d2_%h2%n2z.nc4',
-  ConcAfterChem.format:         'CFIO',
-  ConcAfterChem.timestampStart: .true.
-  ConcAfterChem.monthly:        1
-  ConcAfterChem.frequency:      010000
-  ConcAfterChem.duration:       010000
-  ConcAfterChem.mode:           'time-averaged'
-  ConcAfterChem.fields:         'OHconcAfterChem', 'GCHPchem',
 ::
 #==============================================================================
   FV3Dynamics.template:       '%y4%m2%d2_%h2%n2z.nc4',
@@ -344,6 +304,19 @@ COLLECTIONS: 'SpeciesConc',
                               'KppTime      ', 'GCHPchem',
 ::
 #==============================================================================
+# Prod and loss terms from the carbon simulation
+  ProdLoss.template:        '%y4%m2%d2_%h2%n2z.nc4',
+  ProdLoss.format:          'CFIO',
+  ProdLoss.timestampStart:  .true.
+  ProdLoss.monthly:         1
+  ProdLoss.frequency:       010000
+  ProdLoss.duration:        010000
+  ProdLoss.mode:            'time-averaged'
+  ProdLoss.fields:          'ProdCOfromCH4  ', 'GCHPchem',
+                            'ProdCOfromNMVOC', 'GCHPchem',
+                            'ProdCO2fromCO  ', 'GCHPchem',
+::
+#==============================================================================
   RxnRates.template:          '%y4%m2%d2_%h2%n2z.nc4',
   RxnRates.format:            'CFIO',
   RxnRates.monthly:           1
@@ -352,7 +325,12 @@ COLLECTIONS: 'SpeciesConc',
   RxnRates.mode:              'time-averaged'
   RxnRates.fields:            'RxnRate_EQ0001 ', 'GCHPchem',
                               'RxnRate_EQ0002 ', 'GCHPchem',
-			      # ... add others as needed ...
+                              'RxnRate_EQ0003 ', 'GCHPchem',
+                              'RxnRate_EQ0004 ', 'GCHPchem',
+                              'RxnRate_EQ0005 ', 'GCHPchem',
+                              'RxnRate_EQ0006 ', 'GCHPchem',
+                              'RxnRate_EQ0007 ', 'GCHPchem',
+                              'RxnRate_EQ0008 ', 'GCHPchem',
 ::
 #==============================================================================
   RxnConst.template:          '%y4%m2%d2_%h2%n2z.nc4',
@@ -363,7 +341,12 @@ COLLECTIONS: 'SpeciesConc',
   RxnConst.mode:              'time-averaged'
   RxnConst.fields:            'RxnConst_EQ0001 ', 'GCHPchem',
                               'RxnConst_EQ0002 ', 'GCHPchem',
-			      # ... add others as needed ...
+                              'RxnConst_EQ0003 ', 'GCHPchem',
+                              'RxnConst_EQ0004 ', 'GCHPchem',
+                              'RxnConst_EQ0005 ', 'GCHPchem',
+                              'RxnConst_EQ0006 ', 'GCHPchem',
+                              'RxnConst_EQ0007 ', 'GCHPchem',
+                              'RxnConst_EQ0008 ', 'GCHPchem',
 ::
 #==============================================================================
   StateMet.template:       '%y4%m2%d2_%h2%n2z.nc4',
@@ -461,8 +444,8 @@ COLLECTIONS: 'SpeciesConc',
   StateMetLevEdge.frequency:      010000
   StateMetLevEdge.duration:       010000
   StateMetLevEdge.mode:           'time-averaged'
-  StateMetLevEdge.fields:         'Met_CMFMC   ', 'GCHPchem',
-                                  'Met_PEDGE   ', 'GCHPchem',
+  StateMetLevEdge.fields:         'Met_PEDGE   ', 'GCHPchem',
+                                  #'Met_CMFMC   ', 'GCHPchem',
                                   #'Met_PEDGEDRY', 'GCHPchem',
                                   #'Met_PFICU   ', 'GCHPchem',
                                   #'Met_PFILSAN ', 'GCHPchem',

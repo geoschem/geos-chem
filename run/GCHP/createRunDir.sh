@@ -640,9 +640,16 @@ cp ./setRestartLink.sh                ${rundir}
 cp ./checkRunSettings.sh              ${rundir}
 cp ./gitignore                        ${rundir}/.gitignore
 
+# Only copy extdata.yaml used in ExtData2G if using Transport Tracers
+# (extdata.yaml not yet available for other simulations)
+if [[ "x${sim_name}" == "xTransportTracers" ]]; then
+    cp ./ExtData2G.yaml.templates/extdata.yaml.${sim_name} ${rundir}/extdata.yaml
+fi
+
 # Copy file to auto-update common settings
 cp ./setCommonRunSettings.sh.template  ${rundir}/setCommonRunSettings.sh
 
+# Copy metrics.py file to computing global OH
 if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xcarbon" ]]; then
     cp -r ${gcdir}/run/shared/metrics.py  ${rundir}
     chmod 744 ${rundir}/metrics.py
@@ -774,26 +781,23 @@ else
 	RUNDIR_VARS+="RUNDIR_TOMAS_SEASALT='off'\n"
     else
 	RUNDIR_VARS+="RUNDIR_SEASALT_EXT='off'\n"
+	RUNDIR_VARS+="RUNDIR_OFFLINE_SEASALT='true '\n"
 	if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
 	    RUNDIR_VARS+="RUNDIR_TOMAS_SEASALT='on '\n"
-	    RUNDIR_VARS+="RUNDIR_OFFLINE_SEASALT='false'\n"
 	else
 	    RUNDIR_VARS+="RUNDIR_TOMAS_SEASALT='off'\n"
-	    RUNDIR_VARS+="RUNDIR_OFFLINE_SEASALT='true '\n"
 	fi
     fi
     if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
-        RUNDIR_VARS+="RUNDIR_DUSTL23M_EXT='off'\n"
         RUNDIR_VARS+="RUNDIR_TOMAS_DUSTDEAD='on '\n"
-        RUNDIR_VARS+="RUNDIR_OFFLINE_DUST='false'\n"
     else
-        RUNDIR_VARS+="RUNDIR_DUSTL23M_EXT='off'\n"
         RUNDIR_VARS+="RUNDIR_TOMAS_DUSTDEAD='off'\n"
-        RUNDIR_VARS+="RUNDIR_OFFLINE_DUST='true '\n"
     fi
     RUNDIR_VARS+="RUNDIR_MEGAN_EXT='off'\n"
     RUNDIR_VARS+="RUNDIR_SOILNOX_EXT='off'\n"
+    RUNDIR_VARS+="RUNDIR_DUSTL23M_EXT='off'\n"
     RUNDIR_VARS+="RUNDIR_OFFLINE_BIOVOC='true '\n"
+    RUNDIR_VARS+="RUNDIR_OFFLINE_DUST='true '\n"
     RUNDIR_VARS+="RUNDIR_OFFLINE_SOILNOX='true '\n"
 fi
 RUNDIR_VARS+="$(cat ${metSettingsDir}/gmao_hemco.txt)\n"
@@ -916,6 +920,16 @@ printf "\n  -- See build/README for compilation instructions"
 printf "\n  -- Example run scripts are in the runScriptSamples subdirectory"
 printf "\n  -- For more information visit the GCHP user guide at"
 printf "\n     https://readthedocs.org/projects/gchp/\n\n"
+
+if [[ "x${sim_name}" == "xTransportTracers" ]]; then
+    printf "\n\n*** NOTE: ExtData2G is now available as beta! ***\n"
+    printf " - New configuration file extdata.yaml is located in your run directory\n"
+    printf " - It is configured for use with MERRA2 meteorology at grid resolutions <= C180\n"
+    printf " - Set Use_ExtData2G to true in setCommonRunSetting.sh to enable\n"
+    printf " - Edit extdata.yaml for use with other meteorology sources or mass fluxes\n"
+    printf " - Edit extdata.yaml to match changes to ExtData.rc if using grid resolution > C180\n"
+    printf " - See ExtData2G User Guide at https://github.com/GEOS-ESM/MAPL/wiki/ExtData-Next-Generation---User-Guide#451-mask-functions\n"
+fi
 
 #-----------------------------------------------------------------
 # Ask user whether to build the KPP-standalone box model

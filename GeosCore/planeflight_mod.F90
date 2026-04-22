@@ -1518,7 +1518,7 @@ CONTAINS
     USE ErrCode_Mod
     USE Input_Opt_Mod,      ONLY : OptInput
     USE Ncdf_Mod,           ONLY : GET_TAU0
-    USE OCEAN_MERCURY_MOD,  ONLY : Fg !eds 10/27/11
+    USE OCEAN_MERCURY_MOD,  ONLY : Fg
     USE OCEAN_MERCURY_MOD,  ONLY : OMMFp => Fp
     USE PhysConstants,      ONLY : AIRMW, AVO, CONSVAP
     USE Species_Mod,        ONLY : SpcConc
@@ -1527,7 +1527,6 @@ CONTAINS
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD
-    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 !
 ! !INPUT PARAMETERS:
 !
@@ -1736,17 +1735,20 @@ CONTAINS
              SELECT CASE ( PVAR(V) )
 
              !---------------------------------------------------------------
-             ! GEOS-Chem Chemical species [molec/cm3]
+             ! GEOS-Chem Chemical species [mol/mol dry] or [molec/cm3]
              !---------------------------------------------------------------
-             CASE ( 1:996)
+             CASE ( 1:996 )
 
                 ! Only archive where chemistry is done
                 IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
                    ! Species concentration [v/v dry] -> [molec/cm3]
                    N       = PVAR(V)
-                   VARI(V) = Spc(N)%Conc(I,J,L) / AIRMW * State_Met%AIRDEN(I,J,L) &
-                             * AVO * 1.0e-9_fp
+                   VARI(V) = Spc(N)%Conc(I,J,L)                              &
+                           / AIRMW                                           &
+                           * State_Met%AIRDEN(I,J,L)                         &
+                           * AVO                                             &
+                           * 1.0e-3_fp
                 ENDIF
 
              !---------------------------------------------------------------

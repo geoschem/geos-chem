@@ -17,7 +17,7 @@ simulation:
     activate: false
     on_cores: root       # Allowed values: root all
   use_gcclassic_timers: ${RUNDIR_USE_GCCLASSIC_TIMERS}
-  read_restart_as_real8: false
+  read_restart_as_real8: ${RUNDIR_READ_RESTART_AS_REAL8}
 
 #============================================================================
 # Grid settings

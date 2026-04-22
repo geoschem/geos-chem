@@ -2845,6 +2845,29 @@ CONTAINS
     ENDIF
     Input_Opt%CloudJ_DIR = TRIM( v_str )
 
+    ! Turn on verbose output
+    key   = "operations%photolysis%cloud-j%verbose"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    ! Should Cloud-J verbose output be printed only on root or on all cores?
+    SELECT CASE ( TRIM( Input_Opt%VerboseOnCores ) )
+       CASE( 'ROOT' )
+          Input_Opt%CloudJ_Verbose = ( v_bool .and. Input_Opt%amIRoot )
+       CASE( 'ALL' )
+          Input_Opt%CloudJ_Verbose = v_bool
+       CASE DEFAULT
+          errMsg = 'Invalid selection!' // NEW_LINE( 'a' ) //                &
+               'simulation:verbose:on_cores must be either "root" or "all"'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+    END SELECT
+
     ! Number levels with clouds to use in photolysis (Cloud-J var LWEPAR)
     key   = "operations%photolysis%cloud-j%num_levs_with_cloud"
     v_int = MISSING_INT
@@ -3134,6 +3157,7 @@ CONTAINS
        WRITE( 6,90  ) 'PHOTOLYSIS SETTINGS'
        WRITE( 6,95  ) '-------------------'
        WRITE( 6,100 ) 'Turn on photolysis?         : ', Input_Opt%Do_Photolysis
+       WRITE( 6,100 ) 'Print Cloud-J debug output? : ', Input_Opt%CloudJ_Verbose
        WRITE( 6,120 ) 'FAST-JX input directory     : ',                      &
                        TRIM( Input_Opt%FAST_JX_DIR )
        WRITE( 6,120 ) 'Cloud-J input directory     : ',                      &

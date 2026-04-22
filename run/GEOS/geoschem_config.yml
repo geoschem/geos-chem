@@ -61,6 +61,7 @@ operations:
     activate: true
     cloud-j:
       cloudj_input_dir: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/CLOUD_J/v2025-01/
+      verbose: false
       num_levs_with_cloud: 34
       cloud_scheme_flag: 3
       opt_depth_increase_factor: 1.050

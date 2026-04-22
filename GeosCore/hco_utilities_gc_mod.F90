@@ -1591,6 +1591,7 @@ CONTAINS
    ! Netcdf libraries for local read of restart file
    USE netCDF
    USE m_netcdf_io_open
+   USE m_netcdf_io_get_dimlen
    USE m_netcdf_io_read
    USE m_netcdf_io_readattr
    USE m_netcdf_io_close
@@ -1625,9 +1626,9 @@ CONTAINS
    LOGICAL                   :: FOUND_DELP_DRY     ! Found layer delta P in restart?
    CHARACTER(LEN=60)         :: Prefix             ! utility string
    CHARACTER(LEN=255)        :: LOC                ! routine location
-   CHARACTER(LEN=255)        :: MSG                ! message
    CHARACTER(LEN=255)        :: v_name_in_hemco    ! variable name in HEMCO
    CHARACTER(LEN=255)        :: v_name_in_file     ! variable name in restart file
+   CHARACTER(LEN=512)        :: MSG                ! message
    REAL(fp)                  :: SMALL_NUM          ! small number threshold
 
    ! Temporary arrays and pointers
@@ -1676,7 +1677,7 @@ CONTAINS
    REAL*8,  POINTER   :: SpcMassPtr(:,:,:)
 
    !=================================================================
-   ! READ_GC_RESTART begins here!
+   ! GET_GC_RESTART begins here!
    !=================================================================
 
    ! Assume success
@@ -1779,6 +1780,25 @@ CONTAINS
       ! Open file
       CALL Ncop_Rd( fId, TRIM(nc_path) )
 
+      ! If we are not using HEMCO to read the restart file, then stop
+      ! the run if the restart file vertical resolution does not match
+      ! the simulation grid vertical resolution.  The algorithm to read
+      ! the restart file as REAL*8 below does not have the capability
+      ! to regrid vertical levels.
+      IF ( .not. Use_HEMCO_for_restart_read ) THEN
+         CALL NcGet_DimLen( fId, 'lev', L )
+         IF ( L /= State_Grid%NZ ) THEN
+            MSG = "The GEOS-Chem restart file cannot be read as REAL*8 "  // &
+                  "for simulations with a different vertical grid than "  // &
+                  "the restart file. This is because reading the "        // &
+                  "restart file as REAL*8 bypasses HEMCO vertical "       // &
+                  "remapping. Please set 'read_restart_as_real8: false' " // &
+                  "in your 'geoschem_config.yml' configuration file "     // &
+                  "and run your simulation again."
+            CALL GC_Error( Msg, RC, Loc )
+            RETURN
+         ENDIF
+      ENDIF
    ENDIF
 
    !=========================================================================
@@ -1979,7 +1999,7 @@ CONTAINS
 
             ! For non-advected species at levels above chemistry grid,
             ! use a small number for background
-            IF ( L > State_Grid%MaxChemLev .and. &
+            IF ( L > State_Met%MaxChemLev .and. &
                      .NOT. SpcInfo%Is_Advected ) THEN
 
                Spc(N)%Conc(I,J,L) = SMALL_NUM

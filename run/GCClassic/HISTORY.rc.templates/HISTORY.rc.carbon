@@ -1,5 +1,5 @@
 ###############################################################################
-###  HISTORY.rc file for GEOS-Chem carbon simulation                   ###
+###  HISTORY.rc file for GEOS-Chem carbon simulation                        ###
 ###  Contact: GEOS-Chem Support Team (geos-chem-support@g.harvard.edu)      ###
 ###############################################################################
 
@@ -28,13 +28,12 @@ EXPID:  ./OutputDir/GEOSChem
 # your own customized diagnostic collections as well.
 #==============================================================================
 COLLECTIONS: 'Restart',
-             'Metrics',
              'SpeciesConc',
              #'Budget',
-             'Carbon',
              #'CloudConvFlux',
              #'ConcAfterChem',
              #'KppDiags',
+             'ProdLoss',
              #'RxnConst',
              #'RxnRates',
              #'SatDiagn',
@@ -54,57 +53,30 @@ COLLECTIONS: 'Restart',
 # %%%%% THE Restart COLLECTION %%%%%
 #
 # GEOS-Chem restart file fields
-#
-# Available for all simulations
-#
-# NOTE: Chem_KPPHvalue isn't needed since the carbon simulation uses
-# the forward Euler solver instead of Rosenbrock.
 #==============================================================================
-  Restart.filename:     './Restarts/GEOSChem.Restart.%y4%m2%d2_%h2%n2z.nc4',
-  Restart.frequency:    ${RUNDIR_HIST_INST_FREQ}
-  Restart.duration:     ${RUNDIR_HIST_INST_DUR}
-  Restart.mode:         'instantaneous'
-  Restart.fields:       'SpeciesRst_?ALL?                     ',
-                        'Met_DELPDRY                          ',
-                        'Met_BXHEIGHT                         ',
-                        'Met_TropLev                          ',
-::
-#==============================================================================
-# %%%%% THE Metrics COLLECTION %%%%%
-#
-# Diagnostics for chemistry metrics such as global mean OH concentration,
-# MCF lifetime, and CH4 lifetime.
-#
-# This diagnostic collection should always be left on.
-# Use the run-directory script ./metrics_ch4.py to print results.
-#
-# Available for full-chemistry and CH4 simulations only.
-#==============================================================================
-  Metrics.template:           '%y4%m2%d2_%h2%n2z.nc4',
-  Metrics.frequency:          'End',
-  Metrics.duration:           'End',
-  Metrics.mode:               'time-averaged'
-  Metrics.fields:             'AirMassColumnFull             ',
-                              'CH4emission                   ',
-                              'CH4massColumnFull             ',
-                              'CH4massColumnTrop             ',
-                              'LossOHbyCH4columnTrop         ',
-                              'LossOHbyMCFcolumnTrop         ',
-                              'OHwgtByAirMassColumnFull      ',
+  Restart.filename:           './Restarts/GEOSChem.Restart.%y4%m2%d2_%h2%n2z.nc4',
+  Restart.frequency:          ${RUNDIR_HIST_TIME_AVG_FREQ},
+  Restart.duration:           ${RUNDIR_HIST_TIME_AVG_FREQ},
+  Restart.mode:               'instantaneous'
+  Restart.fields:             'SpeciesRst_?ALL?               ',
+                              'Met_DELPDRY                    ',
+                              'Met_BXHEIGHT                   ',
+                              'Met_TropLev                    ',
 ::
 #==============================================================================
 # %%%%% THE SpeciesConc COLLECTION %%%%%
 #
-# GEOS-Chem species concentrations (default = advected species)
+# GEOS-Chem species concentrations (default = all species)
 #
-# Available for all simulations
+# Concentrations may be saved out as SpeciesConcVV  [v/v dry air] or
+#                                    SpeciesConcMND [molec/cm3]
 #==============================================================================
   SpeciesConc.template:       '%y4%m2%d2_%h2%n2z.nc4',
   SpeciesConc.frequency:      ${RUNDIR_HIST_TIME_AVG_FREQ}
   SpeciesConc.duration:       ${RUNDIR_HIST_TIME_AVG_DUR}
   SpeciesConc.mode:           'time-averaged'
-  SpeciesConc.fields:         'SpeciesConcVV_?ADV?           ',
-                              #'SpeciesConcMND_?ADV?          ',
+  SpeciesConc.fields:         'SpeciesConcVV_?ALL?           ',
+                              #'SpeciesConcMND_?ALL?          ',
 ::
 #==============================================================================
 # %%%%% THE Budget COLLECTION %%%%%
@@ -112,54 +84,36 @@ COLLECTIONS: 'Restart',
 # GEOS-Chem budget diagnostics defined as species kg/s in the column
 # (full, troposphere, or PBL) due to a single component (e.g. chemistry)
 # (default = advected species)
-#
-# Available for all simulations
 #==============================================================================
-  Budget.template:            '%y4%m2%d2_%h2%n2z.nc4',
-  Budget.frequency:           ${RUNDIR_HIST_TIME_AVG_FREQ}
-  Budget.duration:            ${RUNDIR_HIST_TIME_AVG_DUR}
-  Budget.mode:                'time-averaged'
-  Budget.fields:              'BudgetEmisDryDepFull_?ADV?     ',
-                              'BudgetEmisDryDepTrop_?ADV?     ',
-                              'BudgetEmisDryDepPBL_?ADV?      ',
-                              'BudgetEmisDryDepLevs1to35_?ADV?',
-                              'BudgetChemistryFull_?ADV?      ',
-                              'BudgetChemistryTrop_?ADV?      ',
-                              'BudgetChemistryPBL_?ADV?       ',
-                              'BudgetChemistryLevs1to35_?ADV? ',
-                              'BudgetTransportFull_?ADV?      ',
-                              'BudgetTransportTrop_?ADV?      ',
-                              'BudgetTransportPBL_?ADV?       ',
-                              'BudgetTransportLevs1to35_?ADV? ',
-                              'BudgetMixingFull_?ADV?         ',
-                              'BudgetMixingTrop_?ADV?         ',
-                              'BudgetMixingPBL_?ADV?          ',
-                              'BudgetMixingLevs1to35_?ADV?    ',
-                              'BudgetConvectionFull_?ADV?     ',
-                              'BudgetConvectionTrop_?ADV?     ',
-                              'BudgetConvectionPBL_?ADV?      ',
-                              'BudgetConvectionLevs1to35_?ADV?',
-::
-#==============================================================================
-# %%%%% THE Carbon COLLECTION %%%%%
-#
-# Production and loss fields from the carbon simulation via KPP
-#==============================================================================
-  Carbon.template:            '%y4%m2%d2_%h2%n2z.nc4',
-  Carbon.frequency:           ${RUNDIR_HIST_TIME_AVG_FREQ}
-  Carbon.duration:            ${RUNDIR_HIST_TIME_AVG_DUR}
-  Carbon.mode:                'time-averaged'
-  Carbon.fields:              'OHconcAfterChem                ',
-                              'ProdCOfromCH4                  ',
-                              'ProdCOfromNMVOC                ',
-                              'ProdCO2fromCO                  ',
+  Budget.template:     '%y4%m2%d2_%h2%n2z.nc4',
+  Budget.frequency:    ${RUNDIR_HIST_TIME_AVG_FREQ}
+  Budget.duration:     ${RUNDIR_HIST_TIME_AVG_DUR}
+  Budget.mode:         'time-averaged'
+  Budget.fields:       'BudgetEmisDryDepFull_?ADV?           ',
+                       'BudgetEmisDryDepTrop_?ADV?           ',
+                       'BudgetEmisDryDepPBL_?ADV?            ',
+                       'BudgetEmisDryDepLevs1to35_?ADV?      ',
+                       'BudgetChemistryFull_?ADV?            ',
+                       'BudgetChemistryTrop_?ADV?            ',
+                       'BudgetChemistryPBL_?ADV?             ',
+                       'BudgetChemistryLevs1to35_?ADV?       ',
+                       'BudgetTransportFull_?ADV?            ',
+                       'BudgetTransportTrop_?ADV?            ',
+                       'BudgetTransportPBL_?ADV?             ',
+                       'BudgetTransportLevs1to35_?ADV?       ',
+                       'BudgetMixingFull_?ADV?               ',
+                       'BudgetMixingTrop_?ADV?               ',
+                       'BudgetMixingPBL_?ADV?                ',
+                       'BudgetMixingLevs1to35_?ADV?          ',
+                       'BudgetConvectionFull_?ADV?           ',
+                       'BudgetConvectionTrop_?ADV?           ',
+                       'BudgetConvectionPBL_?ADV?            ',
+                       'BudgetConvectionLevs1to35_?ADV?      ',
 ::
 #==============================================================================
 # %%%%% THE CloudConvFlux COLLECTION %%%%%
 #
 # Cloud convective flux (default = advected species)
-#
-# Available for all simulations
 #==============================================================================
   CloudConvFlux.template:     '%y4%m2%d2_%h2%n2z.nc4',
   CloudConvFlux.frequency:    ${RUNDIR_HIST_TIME_AVG_FREQ}
@@ -168,28 +122,13 @@ COLLECTIONS: 'Restart',
   CloudConvFlux.fields:       'CloudConvFlux_?ADV?           ',
 ::
 #==============================================================================
-# %%%%% THE ConcAfterChem COLLECTION %%%%%
-#
-# Concentrations of OH, HO2, O1D, O3P immediately after exiting the KPP solver
-# or OH after the CH4 specialty-simulation chemistry routine.
-#
-# OH: Available for all full-chemistry simulations and carbon/CH4 simulations
-#==============================================================================
-  ConcAfterChem.template:     '%y4%m2%d2_%h2%n2z.nc4',
-  ConcAfterChem.frequency:    ${RUNDIR_HIST_TIME_AVG_FREQ}
-  ConcAfterChem.duration:     ${RUNDIR_HIST_TIME_AVG_DUR}
-  ConcAfterChem.mode:         'time-averaged'
-  ConcAfterChem.fields:       'OHconcAfterChem               ',
-::
-#==============================================================================
 # %%%%% THE KppDiags COLLECTION %%%%%
 #
 # Diagnostics from the KPP solver.
 #
 # NOTE: The carbon simulation uses the Forward Euler (feuler) solver, which
 # has no internal timestepping loop.  Therefore many of these diagnostics
-# will have little or no variation across grid boxes.  If using another
-# integrator
+# will have little or no variation across grid boxes.
 #==============================================================================
   KppDiags.template:          '%y4%m2%d2_%h2%n2z.nc4',
   KppDiags.frequency:         ${RUNDIR_HIST_TIME_AVG_FREQ}
@@ -206,6 +145,19 @@ COLLECTIONS: 'Restart',
                               'KppTime                       ',
 ::
 #==============================================================================
+# %%%%% THE ProdLoss COLLECTION %%%%%
+#
+# Production and loss fields from the carbon simulation via KPP
+#==============================================================================
+  ProdLoss.template:         '%y4%m2%d2_%h2%n2z.nc4',
+  ProdLoss.frequency:        ${RUNDIR_HIST_TIME_AVG_FREQ}
+  ProdLoss.duration:         ${RUNDIR_HIST_TIME_AVG_DUR}
+  ProdLoss.mode:             'time-averaged'
+  ProdLoss.fields:           'ProdCOfromCH4                  ',
+                             'ProdCOfromNMVOC                ',
+                             'ProdCO2fromCO                  ',
+::
+#==============================================================================
 # %%%%% THE RxnConst COLLECTION %%%%%
 #
 # Archives chemical reaction rates constants from the KPP solver.
@@ -215,8 +167,6 @@ COLLECTIONS: 'Restart',
 #
 # The units of reaction rate constants vary according to the number of
 # reactants in the reaction.
-#
-# Available for fullchem, carbon, Hg simulations.
 #==============================================================================
   RxnConst.template:          '%y4%m2%d2_%h2%n2z.nc4',
   RxnConst.frequency:         ${RUNDIR_HIST_TIME_AVG_FREQ}
@@ -238,8 +188,6 @@ COLLECTIONS: 'Restart',
 # It is best to list individual reactions to avoid using too much memory.
 # Reactions should be listed as "RxnRate_EQnnnn", where nnnn is the reaction
 # index as listed in KPP/fullchem/gckpp_Monitor.F90 (pad zeroes as needed).
-#
-# Available for the fullchem, carbon, Hg simulations.
 #==============================================================================
   RxnRates.template:          '%y4%m2%d2_%h2%n2z.nc4',
   RxnRates.frequency:         ${RUNDIR_HIST_TIME_AVG_FREQ}
@@ -258,8 +206,6 @@ COLLECTIONS: 'Restart',
 # %%%%% THE SatDiagn COLLECTION %%%%%
 #
 # GEOS-Chem data during satellite overpass
-#
-# Available for all simulations
 #==============================================================================
   SatDiagn.template:          '%y4%m2%d2_%h2%n2z.nc4',
   SatDiagn.format:            'CFIO',
@@ -288,8 +234,6 @@ COLLECTIONS: 'Restart',
 # %%%%% THE SatDiagnEdge COLLECTION %%%%%
 #
 # GEOS-Chem data (on level edges) during satellite overpass
-#
-# Available for all simulations
 #==============================================================================
   SatDiagnEdge.template:      '%y4%m2%d2_%h2%n2z.nc4',
   SatDiagnEdge.format:        'CFIO',
@@ -303,8 +247,6 @@ COLLECTIONS: 'Restart',
 # %%%%% The StateMet COLLECTION %%%%%
 #
 # Fields of the State_Met object (also see the StateMetLevEdge collection)
-#
-# Available for all simulations
 #==============================================================================
   StateMet.template:          '%y4%m2%d2_%h2%n2z.nc4',
   StateMet.frequency:         ${RUNDIR_HIST_TIME_AVG_FREQ}
@@ -393,15 +335,13 @@ COLLECTIONS: 'Restart',
 # %%%%% THE StateMetLevEdge COLLECTION %%%%%
 #
 # Diagnostics that are defined on grid box level edges
-#
-# Available for all simulations
 #==============================================================================
   StateMetLevEdge.template:    '%y4%m2%d2_%h2%n2z.nc4',
   StateMetLevEdge.frequency:   ${RUNDIR_HIST_TIME_AVG_FREQ}
   StateMetLevEdge.duration:    ${RUNDIR_HIST_TIME_AVG_DUR}
   StateMetLevEdge.mode:        'time-averaged'
-  StateMetLevEdge.fields:      'Met_CMFMC                     ',
-                               'Met_PEDGE                     ',
+  StateMetLevEdge.fields:      'Met_PEDGE                     ',
+                               #'Met_CMFMC                     ',
                                #'Met_PEDGEDRY                  ',
                                #'Met_PFICU                     ',
                                #'Met_PFILSAN                   ',
@@ -412,8 +352,6 @@ COLLECTIONS: 'Restart',
 # %%%%% THE BoundaryConditions COLLECTION %%%%%
 #
 # GEOS-Chem boundary conditions for use in nested grid simulations
-#
-# Available for all simulations
 #
 # NOTE: Do not change the BoundaryConditions.frequency setting below,
 # because GEOS-Chem nested-grid simulations expect to read boundary

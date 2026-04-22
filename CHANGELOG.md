@@ -10,6 +10,61 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added methanediol (MDL) as a transported gas-phase species and to the KPP fullchem and custom mechanisms
 - Added routine `Cloud_CH2O_MDL` in `KPP/fullchem/fullchem_SulfurChemFuncs.F90`
 
+## [14.7.1] - 2026-04-08
+### Added
+- Added `HTAP_SHIP` toggle in `HEMCO_Config.rc.carbon` templates for GC-Classic and GCHP
+- Added routines `Lookup_Grid` and `Register_State_Grid` to `Headers/state_grid_mod.F90`
+- Added `State_Grid` as an argument to History routines `History_Init`, `History_AddItemToCollection`,`History_NetCdf_Define`, `History_Write`, and `IndexVarList_Create`
+- Added routine `History_InitCoordVars` to `history_mod.F90`
+- Added cloud fraction and cloud top pressure to the SatDiagn diagnostic collection
+- Added new field `Input_Opt%CloudJ_Verbose`
+- Added `cloud-j:verbose` YAML tag (with default setting `false`) to  `geoschem_config.yml` templates for GC-Classic, GCHP, GEOS, CESM, and WRF
+- Added routine `Print_Species_Global_Mass_From_VVDry` in `GeosUtil/print_mod.F90`
+- Added build setting `MPI_LOAD_BALANCE` to enable MPI load balancing in chemistry to speed up GCHP runs
+- Added carbon Jacobian tracer simulation using KPP as a build-time option for use with the Integrated Methane Inversion
+- Added script within new folder KPP/carbon/util to expand carbon.eqn to include any number of CH4 Jacobian tracers
+- Added error traps to prevent integration tests and parallel tests from running if a conda environment with netCDF is active
+- Added GCHP run option in setCommonRunSettings.sh to use ExtData2G
+- Added ExtData2G yaml configuration file for GCHP transport tracer simulation
+- Added `${RUNDIR_READ_RESTART_AS_REAL8}` to GEOS-Chem Classic  `geoschem_config.yml` template files
+- Added error trap to routine `Get_GC_Restart` to halt simulations that use `read_restart_as_real8: true` with a reduced vertical grid
+- Added `State_Met%MaxChemLev` and `State_Met%MaxStratLev` integer fields
+- Added `Init_MaxChemLev` routine in `GeosUtil/pressure_mod.F90`, called from routine `Init_Pressure`
+- Added `State_Met` argument to routines `Init_Photolysis`, `Set_Clim_Profiles`, `GC_Init_Extra`, `Init_Pressure`, `Init_Mercury`, `Init_Sulfate`
+
+### Changed
+- Update termite CH4 emissions to the CAMS-GLOB-TERM_v1.1 product
+- Updated routine `SAFETY` (in `GeosCore/wetscav_mod.F90`) to reset small or negative values to zero
+- Moved coordinate variables for GC-Classic History netCDF files from `GeosUtil/grid_registry_mod.F90` to the `State_Grid` object
+- Changed several `State_Grid` fields from `fp` to `f8` precision. (In practice both are `REAL*8` but this makes it more explicit.)
+- Moved the population of coordinate variables for History netCDF  output from `grid_registry_mod.F90` to `history_mod.F90` (in routine `History_InitCoordVars`)
+- Updated `run/GCHP/setCommonRunSettings.template` to disable the HEMCO PARANOx extension for C360 or C720 grids
+- Updated `createRunDir.sh` scripts for GC-Classic and GCHP to turn on offline bulk seasalt emissions and bulk dust emissions in TOMAS simulations
+- Updated `Interfaces/GCClassic/main.F90` to call`Print_Species_Global_Mass_from_VVDry` (instead of`Print_Species_Global_Mass`) in order to avoid numerical differences when verbose printout is on
+- Renamed `Carbon` collection to `ProdLoss` collection in GCClassic and GCHP `HISTORY.rc.carbon` templates
+- Updated GitHub Action `stale@v5` to `stale@v10` in order to avoid deprecation warnings
+- Moved logic to determine whether we read the restart file as `REAL*8` from `run/shared/setupConfigFiles.sh` to `run/GCClassic/createRunDir.sh`
+- Simplified the logic where `isGMAO` and `State_Grid%NativeNZ` are computed in `GeosUtil/gc_grid_mod.F90`
+- Changed definition of `State_Grid%MaxChemLev` and `State_Grid%MaxStratLev` to be the 1 hPa level
+- Moved `MaxChemLev` and `MaxStratLev` fields from `State_Grid` to `State_Met`
+- Removed `State_Grid%MaxTropLev` field
+
+### Fixed
+- Fixed incorrect unit conversion from v/v -> molec/cm3 in `planeflight_mod.F90`
+- Fixed typo in the call to `Finalize` for the `State_Diag%ProdOCPIfromOCPO` diagnostic array
+- Fixed a syntax error in mass flux scaling calculation
+- Fixed an I/O error that caused an infinite loop reading when extra newlines are present at the end of `HISTORY.rc` (GC-Classic only)
+- Fixed timestep mismatch between GCHP C180 and GCC 0.5x0.625
+- Fixed incorrect dust species names in `run/GCClassic/HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.fullchem.onlineE` 
+- Fixed incorrect extension number for `InvDustL23M` entries in `run/GCHP/HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.fullchem`
+
+### Removed
+- Removed `ARCTAS_SHIP`, `CORBETT_SHIP`, `ICOADS_SHIP` from `HEMCO_Config.rc` template files
+- Retired Fung termite and soil absorption emission options from carbon simulation
+- Removed `GeosUtil/grid_registry_mod.F90`.
+- Removed `OHconcAfterChem` from GCClassic and GCHP `HISTORY.rc.carbon` templates, as OH is fixed during the simulation
+- Removed `State_Grid` argument from `Set_Prof_FJX` routine
+
 ## [14.7.0] - 2026-02-05
 ### Added
 - Added entries for FINNv25 biomass burning emissions to template HEMCO configuration files
@@ -17,7 +72,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added subroutine `Print_Species_Global_Mass` to print_mod for use by GC-Classic
 - Added log print of species global mass at start of each timestep if verbose is true
 - Added print of global mass computed from restart file values if delta pressure present in restart file
-- Added the capability for GCHP simulations to use CH4 restarts for Jacobian Tracers
 - Added operational run scripts for WashU Compute2
 - Added the option for LPJ_MERRA2 wetland CH4 emissions in CH4 and carbon simulations
 - Added GC-Classic config file option to read restart file as `REAL*8` via GEOS-Chem rather than HEMCO

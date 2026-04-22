@@ -872,7 +872,7 @@ printf "${thinline}Choose number of levels:${thinline}"
 if [[ ${met} = "geosfp" ]] || [[ ${met} = "merra2" || ${met} = "geosit" ]]; then
     printf "  1. 72 (native)\n"
     printf "  2. 47 (reduced)\n"
-
+    grid_lev=""
     valid_lev=0
     while [ "${valid_lev}" -eq 0 ]; do
         read -p "${USER_PROMPT}" lev_num
@@ -1158,20 +1158,17 @@ else
 	    RUNDIR_VARS+="RUNDIR_TOMAS_SEASALT='off'\n"
 	else
 	    RUNDIR_VARS+="RUNDIR_SEASALT_EXT='off'\n"
+	    RUNDIR_VARS+="RUNDIR_OFFLINE_SEASALT='true '\n"
 	    if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
 		RUNDIR_VARS+="RUNDIR_TOMAS_SEASALT='on '\n"
-		RUNDIR_VARS+="RUNDIR_OFFLINE_SEASALT='false'\n"
 	    else
 		RUNDIR_VARS+="RUNDIR_TOMAS_SEASALT='off'\n"
-		RUNDIR_VARS+="RUNDIR_OFFLINE_SEASALT='true '\n"
 	    fi
 	fi
 	if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
 	    RUNDIR_VARS+="RUNDIR_TOMAS_DUSTDEAD='on '\n"
-	    RUNDIR_VARS+="RUNDIR_OFFLINE_DUST='false'\n"
 	else
 	    RUNDIR_VARS+="RUNDIR_TOMAS_DUSTDEAD='off'\n"
-	    RUNDIR_VARS+="RUNDIR_OFFLINE_DUST='true '\n"
 	fi
 	RUNDIR_VARS+="RUNDIR_DUSTDEAD_EXT='off'\n"
 	RUNDIR_VARS+="RUNDIR_DUSTL23M_EXT='off'\n"
@@ -1179,9 +1176,28 @@ else
 	RUNDIR_VARS+="RUNDIR_SOILNOX_EXT='off'\n"
 	RUNDIR_VARS+="RUNDIR_OFFLINE_BIOVOC='true '\n"
 	RUNDIR_VARS+="RUNDIR_OFFLINE_SOILNOX='true '\n"
+	RUNDIR_VARS+="RUNDIR_OFFLINE_DUST='true '\n"
     fi
     RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/gmao_hemco.txt)\n"
 fi
+
+#--------------------------------------------------------------------
+# Determine if we are to read the restart file as REAL*8 or not
+#
+# 1. fullchem+benchmark and 72L : Read as REAL*8 via GEOS-Chem
+# 2. TransportTracers and 72L   : Read as REAL*8 via GEOS-Chem
+# 3. Everything else            : Read as REAL*4 via HEMCO
+#--------------------------------------------------------------------
+real8='false'
+if [[ "x${sim_name}"         == "xfullchem"              && \
+      "x${sim_extra_option}" == "xbenchmark"         ]]  || \
+   [[ "x${sim_name}"         == "xTransportTracers"  ]]; then
+    real8='true'
+fi
+if [[ "x${grid_lev}" == "x47L" ]]; then
+    real8='false'
+fi
+RUNDIR_VARS+="RUNDIR_READ_RESTART_AS_REAL8='${real8}'\n"
 
 #--------------------------------------------------------------------
 # Replace settings in config files with RUNDIR variables

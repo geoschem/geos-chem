@@ -259,8 +259,8 @@ CONTAINS
     ENDIF
 
     ! Only set values up to max chemistry level
-    IF ( State_Grid%MaxChemLev < State_Grid%NZ ) THEN
-       J_BrO(:,:,State_Grid%MaxChemLev+1:State_Grid%NZ) = 0e+0_fp 
+    IF ( State_Met%MaxChemLev < State_Grid%NZ ) THEN
+       J_BrO(:,:,State_Met%MaxChemLev+1:State_Grid%NZ) = 0e+0_fp
     ENDIF
 
   END SUBROUTINE GET_GLOBAL_Br

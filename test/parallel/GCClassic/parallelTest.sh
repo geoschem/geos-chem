@@ -37,6 +37,16 @@
 #BOC
 
 #=============================================================================
+# Throw error if there is a conda environment active with netCDF,
+# which can cause the code to be linked against the wrong netCDF version.
+#=============================================================================
+if [[ -n "$CONDA_DEFAULT_ENV" || \
+      "$(which nc-config 2>/dev/null)" == *conda* ]]; then
+   echo "ERROR: Conda netCDF detected. Run 'conda deactivate' first."
+   exit 1
+fi
+
+#=============================================================================
 # Initialize
 #=============================================================================
 this="$(basename ${0})"

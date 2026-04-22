@@ -139,6 +139,7 @@ MODULE Chem_GridCompMod
   LOGICAL                          :: met_wind_is_top_down
   LOGICAL                          :: met_humidity_is_top_down
   LOGICAL                          :: met_nonadv_is_top_down
+  LOGICAL                          :: use_extdata2g
 
 #if defined( MODEL_GEOS )
   ! Is GEOS-Chem the provider for AERO, RATS, and/or Analysis OX?
@@ -460,8 +461,13 @@ CONTAINS
 #endif
 
     !=======================================================================
-    ! Get meteorology vertical index orientation
+    ! Get meteorology vertical index orientation and ExtData version.
+    ! Whether met will be flipped to be bottom-up is dependent on ExtData
+    ! version (1G requires flipping here, while 2G already flipped by MAPL)
     !=======================================================================
+    call ESMF_ConfigGetAttribute(myState%myCF,value=use_extdata2g, &
+         label='USE_EXTDATA2G:', Default=.false., __RC__ )
+
     call ESMF_ConfigGetAttribute(myState%myCF,value=met_wind_is_top_down, &
          label='MET_WIND_IS_TOP_DOWN:', Default=.false., __RC__ )
 
@@ -470,11 +476,27 @@ CONTAINS
 
     call ESMF_ConfigGetAttribute(myState%myCF,value=met_nonadv_is_top_down, &
          label='MET_NONADVECTION_IS_TOP_DOWN:', Default=.false., __RC__ )
-    if (met_nonadv_is_top_down) then
-       call lgr%info('Configured to expect ''top-down'' for non-advection met-fields')
+
+    ! Print information to log about expectation of vertical direction of met-fields
+    if ( use_extdata2g ) then
+       call lgr%info('Using MAPL ExtData2G; all ''top-down'' meteorological data is automatically flipped to ''bottom-up'' within MAPL')
     else
-       call lgr%info('Configured to expect ''bottom-up'' for non-advection met-fields')
-    end if
+       if (met_wind_is_top_down) then
+          call lgr%info('Configured to expect ''top-down'' wind met-field imports in Chem_GridCompMod')
+       else
+          call lgr%info('Configured to expect ''bottom-up'' wind met-field imports in Chem_GridCompMod')
+       end if
+       if (met_humidity_is_top_down) then
+          call lgr%info('Configured to expect ''top-down'' for humidity met-field imports in Chem_GridCompMod')
+       else
+          call lgr%info('Configured to expect ''bottom-up'' for humidity met-field imports in Chem_GridCompMod')
+       end if
+       if (met_nonadv_is_top_down) then
+          call lgr%info('Configured to expect ''top-down'' for non-advection met-field imports in Chem_GridCompMod')
+       else
+          call lgr%info('Configured to expect ''bottom-up'' for non-advection met-field imports in Chem_GridCompMod')
+       end if
+    endif
 
 #if defined( MODEL_GEOS )
     ! Define imports to fill met fields needed for lightning
@@ -1503,12 +1525,6 @@ CONTAINS
     State_Grid%XMaxOffset  = State_Grid%NX ! X offset from global grid
     State_Grid%YMinOffset  = 1             ! Y offset from global grid
     State_Grid%YMaxOffset  = State_Grid%NY ! Y offset from global grid
-    State_Grid%MaxTropLev  = 40            ! # trop. levels
-#if defined( MODEL_GEOS )
-    State_Grid%MaxStratLev = value_LLSTRAT ! # strat. levels
-#else
-    State_Grid%MaxStratLev = 59            ! # strat. levels
-#endif
 
     ! Call the GCHP initialize routine
     CALL GCHP_Chunk_Init( nymdB     = nymdB,      & ! YYYYMMDD @ start of run
@@ -2311,6 +2327,10 @@ CONTAINS
     LOGICAL                      :: isStartTime
     REAL(ESMF_KIND_r8), POINTER  :: CostFuncMask(:,:,:) => NULL()
 #endif
+#ifdef JACOBIAN
+    INTEGER                      :: primarySpcId
+    CHARACTER(len=ESMF_MAXSTR)   :: primarySpcName
+#endif
 
     __Iam__('Run_')
 
@@ -2694,12 +2714,17 @@ CONTAINS
                   VALUE=RST, RC=STATUS )
 
              ! Set spc conc to background value if rst skipped or var not there
-             IF ( (RC /= ESMF_SUCCESS .OR. RST == MAPL_RestartBootstrap .OR.   &
-                  RST == MAPL_RestartSkipInitial) .AND. (.not. ThisSpc%Is_JacobianTracer) ) THEN
+             IF ( ( RC  /= ESMF_SUCCESS           .OR.     &
+                    RST == MAPL_RestartBootstrap  .OR.     &
+                    RST == MAPL_RestartSkipInitial  )      &
+#ifdef JACOBIAN
+                    .AND. .NOT. ThisSpc%Is_JacobianTracer  &
+#endif
+                    ) THEN
                 DO L = 1, State_Grid%NZ
                 DO J = 1, State_Grid%NY
                 DO I = 1, State_Grid%NX
-                   IF ( L > State_Grid%MaxChemLev .AND. &
+                   IF ( L > State_Met%MaxChemLev .AND. &
                             ( .NOT. ThisSpc%Is_Advected ) ) THEN
                       ! For non-advected spc at L > MaxChemLev, use small number
                       State_Chm%Species(IND)%Conc(I,J,L) = 1.0E-30_FP
@@ -2717,15 +2742,19 @@ CONTAINS
                 ENDIF
              ENDIF
 
+#ifdef JACOBIAN
              ! Do special handling if this is a Jacobian tracer             
              IF ( ThisSpc%Is_JacobianTracer ) THEN
-                State_Chm%Species(IND)%Conc = State_Chm%Species(IND_('CH4'))%Conc
+                primarySpcName = ThisSpc%Name(1:LEN(trim(ThisSpc%Name))-8)
+                primarySpcId = IND_(trim(primarySpcName))
+                State_Chm%Species(IND)%Conc = State_Chm%Species(primarySpcId)%Conc
                 IF ( MAPL_am_I_Root()) THEN
-                   WRITE(*,*)  &
-                        '   INFO: using the initial concentrations of CH4'&
-                        //' for the Jacobian tracer '//trim(ThisSpc%Name) 
+                   WRITE(*,*) '   INFO: using the initial concentration of ' &
+                        // trim(primarySpcName) //' for the Jacobian tracer ' &
+                        // trim(ThisSpc%Name)
                 ENDIF
              ENDIF
+#endif
 
              ThisSpc => NULL()
           ENDDO
@@ -2765,8 +2794,8 @@ CONTAINS
 
           CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'KPPHvalue', notFoundOK=.TRUE., __RC__ )
           IF ( ASSOCIATED(Ptr3d_R8) .AND. ASSOCIATED(State_Chm%KPPHvalue) ) THEN
-             State_Chm%KPPHvalue(:,:,1:State_Grid%MaxChemLev) =       &
-            Ptr3d_R8(:,:,State_Grid%NZ:State_Grid%NZ-State_Grid%MaxChemLev+1:-1)
+             State_Chm%KPPHvalue(:,:,1:State_Met%MaxChemLev) =       &
+            Ptr3d_R8(:,:,State_Grid%NZ:State_Grid%NZ-State_Met%MaxChemLev+1:-1)
           ENDIF
           Ptr3d_R8 => NULL()
 
@@ -3157,9 +3186,9 @@ CONTAINS
        CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'KPPHvalue', &
                              notFoundOK=.TRUE., __RC__ )
        IF (ASSOCIATED(Ptr3d_R8) .AND. ASSOCIATED(State_Chm%KPPHvalue)) THEN
-          Ptr3d_R8(:,:,1:State_Grid%NZ-State_Grid%MaxChemLev) = 0.0
-          Ptr3d_R8(:,:,State_Grid%NZ:State_Grid%NZ-State_Grid%MaxChemLev+1:-1)=&
-             State_Chm%KPPHvalue(:,:,1:State_Grid%MaxChemLev)
+          Ptr3d_R8(:,:,1:State_Grid%NZ-State_Met%MaxChemLev) = 0.0
+          Ptr3d_R8(:,:,State_Grid%NZ:State_Grid%NZ-State_Met%MaxChemLev+1:-1)=&
+             State_Chm%KPPHvalue(:,:,1:State_Met%MaxChemLev)
        ENDIF
        Ptr3d_R8 => NULL()
 
