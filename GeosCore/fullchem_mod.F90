@@ -164,13 +164,12 @@ CONTAINS
     USE GcKpp_Monitor,            ONLY : SPC_NAMES, FAM_NAMES, EQN_NAMES
     USE GcKpp_Parameters
     USE GcKpp_Integrator,         ONLY : Integrate
-    USE GcKpp_Function
     USE GcKpp_Global
     USE GcKpp_Rates,              ONLY : UPDATE_RCONST, RCONST
     USE GcKpp_Util,               ONLY : Get_OHreactivity
     USE Input_Opt_Mod,            ONLY : OptInput
     USE KppSa_Interface_Mod
-    USE Photolysis_Mod,           ONLY : Do_Photolysis, PhotRate_Adj
+    USE Photolysis_Mod,           ONLY : Do_Photolysis
     USE PhysConstants,            ONLY : AVO, AIRMW
     USE PRESSURE_MOD
     USE Species_Mod,              ONLY : Species
@@ -187,7 +186,6 @@ CONTAINS
     USE Timers_Mod
     USE UnitConv_Mod
     USE UCX_MOD,                  ONLY : CALC_STRAT_AER
-    USE UCX_MOD,                  ONLY : SO4_PHOTFRAC
     USE UCX_MOD,                  ONLY : UCX_NOX
     USE UCX_MOD,                  ONLY : UCX_H2SO4PHOT
 #ifdef TOMAS
@@ -256,7 +254,6 @@ CONTAINS
 
     ! OH reactivity and KPP reaction rate diagnostics
     REAL(fp) :: OHreact
-    REAL(dp) :: Vloc(NVAR),     Aout(NREACT)
 
 #ifdef MODEL_CLASSIC
 #ifndef NO_OMP
@@ -283,7 +280,6 @@ CONTAINS
     ! Sink rate for artificial UT/LS sink
     REAL(dp) :: ScaleCESMLossRate
 #endif
-
 !
 ! !DEFINED PARAMETERS
 !
@@ -327,57 +323,7 @@ CONTAINS
 
     ! Zero diagnostic archival arrays to make sure that we don't have any
     ! leftover values from the last timestep near the top of the chemgrid
-    IF (State_Diag%Archive_Loss           ) State_Diag%Loss           = 0.0_f4
-    IF (State_Diag%Archive_Prod           ) State_Diag%Prod           = 0.0_f4
-    IF (State_Diag%Archive_Jval           ) State_Diag%Jval           = 0.0_f4
-    IF (State_Diag%Archive_JvalO3O1D      ) State_Diag%JvalO3O1D      = 0.0_f4
-    IF (State_Diag%Archive_JvalO3O3P      ) State_Diag%JvalO3O3P      = 0.0_f4
-    IF (State_Diag%Archive_JNoon          ) State_Diag%JNoon          = 0.0_f4
-    IF (State_Diag%Archive_ProdCOfromCH4  ) State_Diag%ProdCOfromCH4  = 0.0_f4
-    IF (State_Diag%Archive_ProdCOfromNMVOC) State_Diag%ProdCOfromNMVOC= 0.0_f4
-    IF (State_Diag%Archive_OHreactivity   ) State_Diag%OHreactivity   = 0.0_f4
-    IF (State_Diag%Archive_RxnRate        ) State_Diag%RxnRate        = 0.0_f4
-    IF (State_Diag%Archive_RxnConst       ) State_Diag%RxnConst       = 0.0_f4
-    IF (State_Diag%Archive_SatDiagnRxnRate) State_Diag%SatDiagnRxnRate= 0.0_f4
-    IF (State_Diag%Archive_KppDiags) THEN
-       IF (State_Diag%Archive_KppIntCounts) State_Diag%KppIntCounts   = 0.0_f4
-       IF (State_Diag%Archive_KppJacCounts) State_Diag%KppJacCounts   = 0.0_f4
-       IF (State_Diag%Archive_KppTotSteps ) State_Diag%KppTotSteps    = 0.0_f4
-       IF (State_Diag%Archive_KppAccSteps ) State_Diag%KppAccSteps    = 0.0_f4
-       IF (State_Diag%Archive_KppRejSteps ) State_Diag%KppRejSteps    = 0.0_f4
-       IF (State_Diag%Archive_KppLuDecomps) State_Diag%KppLuDecomps   = 0.0_f4
-       IF (State_Diag%Archive_KppSubsts   ) State_Diag%KppSubsts      = 0.0_f4
-       IF (State_Diag%Archive_KppSmDecomps) State_Diag%KppSmDecomps   = 0.0_f4
-       IF (State_Diag%Archive_KppAutoReducerNVAR)                            &
-                                      State_Diag%KppAutoReducerNVAR   = 0.0_f4
-       IF (State_Diag%Archive_KppcNONZERO)  State_Diag%KppcNONZERO    = 0.0_f4
-       IF (State_Diag%Archive_KppNegatives) State_Diag%KppNegatives   = 0.0_f4
-       IF (State_Diag%Archive_KppNegatives0) State_Diag%KppNegatives0 = 0.0_f4
-    ENDIF
-
-    ! Also zero satellite diagnostic archival arrays
-    IF ( State_Diag%Archive_SatDiagnLoss ) State_Diag%SatDiagnLoss    = 0.0_f4
-    IF ( State_Diag%Archive_SatDiagnProd ) State_Diag%SatDiagnProd    = 0.0_f4
-    IF ( State_Diag%Archive_SatDiagnJval ) THEN
-       State_Diag%SatDiagnJval = 0.0_f4
-    ENDIF
-    IF ( State_Diag%Archive_SatDiagnJvalO3O1D ) THEN
-       State_Diag%SatDiagnJvalO3O1D = 0.0_f4
-    ENDIF
-    IF ( State_Diag%Archive_SatDiagnJvalO3O3P ) THEN
-       State_Diag%SatDiagnJvalO3O3P = 0.0_f4
-    ENDIF
-
-    ! Keep track of the boxes where it is local noon in the JNoonFrac
-    ! diagnostic. When time-averaged, this will be the fraction of time
-    ! that local noon occurred at a grid box. (bmy, 4/2/19)
-    IF ( State_Diag%Archive_JNoonFrac ) THEN
-       WHERE( State_Met%IsLocalNoon )
-          State_Diag%JNoonFrac = 1.0_f4
-       ELSEWHERE
-          State_Diag%JNoonFrac = 0.0_f4
-       ENDWHERE
-    ENDIF
+    CALL Zero_Diagnostics_at_Start_of_FullChem( State_Diag, State_Met, RC )
 
 #if defined( MODEL_GEOS )
     IF ( State_Diag%Archive_NoxTau     ) State_Diag%NoxTau(:,:,:) = 0.0_f4
@@ -388,40 +334,13 @@ CONTAINS
     ENDIF
 #endif
 
-    !========================================================================
-    ! Zero out certain species
-    ! TODO: Abstract this to a subroutine, to simplify DO_FULLCHEM
-    !========================================================================
-    DO N = 1, State_Chm%nSpecies
-
-       ! Get info about this species from the species database
-       SpcInfo => State_Chm%SpcData(N)%Info
-
-       ! isoprene oxidation counter species
-       IF ( TRIM( SpcInfo%Name ) == 'LISOPOH' .or. &
-            TRIM( SpcInfo%Name ) == 'LISOPNO3' ) THEN
-          State_Chm%Species(N)%Conc(:,:,:) = 0.0_fp
-       ENDIF
-
-       ! aromatic oxidation counter species
-       IF ( Input_Opt%LSOA .or. Input_Opt%LSVPOA ) THEN
-          SELECT CASE ( TRIM( SpcInfo%Name ) )
-             CASE ( 'LBRO2H', 'LBRO2N', 'LTRO2H', 'LTRO2N', &
-                    'LXRO2H', 'LXRO2N', 'LNRO2H', 'LNRO2N' )
-                State_Chm%Species(N)%Conc(:,:,:) = 0.0_fp
-          END SELECT
-       ENDIF
-
-       ! Sulfate gas/cloud prod diagnostic species
-       IF ( TRIM( SpcInfo%Name ) == 'PH2SO4' .or. &
-            TRIM( SpcInfo%Name ) == 'PSO4AQ' ) THEN
-          State_Chm%Species(N)%Conc(:,:,:) = 0.0_fp
-       ENDIF
-
-       ! Free pointer
-       SpcInfo => NULL()
-
-    ENDDO
+    ! Zero out certain dummy species
+    CALL Zero_Dummy_Species( Input_Opt, State_Chm, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in "Zero_Dummy_Species"'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
     !========================================================================
     ! Convert species to [molec/cm3] (ewl, 8/16/16)
@@ -485,24 +404,14 @@ CONTAINS
 #endif
 
     !=======================================================================
-    ! Archive concentrations before chemistry
-    ! TODO: Abstract this to a subroutine, to simplify DO_FULLCHEM
+    ! HISTORY diagnostics
+    ! Archive concentrations before chemistry (if necessary)
     !=======================================================================
-    IF ( State_Diag%Archive_ConcBeforeChem ) THEN
-       ! Point to mapping obj specific to ConcBeforeChem diagnostic collection
-       mapData => State_Diag%Map_ConcBeforeChem
-
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( N, S   )
-       DO S = 1, mapData%nSlots
-          N = mapData%slot2id(S)
-          State_Diag%ConcBeforeChem(:,:,:,S) = State_Chm%Species(N)%Conc(:,:,:)
-       ENDDO
-       !$OMP END PARALLEL DO
-
-       ! Free pointer
-       mapData => NULL()
+    CALL Archive_ConcBeforeChem( State_Chm, State_Diag, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in "Archive_ConcBeforeChem"'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
     ENDIF
 
     !=======================================================================
@@ -604,16 +513,18 @@ CONTAINS
     !========================================================================
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I,        J,        L,       N                           )&
-    !$OMP PRIVATE( ICNTRL,   C_before_integrate                             )&
-    !$OMP PRIVATE( KPPH_before_integrate,       local_RCONST                )&
-    !$OMP PRIVATE( SO4_FRAC, IERR,     RCNTRL,  ISTATUS,   RSTATE           )&
-    !$OMP PRIVATE( SpcID,    KppID,    F,       P,         Vloc             )&
-    !$OMP PRIVATE( Aout,     Thread,   RC,      S,         LCH4             )&
-    !$OMP PRIVATE( OHreact,  PCO_TOT,  PCO_CH4, PCO_NMVOC, SR               )&
-    !$OMP PRIVATE( SIZE_RES, LWC                                            )&
+    !$OMP PRIVATE( I,                     J,            L                   )&
+    !$OMP PRIVATE( N,                     ICNTRL,       C_before_integrate  )&
+    !$OMP PRIVATE( KPPH_before_integrate, local_RCONST, IERR                )&
+    !$OMP PRIVATE( RCNTRL,                ISTATUS,      RSTATE              )&
+    !$OMP PRIVATE( SpcID,                 KppID,        F                   )&
+    !$OMP PRIVATE( P,                     Thread,       S                   )&
+    !$OMP PRIVATE( LCH4,                  OHreact,      PCO_TOT             )&
+    !$OMP PRIVATE( PCO_CH4,               PCO_NMVOC,    SR                  )&
+    !$OMP PRIVATE( SIZE_RES,              LWC                               )&
 #ifdef MODEL_GEOS
-    !$OMP PRIVATE( NOxTau,     NOxConc, NOx_weight, NOx_tau_weighted        )&
+    !$OMP PRIVATE( NOxTau,                NOxConc,      NOx_weight          )&
+    !$OMP PRIVATE( NOx_tau_weighted                                         )&
 #endif
     !$OMP COLLAPSE( 3                                                       )&
     !$OMP SCHEDULE( DYNAMIC, 24                                             )&
@@ -658,8 +569,8 @@ CONTAINS
 
 #ifndef MPI_LOAD_BALANCE
        ! Rosenbrock output
-       ISTATUS = 0.0_dp
-       RSTATE  = 0.0_dp
+       ISTATUS   = 0.0_dp
+       RSTATE    = 0.0_dp
 #endif
 
 #ifdef KPP_INTEGRATOR_AUTOREDUCE
@@ -679,156 +590,13 @@ CONTAINS
        ENDIF
 
        !=====================================================================
-       ! Get photolysis rates (daytime only)
-       !
-       ! NOTE: The ordering of the photolysis reactions here is
-       ! the order in the Fast-J definition file FJX_j2j.dat.
-       ! I've assumed that these are the same as in the text files
-       ! but this may have been changed.  This needs to be checked
-       ! through more thoroughly -- M. Long (3/28/16)
-       !
-       ! ALSO NOTE: We moved this section above the test to see if grid
-       ! box (I,J,L) is in the chemistry grid.  This will ensure that
-       ! J-value diagnostics are defined for all levels in the column.
-       ! This modification was validated by a geosfp_4x5_standard
-       ! difference test. (bmy, 1/18/18)
-       !
-       ! Update SUNCOSmid threshold from 0 to cos(98 degrees) since
-       ! fast-jx allows for SZA down to 98 degrees. This is important in
-       ! the stratosphere-mesosphere where sunlight still illuminates at
-       ! high altitudes if the sun is below the horizon at the surface
-       ! (update submitted by E. Fleming (NASA), 10/11/2018)
+       ! Get photolysis rates and update diagnostics (daytime only)
        !=====================================================================
-       IF ( State_Met%SUNCOSmid(I,J) > -0.1391731e+0_fp ) THEN
+       CALL Get_Photolysis_Rates( Input_Opt, State_Chm, State_Diag,          &
+                                  State_Met, I,         J,                   &
+                                  L,         RC                             )
 
-          ! Only proceed if doing photolysis
-          IF ( Input_Opt%Do_Photolysis ) THEN
-
-             ! Get the fraction of H2SO4 that is available for photolysis
-             ! (this is only valid for UCX-enabled mechanisms)
-             SO4_FRAC = SO4_PHOTFRAC( I, J, L, State_Chm )
-
-             ! Adjust certain photolysis rates:
-             ! (1) H2SO4 + hv -> SO2 + OH + OH   (UCX-based mechanisms)
-             ! (2) O3    + hv -> O2  + O         (UCX-based mechanisms)
-             ! (2) O3    + hv -> OH  + OH        (trop-only mechanisms)
-             CALL PHOTRATE_ADJ( Input_Opt, State_Chm,  State_Diag, State_Met,&
-                                I,         J,          L,          SO4_FRAC, &
-                                IERR )
-
-             ! Loop over the FAST-JX photolysis species
-             DO N = 1, State_Chm%Phot%nMaxPhotRxns
-
-                ! Copy photolysis rate from FAST_JX into KPP PHOTOL array
-                PHOTOL(N) = State_Chm%Phot%ZPJ(L,N,I,J)
-
-                !============================================================
-                ! HISTORY (aka netCDF diagnostics)
-                !
-                ! Instantaneous photolysis rates [s-1] (aka J-values)
-                ! and noontime photolysis rates [s-1]
-                !
-                !    NOTE: Attach diagnostics here instead of in module
-                !    fast_jx_mod.F90 so that we can get the adjusted photolysis
-                !    rates (output from routne PHOTRATE_ADJ above).
-                !
-                ! The mapping between the GEOS-Chem photolysis species and
-                ! the FAST-JX photolysis species is contained in the lookup
-                ! table in input file FJX_j2j.dat.
-
-                ! Some GEOS-Chem photolysis species may have multiple
-                ! branches for photolysis reactions.  These will be
-                ! represented by multiple entries in the FJX_j2j.dat
-                ! lookup table.
-                !
-                !    NOTE: For convenience, we have stored the GEOS-Chem
-                !    photolysis species index (range: 1..State_Chm%nPhotol)
-                !    for each of the FAST-JX photolysis species (range;
-                !    1..State_Chm%Phot%nMaxPhotRxns) in the GC_PHOTO_ID array
-                !
-                ! TODO: Abstract some of this to a subroutine,
-                !       to simplify DO_FULLCHEM
-                !============================================================
-
-                ! GC photolysis species index
-                P = State_Chm%Phot%GC_Photo_Id(N)
-
-                ! If this FAST_JX photolysis species maps to a valid
-                ! GEOS-Chem photolysis species (for this simulation)...
-                IF ( P > 0 .and. P <= State_Chm%nPhotol ) THEN
-
-                   ! Archive the instantaneous photolysis rate
-                   ! (summing over all reaction branches)
-                   IF ( State_Diag%Archive_Jval ) THEN
-                      S = State_Diag%Map_Jval%id2slot(P)
-                      IF ( S > 0 ) THEN
-                         State_Diag%Jval(I,J,L,S) =                          &
-                         State_Diag%Jval(I,J,L,S) + PHOTOL(N)
-                      ENDIF
-                   ENDIF
-
-                   ! Satellite diagnostics
-                   ! Archive the instantaneous photolysis rate
-                   ! (summing over all reaction branches)
-                   IF ( State_Diag%Archive_SatDiagnJval ) THEN
-                      S = State_Diag%Map_SatDiagnJval%id2slot(P)
-                      IF ( S > 0 ) THEN
-                         State_Diag%SatDiagnJval(I,J,L,S) =                  &
-                         State_Diag%SatDiagnJval(I,J,L,S) + PHOTOL(N)
-                      ENDIF
-                   ENDIF
-
-                   ! Archive the noontime photolysis rate
-                   ! (summing over all reaction branches)
-                   IF ( State_Met%IsLocalNoon(I,J) ) THEN
-                      IF ( State_Diag%Archive_JNoon ) THEN
-                         S = State_Diag%Map_JNoon%id2slot(P)
-                         IF ( S > 0 ) THEN
-                            State_Diag%JNoon(I,J,L,S) =                      &
-                            State_Diag%JNoon(I,J,L,S) + PHOTOL(N)
-                         ENDIF
-                      ENDIF
-                   ENDIF
-
-                ELSE IF ( P == State_Chm%nPhotol+1 ) THEN
-
-                   ! J(O3_O1D).  This used to be stored as the nPhotol+1st
-                   ! diagnostic in Jval, but needed to be broken off
-                   ! to facilitate cleaner diagnostic indexing (bmy, 6/3/20)
-                   IF ( State_Diag%Archive_JvalO3O1D ) THEN
-                      State_Diag%JvalO3O1D(I,J,L) =                          &
-                      State_Diag%JvalO3O1D(I,J,L) + PHOTOL(N)
-                   ENDIF
-
-                   ! J(O3_O1D) for satellite diagnostics
-                   IF ( State_Diag%Archive_SatDiagnJvalO3O1D ) THEN
-                      State_Diag%SatDiagnJvalO3O1D(I,J,L) =                  &
-                      State_Diag%SatDiagnJvalO3O1D(I,J,L) + PHOTOL(N)
-                   ENDIF
-
-                ELSE IF ( P == State_Chm%nPhotol+2 ) THEN
-
-                   ! J(O3_O3P).  This used to be stored as the nPhotol+2nd
-                   ! diagnostic in Jval, but needed to be broken off
-                   ! to facilitate cleaner diagnostic indexing (bmy, 6/3/20)
-                   IF ( State_Diag%Archive_JvalO3O3P ) THEN
-                      State_Diag%JvalO3O3P(I,J,L) =                          &
-                      State_Diag%JvalO3O3P(I,J,L) + PHOTOL(N)
-                   ENDIF
-
-                   ! J(O3_O3P) for satellite diagnostics
-                   IF ( State_Diag%Archive_SatDiagnJvalO3O3P ) THEN
-                      State_Diag%SatDiagnJvalO3O3P(I,J,L) =                  &
-                      State_Diag%SatDiagnJvalO3O3P(I,J,L) + PHOTOL(N)
-                   ENDIF
-
-                ENDIF
-             ENDDO
-          ENDIF
-
-       ENDIF
-
-#if defined( MODEL_CESM )
+#ifdef MODEL_CESM
        !=====================================================================
        ! Unphysical fix: Photolyze soluble aerosol tracers
        ! This removes unphysical values of soluble tracers in the UT/LS due
@@ -837,44 +605,12 @@ CONTAINS
        ! This process has to be done before InChemGrid as it is supposed to
        ! be active everywhere, especially the stratosphere.
        ! (hplin, 5/30/23)
-       !
-       ! TODO: Abstract this to a subroutine, to simplify DO_FULLCHEM
        !=====================================================================
-
-       IF ( Input_Opt%correctConvUTLS .and. L .ge. State_Met%PBL_TOP_L(I,J) ) THEN
-
-           ! We operate directly on [molec/cm3] species concentrations in State_Chm,
-           ! because they have not been copied to C() in KPP yet. But, we can use
-           ! PHOTOL(11) which is J-NO2, and scale to create the artificial sink.
-           ! This is a consistent handling based off the MOZART-TS1 mechanism
-           ! in Emmons et al., 2020 JAMES.
-           ScaleCESMLossRate = MAX(0.0_dp, 1 - PHOTOL(11) * .0004_dp * DT)
-
-           State_Chm%Species(id_TSOA0)%Conc(I,J,L) = State_Chm%Species(id_TSOA0)%Conc(I,J,L) * ScaleCESMLossRate
-           State_Chm%Species(id_TSOA1)%Conc(I,J,L) = State_Chm%Species(id_TSOA1)%Conc(I,J,L) * ScaleCESMLossRate
-           State_Chm%Species(id_TSOA2)%Conc(I,J,L) = State_Chm%Species(id_TSOA2)%Conc(I,J,L) * ScaleCESMLossRate
-           State_Chm%Species(id_TSOA3)%Conc(I,J,L) = State_Chm%Species(id_TSOA3)%Conc(I,J,L) * ScaleCESMLossRate
-           State_Chm%Species(id_ASOA1)%Conc(I,J,L) = State_Chm%Species(id_ASOA1)%Conc(I,J,L) * ScaleCESMLossRate
-           State_Chm%Species(id_ASOA2)%Conc(I,J,L) = State_Chm%Species(id_ASOA2)%Conc(I,J,L) * ScaleCESMLossRate
-           State_Chm%Species(id_ASOA3)%Conc(I,J,L) = State_Chm%Species(id_ASOA3)%Conc(I,J,L) * ScaleCESMLossRate
-           State_Chm%Species(id_ASOAN)%Conc(I,J,L) = State_Chm%Species(id_ASOAN)%Conc(I,J,L) * ScaleCESMLossRate
-           State_Chm%Species(id_TSOG0)%Conc(I,J,L) = State_Chm%Species(id_TSOG0)%Conc(I,J,L) * ScaleCESMLossRate
-           State_Chm%Species(id_TSOG1)%Conc(I,J,L) = State_Chm%Species(id_TSOG1)%Conc(I,J,L) * ScaleCESMLossRate
-           State_Chm%Species(id_TSOG2)%Conc(I,J,L) = State_Chm%Species(id_TSOG2)%Conc(I,J,L) * ScaleCESMLossRate
-           State_Chm%Species(id_TSOG3)%Conc(I,J,L) = State_Chm%Species(id_TSOG3)%Conc(I,J,L) * ScaleCESMLossRate
-           State_Chm%Species(id_ASOG1)%Conc(I,J,L) = State_Chm%Species(id_ASOG1)%Conc(I,J,L) * ScaleCESMLossRate
-           State_Chm%Species(id_ASOG2)%Conc(I,J,L) = State_Chm%Species(id_ASOG2)%Conc(I,J,L) * ScaleCESMLossRate
-           State_Chm%Species(id_ASOG3)%Conc(I,J,L) = State_Chm%Species(id_ASOG3)%Conc(I,J,L) * ScaleCESMLossRate
-           State_Chm%Species(id_NIT  )%Conc(I,J,L) = State_Chm%Species(id_NIT  )%Conc(I,J,L) * ScaleCESMLossRate
-           State_Chm%Species(id_NITs )%Conc(I,J,L) = State_Chm%Species(id_NITs )%Conc(I,J,L) * ScaleCESMLossRate
-
-           ! Don't apply this to sulfate as it is not applied in CAM-chem either and will affect the SO4 budget.
-           !State_Chm%Species(id_SO4  )%Conc(I,J,L) = State_Chm%Species(id_SO4  )%Conc(I,J,L) * ScaleCESMLossRate
-           !State_Chm%Species(id_SO4s )%Conc(I,J,L) = State_Chm%Species(id_SO4s )%Conc(I,J,L) * ScaleCESMLossRate
-
-        ENDIF
-
-#endif  ! MODEL_CESM
+       CALL CESM_Photolyze_Soluble_Aerosols( Input_Opt, State_Chm,           &
+                                             State_Met, I,                   &
+                                             J,         L,                   &
+                                             RC                             )
+#endif
 
        !=====================================================================
        ! Test if we need to do the chemistry for box (I,J,L),
@@ -1028,61 +764,15 @@ CONTAINS
 
        !=====================================================================
        ! Update reaction rates
+       ! (See gckpp_Monitor.F90 for a list of chemical reactions)
        !=====================================================================
 
        ! Update the array of rate constants
        CALL Update_RCONST()
 
-       !=====================================================================
-       ! HISTORY (aka netCDF diagnostics)
-       !
-       ! Archive KPP reaction rates [molec cm-3 s-1]
-       ! See gckpp_Monitor.F90 for a list of chemical reactions
-       !
-       ! NOTE: In KPP 2.5.0+, VAR and FIX are now private to the integrator
-       ! and point to C.  Therefore, pass C(1:NVAR) instead of VAR and
-       ! C(NVAR+1:NSPEC) instead of FIX to routine FUN.
-       !
-       ! TODO: Abstract this to a subroutine, to simplify DO_FULLCHEM
-       !=====================================================================
-       IF ( State_Diag%Archive_RxnRate                                  .or. &
-            State_Diag%Archive_SatDiagnRxnRate                        ) THEN
-  
-          ! Get equation rates (Aout)
-          CALL Fun( V       = C(1:NVAR),                                     &
-                    F       = C(NVAR+1:NSPEC),                               &
-                    RCT     = RCONST,                                        &
-                    Vdot    = Vloc,                                          &
-                    Aout    = Aout                                          )
-
-          ! Archive the RxnRate diagnostic collection
-          IF ( State_Diag%Archive_RxnRate ) THEN
-             DO S = 1, State_Diag%Map_RxnRate%nSlots
-                N = State_Diag%Map_RxnRate%slot2Id(S)
-                State_Diag%RxnRate(I,J,L,S) = Aout(N)
-             ENDDO
-          ENDIF
-
-          ! Archive the SatDiagnRxnRate diagnostic collection
-          IF ( State_Diag%Archive_SatDiagnRxnRate ) THEN
-             DO S = 1, State_Diag%Map_SatDiagnRxnRate%nSlots
-                N = State_Diag%Map_SatDiagnRxnRate%slot2Id(S)
-                State_Diag%SatDiagnRxnRate(I,J,L,S) = Aout(N)
-             ENDDO
-          ENDIF
-       ENDIF
-
-       ! Archive KPP reaction rate constants (RCONST). The units vary.
-       ! They are already updated in Update_RCONST, and do not require
-       ! a call of Fun(). (hplin, 3/28/23)
-       IF ( State_Diag%Archive_RxnConst ) THEN
-
-          DO S = 1, State_Diag%Map_RxnConst%nSlots
-             N = State_Diag%Map_RxnConst%slot2Id(S)
-             State_Diag%RxnConst(I,J,L,S) = RCONST(N)
-          ENDDO
-
-       ENDIF
+       ! HISTORY: Archive KPP reaction rate diagnostics [molec cm-3 s-1]
+       CALL Archive_RxnRate_Diags( Input_Opt, State_Chm, State_Diag,         &
+                                   I,         J,         L,          RC     )
 
 #ifdef KPP_INTEGRATOR_AUTOREDUCE
        !=====================================================================
@@ -3467,6 +3157,803 @@ CONTAINS
     !$OMP END PARALLEL DO
 
   END SUBROUTINE Diag_Metrics
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Zero_Diagnostics_At_Start_of_Fullchem
+!
+! !DESCRIPTION: Zeroes certain counter and diagnostic species
+!  before the call to the chemistry solver.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Zero_Diagnostics_at_Start_of_Fullchem( State_Diag, State_Met, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE State_Diag_Mod, ONLY : DgnState
+    USE State_Met_Mod,  ONLY : MetState
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(MetState), INTENT(IN)    :: State_Met    ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag   ! Diagnostics State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC           ! Success or failure?
+!
+! !REVISION HISTORY:
+!  11 Mar 2026 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    ! Initialize
+    RC = GC_SUCCESS
+
+    !========================================================================
+    ! Zero diagnostic archival arrays to make sure that we don't have any
+    ! leftover values from the last timestep near the top of the chemgrid
+    !========================================================================
+    IF ( State_Diag%Archive_Loss ) THEN
+       State_Diag%Loss = 0.0_f4
+    ENDIF
+
+    IF ( State_Diag%Archive_Prod ) THEN
+       State_Diag%Prod = 0.0_f4
+    ENDIF
+
+    IF ( State_Diag%Archive_Jval ) THEN
+       State_Diag%Jval = 0.0_f4
+    ENDIF
+
+    IF ( State_Diag%Archive_JvalO3O1D ) THEN
+       State_Diag%JvalO3O1D = 0.0_f4
+    ENDIF
+
+    IF ( State_Diag%Archive_JvalO3O3P ) THEN
+       State_Diag%JvalO3O3P = 0.0_f4
+    ENDIF
+
+    IF ( State_Diag%Archive_JNoon ) THEN
+       State_Diag%JNoon = 0.0_f4
+    ENDIF
+
+    IF ( State_Diag%Archive_ProdCOfromCH4 ) THEN
+       State_Diag%ProdCOfromCH4 = 0.0_f4
+    ENDIF
+
+    IF ( State_Diag%Archive_ProdCOfromNMVOC ) THEN
+       State_Diag%ProdCOfromNMVOC= 0.0_f4
+    ENDIF
+
+    IF ( State_Diag%Archive_OHreactivity ) THEN
+       State_Diag%OHreactivity = 0.0_f4
+    ENDIF
+
+    IF ( State_Diag%Archive_RxnRate ) THEN
+       State_Diag%RxnRate = 0.0_f4
+    ENDIF
+
+    IF ( State_Diag%Archive_RxnConst ) THEN
+       State_Diag%RxnConst = 0.0_f4
+    ENDIF
+
+    IF ( State_Diag%Archive_SatDiagnRxnRate ) THEN
+       State_Diag%SatDiagnRxnRate= 0.0_f4
+    ENDIF
+
+    !========================================================================
+    ! Zero KPP diagnostic arrays
+    !========================================================================
+    IF ( State_Diag%Archive_KppDiags ) THEN
+
+       IF ( State_Diag%Archive_KppIntCounts ) THEN
+          State_Diag%KppIntCounts = 0.0_f4
+       ENDIF
+
+       IF ( State_Diag%Archive_KppJacCounts ) THEN
+          State_Diag%KppJacCounts = 0.0_f4
+       ENDIF
+
+       IF ( State_Diag%Archive_KppTotSteps  ) THEN
+          State_Diag%KppTotSteps = 0.0_f4
+       ENDIF
+
+       IF ( State_Diag%Archive_KppAccSteps  ) THEN
+          State_Diag%KppAccSteps = 0.0_f4
+       ENDIF
+
+       IF ( State_Diag%Archive_KppRejSteps  ) THEN
+          State_Diag%KppRejSteps = 0.0_f4
+       ENDIF
+
+       IF ( State_Diag%Archive_KppLuDecomps ) THEN
+          State_Diag%KppLuDecomps = 0.0_f4
+       ENDIF
+
+       IF ( State_Diag%Archive_KppSubsts    ) THEN
+          State_Diag%KppSubsts = 0.0_f4
+       ENDIF
+
+       IF ( State_Diag%Archive_KppSmDecomps ) THEN
+          State_Diag%KppSmDecomps = 0.0_f4
+       ENDIF
+
+       IF ( State_Diag%Archive_KppAutoReducerNVAR ) THEN
+            State_Diag%KppAutoReducerNVAR = 0.0_f4
+       ENDIF
+
+       IF ( State_Diag%Archive_KppcNONZERO ) THEN
+          State_Diag%KppcNONZERO = 0.0_f4
+       ENDIF
+
+       IF ( State_Diag%Archive_KppNegatives ) THEN
+          State_Diag%KppNegatives   = 0.0_f4
+       ENDIF
+
+       IF ( State_Diag%Archive_KppNegatives0 ) THEN
+          State_Diag%KppNegatives0 = 0.0_f4
+       ENDIF
+    ENDIF
+
+    !========================================================================
+    ! Zero satellite diagnostic arrays
+    !========================================================================
+    IF ( State_Diag%Archive_SatDiagnLoss ) THEN
+       State_Diag%SatDiagnLoss = 0.0_f4
+    ENDIF
+
+    IF ( State_Diag%Archive_SatDiagnProd ) THEN
+       State_Diag%SatDiagnProd    = 0.0_f4
+    ENDIF
+
+    IF ( State_Diag%Archive_SatDiagnJval ) THEN
+       State_Diag%SatDiagnJval = 0.0_f4
+    ENDIF
+
+    IF ( State_Diag%Archive_SatDiagnJvalO3O1D ) THEN
+       State_Diag%SatDiagnJvalO3O1D = 0.0_f4
+
+    ENDIF
+    IF ( State_Diag%Archive_SatDiagnJvalO3O3P ) THEN
+       State_Diag%SatDiagnJvalO3O3P = 0.0_f4
+    ENDIF
+
+    !========================================================================
+    ! Keep track of the boxes where it is local noon in the JNoonFrac
+    ! diagnostic. When time-averaged, this will be the fraction of time
+    ! that local noon occurred at a grid box. (bmy, 4/2/19)
+    !========================================================================
+    IF ( State_Diag%Archive_JNoonFrac ) THEN
+       WHERE( State_Met%IsLocalNoon )
+          State_Diag%JNoonFrac = 1.0_f4
+       ELSEWHERE
+          State_Diag%JNoonFrac = 0.0_f4
+       ENDWHERE
+    ENDIF
+
+  END SUBROUTINE Zero_Diagnostics_at_Start_of_Fullchem
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Zero_Dummy_Species
+!
+! !DESCRIPTION: Zeroes certain counter and diagnostic species
+!  before the call to the chemistry solver.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Zero_Dummy_Species( Input_Opt, State_Chm, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE Input_Opt_Mod, ONLY : OptInput
+    USE State_Chm_Mod, ONLY : ChmState
+    USE Species_Mod,   ONLY : Species
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt    ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm    ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC           ! Success or failure?
+!
+! !REVISION HISTORY:
+!  11 Mar 2026 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER                :: N
+
+    ! Pointers
+    TYPE(Species), POINTER :: SpcInfo
+
+    !========================================================================
+    ! Zero out certain species
+    !========================================================================
+    DO N = 1, State_Chm%nSpecies
+
+       ! Get info about this species from the species database
+       SpcInfo => State_Chm%SpcData(N)%Info
+
+       ! isoprene oxidation counter species
+       IF ( TRIM( SpcInfo%Name ) == 'LISOPOH' .or. &
+            TRIM( SpcInfo%Name ) == 'LISOPNO3' ) THEN
+          State_Chm%Species(N)%Conc = 0.0_fp
+       ENDIF
+
+       ! aromatic oxidation counter species
+       IF ( Input_Opt%LSOA .or. Input_Opt%LSVPOA ) THEN
+          SELECT CASE ( TRIM( SpcInfo%Name ) )
+             CASE ( 'LBRO2H', 'LBRO2N', 'LTRO2H', 'LTRO2N', &
+                    'LXRO2H', 'LXRO2N', 'LNRO2H', 'LNRO2N' )
+                State_Chm%Species(N)%Conc = 0.0_fp
+          END SELECT
+       ENDIF
+
+       ! Sulfate gas/cloud prod diagnostic species
+       IF ( TRIM( SpcInfo%Name ) == 'PH2SO4' .or. &
+            TRIM( SpcInfo%Name ) == 'PSO4AQ' ) THEN
+          State_Chm%Species(N)%Conc = 0.0_fp
+       ENDIF
+
+       ! Free pointer
+       SpcInfo => NULL()
+
+    ENDDO
+
+  END SUBROUTINE Zero_Dummy_Species
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Get_Photolysis_Rates
+!
+! !DESCRIPTION: Zeroes certain counter and diagnostic species
+!  before the call to the chemistry solver.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Get_Photolysis_Rates( Input_Opt, State_Chm, State_Diag,         &
+                                   State_Met, I,         J,                  &
+                                   L,         RC                            )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE gckpp_Global,   ONLY : PHOTOL
+    USE Photolysis_Mod, ONLY : PhotRate_Adj
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Chm_Mod,  ONLY : ChmState
+    USE State_Diag_Mod, ONLY : DgnState
+    USE State_Grid_Mod, ONLY : GrdState
+    USE State_Met_Mod,  ONLY : MetState
+    USE UCX_Mod,        ONLY : SO4_PhotFrac
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,        INTENT(IN)    :: I, J, L      ! Grid box indices
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt    ! Input Options object
+    TYPE(MetState), INTENT(IN)    :: State_Met    ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm    ! Chemistry State object
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag   ! Diagnostics State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC           ! Success or failure?
+!
+! !REVISION HISTORY:
+!  11 Mar 2026 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER  :: N, P, S
+    REAL(fp) :: SO4_FRAC
+
+    !=====================================================================
+    ! Get photolysis rates (daytime only)
+    !
+    ! NOTE: The ordering of the photolysis reactions here is
+    ! the order in the Fast-J definition file FJX_j2j.dat.
+    ! I've assumed that these are the same as in the text files
+    ! but this may have been changed.  This needs to be checked
+    ! through more thoroughly -- M. Long (3/28/16)
+    !
+    ! ALSO NOTE: We moved this section above the test to see if grid
+    ! box (I,J,L) is in the chemistry grid.  This will ensure that
+    ! J-value diagnostics are defined for all levels in the column.
+    ! This modification was validated by a geosfp_4x5_standard
+    ! difference test. (bmy, 1/18/18)
+    !
+    ! Update SUNCOSmid threshold from 0 to cos(98 degrees) since
+    ! fast-jx allows for SZA down to 98 degrees. This is important in
+    ! the stratosphere-mesosphere where sunlight still illuminates at
+    ! high altitudes if the sun is below the horizon at the surface
+    ! (update submitted by E. Fleming (NASA), 10/11/2018)
+    !=====================================================================
+    IF ( State_Met%SUNCOSmid(I,J) > -0.1391731e+0_fp ) THEN
+
+       ! Only proceed if doing photolysis
+       IF ( Input_Opt%Do_Photolysis ) THEN
+
+          ! Get the fraction of H2SO4 that is available for photolysis
+          ! (this is only valid for UCX-enabled mechanisms)
+          SO4_FRAC = SO4_photFrac( I, J, L, State_Chm )
+
+          ! Adjust certain photolysis rates:
+          ! (1) H2SO4 + hv -> SO2 + OH + OH   (UCX-based mechanisms)
+          ! (2) O3    + hv -> O2  + O         (UCX-based mechanisms)
+          ! (2) O3    + hv -> OH  + OH        (trop-only mechanisms)
+          CALL PHOTRATE_ADJ( Input_Opt, State_Chm, State_Diag,               &
+                             State_Met, I,         J,                        &
+                             L,         SO4_FRAC,  RC                       )
+
+          ! Loop over the FAST-JX photolysis species
+          DO N = 1, State_Chm%Phot%nMaxPhotRxns
+
+             ! Copy photolysis rate from FAST_JX into KPP PHOTOL array
+             PHOTOL(N) = State_Chm%Phot%ZPJ(L,N,I,J)
+
+             !============================================================
+             ! HISTORY (aka netCDF diagnostics)
+             !
+             ! Instantaneous photolysis rates [s-1] (aka J-values)
+             ! and noontime photolysis rates [s-1]
+             !
+             !    NOTE: Attach diagnostics here instead of in module
+             !    fast_jx_mod.F90 so that we can get the adjusted photolysis
+             !    rates (output from routne PHOTRATE_ADJ above).
+             !
+             ! The mapping between the GEOS-Chem photolysis species and
+             ! the FAST-JX photolysis species is contained in the lookup
+             ! table in input file FJX_j2j.dat.
+             !
+             ! Some GEOS-Chem photolysis species may have multiple
+             ! branches for photolysis reactions.  These will be
+             ! represented by multiple entries in the FJX_j2j.dat
+             ! lookup table.
+             !
+             !    NOTE: For convenience, we have stored the GEOS-Chem
+             !    photolysis species index (range: 1..State_Chm%nPhotol)
+             !    for each of the FAST-JX photolysis species (range;
+             !    1..State_Chm%Phot%nMaxPhotRxns) in the GC_PHOTO_ID array
+             !============================================================
+
+             ! GC photolysis species index
+             P = State_Chm%Phot%GC_Photo_Id(N)
+
+             ! If this FAST_JX photolysis species maps to a valid
+             ! GEOS-Chem photolysis species (for this simulation)...
+             IF ( P > 0 .and. P <= State_Chm%nPhotol ) THEN
+
+                ! Archive the instantaneous photolysis rate
+                ! (summing over all reaction branches)
+                IF ( State_Diag%Archive_Jval ) THEN
+                   S = State_Diag%Map_Jval%id2slot(P)
+                   IF ( S > 0 ) THEN
+                      State_Diag%Jval(I,J,L,S) =                             &
+                      State_Diag%Jval(I,J,L,S) + PHOTOL(N)
+                   ENDIF
+                ENDIF
+
+                ! Satellite diagnostics
+                ! Archive the instantaneous photolysis rate
+                ! (summing over all reaction branches)
+                IF ( State_Diag%Archive_SatDiagnJval ) THEN
+                   S = State_Diag%Map_SatDiagnJval%id2slot(P)
+                   IF ( S > 0 ) THEN
+                      State_Diag%SatDiagnJval(I,J,L,S) =                     &
+                      State_Diag%SatDiagnJval(I,J,L,S) + PHOTOL(N)
+                   ENDIF
+                ENDIF
+
+                ! Archive the noontime photolysis rate
+                ! (summing over all reaction branches)
+                IF ( State_Met%IsLocalNoon(I,J) ) THEN
+                   IF ( State_Diag%Archive_JNoon ) THEN
+                      S = State_Diag%Map_JNoon%id2slot(P)
+                      IF ( S > 0 ) THEN
+                         State_Diag%JNoon(I,J,L,S) =                         &
+                         State_Diag%JNoon(I,J,L,S) + PHOTOL(N)
+                      ENDIF
+                   ENDIF
+                ENDIF
+
+             ELSE IF ( P == State_Chm%nPhotol+1 ) THEN
+
+                ! J(O3_O1D).  This used to be stored as the nPhotol+1st
+                ! diagnostic in Jval, but needed to be broken off
+                ! to facilitate cleaner diagnostic indexing (bmy, 6/3/20)
+                IF ( State_Diag%Archive_JvalO3O1D ) THEN
+                   State_Diag%JvalO3O1D(I,J,L) =                          &
+                   State_Diag%JvalO3O1D(I,J,L) + PHOTOL(N)
+                ENDIF
+
+                ! J(O3_O1D) for satellite diagnostics
+                IF ( State_Diag%Archive_SatDiagnJvalO3O1D ) THEN
+                   State_Diag%SatDiagnJvalO3O1D(I,J,L) =                  &
+                   State_Diag%SatDiagnJvalO3O1D(I,J,L) + PHOTOL(N)
+                ENDIF
+
+             ELSE IF ( P == State_Chm%nPhotol+2 ) THEN
+
+                ! J(O3_O3P).  This used to be stored as the nPhotol+2nd
+                ! diagnostic in Jval, but needed to be broken off
+                ! to facilitate cleaner diagnostic indexing (bmy, 6/3/20)
+                IF ( State_Diag%Archive_JvalO3O3P ) THEN
+                   State_Diag%JvalO3O3P(I,J,L) =                          &
+                   State_Diag%JvalO3O3P(I,J,L) + PHOTOL(N)
+                ENDIF
+
+                ! J(O3_O3P) for satellite diagnostics
+                IF ( State_Diag%Archive_SatDiagnJvalO3O3P ) THEN
+                   State_Diag%SatDiagnJvalO3O3P(I,J,L) =                  &
+                   State_Diag%SatDiagnJvalO3O3P(I,J,L) + PHOTOL(N)
+                ENDIF
+
+             ENDIF
+          ENDDO
+       ENDIF
+    ENDIF
+
+  END SUBROUTINE Get_Photolysis_Rates
+!EOC
+#ifdef MODEL_CESM
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: CESM_Photolyze_Soluble_Aerosols
+!
+! !DESCRIPTION: Applies an unphysical fix: Photolyze soluble aerosol species.
+!  This removes unphysical values of soluble tracers in the UT/LS due
+!  to decoupling of convection and wet scavenging in CESM dynamics.
+!  This process has to be done before InChemGrid as it is supposed to
+!  be active everywhere, especially the stratosphere.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE CESM_Photolyze_Soluble_Aerosols( Input_Opt, State_Chm,         &
+                                              State_Met, I,                 &
+                                              J,         L,                 &
+                                              RC                           )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE gckpp_Global,   ONLY : PHOTOL
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Diag_Mod, ONLY : DgnState
+    USE State_Grid_Mod, ONLY : GrdState
+    USE State_Met_Mod,  ONLY : MetState
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,        INTENT(IN)    :: I, J, L      ! Grid box indices
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt    ! Input Options object
+    TYPE(MetState), INTENT(IN)    :: State_Met    ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm    ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC           ! Success or failure?
+!
+! !REVISION HISTORY:
+!  30 May 2023 - H. P. Lin - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    REAL(fp) :: ScaleCESMLossRate
+
+    !========================================================================
+    ! CESM_Photolyze_Soluble_Aerosols begins here!
+    !========================================================================
+
+    ! Initialize
+    RC = GC_SUCCESS
+
+    ! Apply the photolysis factor above the PBL top if so desired
+    IF ( Input_Opt%correctConvUTLS .and. L >= State_Met%PBL_TOP_L(I,J) ) THEN
+
+       ! We operate directly on [molec/cm3] species concentrations in State_Chm,
+       ! because they have not been copied to C() in KPP yet. But, we can use
+       ! PHOTOL(11) which is J-NO2, and scale to create the artificial sink.
+       ! This is a consistent handling based off the MOZART-TS1 mechanism
+       ! in Emmons et al., 2020 JAMES.
+       ScaleCESMLossRate = MAX( 0.0_dp, 1 - PHOTOL(11) * 0.0004_dp * DT )
+
+       ! Apply the scale factors
+       State_Chm%Species(id_TSOA0)%Conc(I,J,L) =                             &
+       State_Chm%Species(id_TSOA0)%Conc(I,J,L) * ScaleCESMLossRate
+
+       State_Chm%Species(id_TSOA1)%Conc(I,J,L) =                             &
+       State_Chm%Species(id_TSOA1)%Conc(I,J,L) * ScaleCESMLossRate
+
+       State_Chm%Species(id_TSOA2)%Conc(I,J,L) =                             &
+       State_Chm%Species(id_TSOA2)%Conc(I,J,L) * ScaleCESMLossRate
+
+       State_Chm%Species(id_TSOA3)%Conc(I,J,L) =                             &
+       State_Chm%Species(id_TSOA3)%Conc(I,J,L) * ScaleCESMLossRate
+
+       State_Chm%Species(id_ASOA1)%Conc(I,J,L) =                             &
+       State_Chm%Species(id_ASOA1)%Conc(I,J,L) * ScaleCESMLossRate
+
+       State_Chm%Species(id_ASOA2)%Conc(I,J,L) =                             &
+       State_Chm%Species(id_ASOA2)%Conc(I,J,L) * ScaleCESMLossRate
+
+       State_Chm%Species(id_ASOA3)%Conc(I,J,L) =                             &
+       State_Chm%Species(id_ASOA3)%Conc(I,J,L) * ScaleCESMLossRate
+
+       State_Chm%Species(id_ASOAN)%Conc(I,J,L) =                             &
+       State_Chm%Species(id_ASOAN)%Conc(I,J,L) * ScaleCESMLossRate
+
+       State_Chm%Species(id_TSOG0)%Conc(I,J,L) =                             &
+       State_Chm%Species(id_TSOG0)%Conc(I,J,L) * ScaleCESMLossRate
+
+       State_Chm%Species(id_TSOG1)%Conc(I,J,L) =                             &
+       State_Chm%Species(id_TSOG1)%Conc(I,J,L) * ScaleCESMLossRate
+
+       State_Chm%Species(id_TSOG2)%Conc(I,J,L) =                             &
+       State_Chm%Species(id_TSOG2)%Conc(I,J,L) * ScaleCESMLossRate
+
+       State_Chm%Species(id_TSOG3)%Conc(I,J,L) =                             &
+       State_Chm%Species(id_TSOG3)%Conc(I,J,L) * ScaleCESMLossRate
+
+       State_Chm%Species(id_ASOG1)%Conc(I,J,L) =                             &
+       State_Chm%Species(id_ASOG1)%Conc(I,J,L) * ScaleCESMLossRate
+
+       State_Chm%Species(id_ASOG2)%Conc(I,J,L) =                             &
+       State_Chm%Species(id_ASOG2)%Conc(I,J,L) * ScaleCESMLossRate
+
+       State_Chm%Species(id_ASOG3)%Conc(I,J,L) =                             &
+       State_Chm%Species(id_ASOG3)%Conc(I,J,L) * ScaleCESMLossRate
+
+       State_Chm%Species(id_NIT  )%Conc(I,J,L) =                             &
+       State_Chm%Species(id_NIT  )%Conc(I,J,L) * ScaleCESMLossRate
+
+       State_Chm%Species(id_NITs )%Conc(I,J,L) =                             &
+       State_Chm%Species(id_NITs )%Conc(I,J,L) * ScaleCESMLossRate
+
+       ! Don't apply this to sulfate as it is not applied in CAM-chem
+       ! either and will affect the SO4 budget.
+       !State_Chm%Species(id_SO4  )%Conc(I,J,L) =                            &
+       !State_Chm%Species(id_SO4  )%Conc(I,J,L) * ScaleCESMLossRate
+       !
+       !State_Chm%Species(id_SO4s )%Conc(I,J,L) =                            &
+       !State_Chm%Species(id_SO4s )%Conc(I,J,L) * ScaleCESMLossRate
+
+    ENDIF
+
+  END SUBROUTINE CESM_Photolyze_Soluble_Aerosols
+#endif
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Archive_ConcBeforeChem
+!
+! !DESCRIPTION: Archives species concentrations before chemistry
+!  into the State_Diag%ConcBeforeChem diagnostic array.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Archive_ConcBeforeChem( State_Chm, State_Diag, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE State_Chm_Mod,  ONLY : ChmState
+    USE State_Diag_Mod, ONLY : DgnMap, DgnState
+    USE Species_Mod,    ONLY : Species
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm    ! Chemistry State object
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag   ! Diagnostics State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC           ! Success or failure?
+!
+! !REVISION HISTORY:
+!  11 Mar 2026- R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER                :: N, S
+
+    ! Pointers
+    TYPE(DgnMap),  POINTER :: mapData
+
+    !========================================================================
+    ! Archive_ConcBeforeChem begins here!
+    !========================================================================
+
+    ! Initialize
+    RC = GC_SUCCESS
+
+    ! Exit if the diagnostic is not activated
+    IF ( .not. State_Diag%Archive_ConcBeforeChem ) RETURN
+
+    ! Point to mapping obj specific to ConcBeforeChem diagnostic collection
+    mapData => State_Diag%Map_ConcBeforeChem
+
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( N, S                                                     )
+    DO S = 1, mapData%nSlots
+       N = mapData%slot2id(S)
+       State_Diag%ConcBeforeChem(:,:,:,S) = State_Chm%Species(N)%Conc
+    ENDDO
+    !$OMP END PARALLEL DO
+
+    ! Free pointer
+    mapData => NULL()
+
+  END SUBROUTINE Archive_ConcBeforeChem
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Archive_RxnRate_Diags
+!
+! !DESCRIPTION: Archives the RxnRate, SatDiagnRxnRate, and RxnConst
+!  History diagnostics.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Archive_RxnRate_Diags( Input_Opt, State_Chm, State_Diag,        &
+                                    I,         J,         L,          RC    )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE GcKpp_Global
+    USE GcKpp_Function
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Chm_Mod,  ONLY : ChmState
+    USE State_Diag_Mod, ONLY : DgnState
+    USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,        INTENT(IN)    :: I, J, L      ! Grid box indices
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt    ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm    ! Chemistry State object
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag   ! Diagnostics State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC           ! Success or failure?
+!
+! !REMARKS:
+!  This routine must be called after Update_RCONST.
+!
+! !REVISION HISTORY:
+!  11 Mar 2026 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER  :: N, S
+
+    ! Arrays
+    REAL(dp) :: Vloc(NVAR), Aout(NREACT)
+
+    !=====================================================================
+    ! HISTORY (aka netCDF diagnostics)
+    !
+    ! Archive KPP reaction rates [molec cm-3 s-1]
+    ! See gckpp_Monitor.F90 for a list of chemical reactions
+    !
+    ! NOTE: In KPP 2.5.0+, VAR and FIX are now private to the integrator
+    ! and point to C.  Therefore, pass C(1:NVAR) instead of VAR and
+    ! C(NVAR+1:NSPEC) instead of FIX to routine FUN.
+    !=====================================================================
+    IF ( State_Diag%Archive_RxnRate                                     .or. &
+         State_Diag%Archive_SatDiagnRxnRate                           ) THEN
+
+       ! Get equation rates (Aout)
+       CALL Fun( V       = C(1:NVAR),                                        &
+                 F       = C(NVAR+1:NSPEC),                                  &
+                 RCT     = RCONST,                                           &
+                 Vdot    = Vloc,                                             &
+                 Aout    = Aout                                             )
+
+       ! Archive the RxnRate diagnostic collection
+       IF ( State_Diag%Archive_RxnRate ) THEN
+          DO S = 1, State_Diag%Map_RxnRate%nSlots
+             N = State_Diag%Map_RxnRate%slot2Id(S)
+             State_Diag%RxnRate(I,J,L,S) = Aout(N)
+          ENDDO
+       ENDIF
+
+       ! Archive the SatDiagnRxnRate diagnostic collection
+       IF ( State_Diag%Archive_SatDiagnRxnRate ) THEN
+          DO S = 1, State_Diag%Map_SatDiagnRxnRate%nSlots
+             N = State_Diag%Map_SatDiagnRxnRate%slot2Id(S)
+             State_Diag%SatDiagnRxnRate(I,J,L,S) = Aout(N)
+          ENDDO
+       ENDIF
+    ENDIF
+
+    ! Archive KPP reaction rate constants (RCONST). The units vary.
+    ! They are already updated in Update_RCONST, and do not require
+    ! a call of Fun(). (hplin, 3/28/23)
+    IF ( State_Diag%Archive_RxnConst ) THEN
+       DO S = 1, State_Diag%Map_RxnConst%nSlots
+          N = State_Diag%Map_RxnConst%slot2Id(S)
+          State_Diag%RxnConst(I,J,L,S) = RCONST(N)
+       ENDDO
+
+    ENDIF
+
+    END SUBROUTINE Archive_RxnRate_Diags
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
