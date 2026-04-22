@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added methanediol (MDL) as a transported gas-phase species and to the KPP fullchem and custom mechanisms
 - Added routine `Cloud_CH2O_MDL` in `KPP/fullchem/fullchem_SulfurChemFuncs.F90`
 
+### Changed
+- Changed frequency of SpeciesConcVV and SpeciesConcMND diagnostic update to every chemistry timestep (previously dynamic timestep) to avoid value oscillation for certain species when dynamic timestep is less than chemistry timestep
+
 ## [14.7.0] - 2026-02-05
 ### Added
 - Added entries for FINNv25 biomass burning emissions to template HEMCO configuration files
