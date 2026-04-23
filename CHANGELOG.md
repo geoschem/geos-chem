@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Renamed `CRITRH` to `RH_35_PERCENT` and `CRITRH2` to `RH_50_PERCENT` in `KPP/fullchem/fullchem_RateLawFuncs.F90`
 - Added DSTbin{1..7}, SO2, SO4, and pFE species ID flags to the `SetStateHet` routine in `KPP/fullchem_HetStateFuncs.F90` and `KPP/stubs/stub_fullchem_HetStateFuncs.F90`
 - Updated `run/shared/download_data.py` and `run/shared/setupForRestarts.sh` to read APM restart file paths
+- Changed Rosenbrock integration method from RODAS3 to RODAS3.1 (set `ICNTRL(3)=7` in `KPP/fullchem/fullchem_AutoReduceFuncs.F90`)
 
 ### Fixed
 - Fixed incorrect variable names and removed unused variables in `NcdfUtil/ncdf_mod.F90`
