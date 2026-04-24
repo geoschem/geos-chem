@@ -78,6 +78,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Removed `OHconcAfterChem` from GCClassic and GCHP `HISTORY.rc.carbon` templates, as OH is fixed during the simulation
 - Removed `State_Grid` argument from `Set_Prof_FJX` routine
 
+### Fixed
+- Fixed the species database entry of `DMS` to use `Is_Gas: true`, as DMS is a gas-phase species and not an aerosol
+
 ## [14.7.0] - 2026-02-05
 ### Added
 - Added entries for FINNv25 biomass burning emissions to template HEMCO configuration files
