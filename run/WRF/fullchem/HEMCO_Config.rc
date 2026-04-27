@@ -127,7 +127,7 @@ VerboseOnCores:              root       # Accepted values: root all
     --> CMIP6_SHIP             :       false    # 1850-2100
 # ----- BIOMASS BURNING EMISSIONS ---------------------------------------------
     --> QFED2                  :       false    # 2000-2020
-    --> GFAS                   :       false    # 2003-2021
+    --> GFAS                   :       true     # 2003-2021
     --> BB4MIPS                :       false    # 1850-2100
 # ----- OFFLINE EMISSIONS -----------------------------------------------------
 # To use online emissions instead set the offline emissions to 'false' and the
@@ -197,7 +197,7 @@ VerboseOnCores:              root       # Accepted values: root all
     --> Monoterp to SOAS       :       0.050
     --> Othrterp to SOAP       :       0.050
     --> Othrterp to SOAS       :       0.050
-111     GFED                   : on    NO/CO/ALK4/ACET/MEK/ALD2/PRPE/C2H2/C2H4/C3H8/CH2O/C2H6/SO2/NH3/BCPO/BCPI/OCPO/OCPI/POG1/POG2/MTPA/BENZ/TOLU/XYLE/NAP/EOH/MOH/SOAP/FURA/PHEN/MVK/ISOP/ACTA/MGLY/GLYX/RCHO/HCOOH/ACR/STYR/C4H6
+111     GFED                   : off    NO/CO/ALK4/ACET/MEK/ALD2/PRPE/C2H2/C2H4/C3H8/CH2O/C2H6/SO2/NH3/BCPO/BCPI/OCPO/OCPI/POG1/POG2/MTPA/BENZ/TOLU/XYLE/NAP/EOH/MOH/SOAP/FURA/PHEN/MVK/ISOP/ACTA/MGLY/GLYX/RCHO/HCOOH/ACR/STYR/C4H6
     --> GFED4                  :       true
     --> GFED_daily             :       false
     --> GFED_3hourly           :       false
@@ -3069,35 +3069,35 @@ VerboseOnCores:              root       # Accepted values: root all
 # --- GFAS biomass burning ---
 #==============================================================================
 (((GFAS
-0 GFAS_CO    $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc cofire        2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s CO   75       5 3
-0 GFAS_SOAP  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc cofire        2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s SOAP 75/281   5 3
-0 GFAS_CH3OH $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc ch3ohfire     2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s MOH  75       5 3
-0 GFAS_NO    $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc noxfire       2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s NO   75       5 3
-0 GFAS_BCPI  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc bcfire        2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s BCPI 70/75    5 3
-0 GFAS_BCPO  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc bcfire        2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s BCPO 71/75    5 3
-0 GFAS_OCPI  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc ocfire        2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s OCPI 72/75    5 3
-0 GFAS_OCPO  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc ocfire        2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s OCPO 73/75    5 3
+0 GFAS_CO    $ROOT/GFAS/v2025-05/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc cofire        2003-2025/1-12/1-31/0 EFY xyz kg/m2/s CO   75       5 3
+0 GFAS_SOAP  $ROOT/GFAS/v2025-05/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc cofire        2003-2025/1-12/1-31/0 EFY xyz kg/m2/s SOAP 75/281   5 3
+0 GFAS_CH3OH $ROOT/GFAS/v2025-05/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc ch3ohfire     2003-2025/1-12/1-31/0 EFY xyz kg/m2/s MOH  75       5 3
+0 GFAS_NO    $ROOT/GFAS/v2025-05/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc noxfire       2003-2025/1-12/1-31/0 EFY xyz kg/m2/s NO   75       5 3
+0 GFAS_BCPI  $ROOT/GFAS/v2025-05/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc bcfire        2003-2025/1-12/1-31/0 EFY xyz kg/m2/s BCPI 70/75    5 3
+0 GFAS_BCPO  $ROOT/GFAS/v2025-05/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc bcfire        2003-2025/1-12/1-31/0 EFY xyz kg/m2/s BCPO 71/75    5 3
+0 GFAS_OCPI  $ROOT/GFAS/v2025-05/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc ocfire        2003-2025/1-12/1-31/0 EFY xyz kg/m2/s OCPI 72/75    5 3
+0 GFAS_OCPO  $ROOT/GFAS/v2025-05/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc ocfire        2003-2025/1-12/1-31/0 EFY xyz kg/m2/s OCPO 73/75    5 3
 0 GFAS_POG1  -                                          -             -                     - -             -       POG1 74/76/75 5 3
 0 GFAS_POG2  -                                          -             -                     - -             -       POG2 74/77/75 5 3
-0 GFAS_CO2   $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc co2fire       2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s CO2  75       5 3
-0 GFAS_CH4   $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc ch4fire       2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s CH4  75       5 3
-0 GFAS_SO2   $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc so2fire       2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s SO2  75       5 3
-0 GFAS_pFe   $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc so2fire       2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s pFe  75/66    5 3
-0 GFAS_NH3   $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc nh3fire       2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s NH3  75       5 3
-0 GFAS_ACET  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c3h6ofire     2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s ACET 75       5 3
-0 GFAS_ALD2  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c2h4ofire     2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s ALD2 75       5 3
-0 GFAS_ALK4  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc hialkanesfire 2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s ALK4 75       5 3
-0 GFAS_PRPE1 $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc hialkenesfire 2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s PRPE 75       5 3
-0 GFAS_PRPE2 $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c3h6fire      2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s PRPE 75       5 3
-0 GFAS_C2H6  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c2h6fire      2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s C2H6 75       5 3
-0 GFAS_C3H8  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c3h8fire      2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s C3H8 75       5 3
-0 GFAS_CH2O  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc ch2ofire      2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s CH2O 75       5 3
-0 GFAS_C2H4  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c2h4fire      2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s C2H4 75       5 3
-0 GFAS_ISOP  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c5h8fire      2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s ISOP 75       5 3
-0 GFAS_DMS   $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c2h6sfire     2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s DMS  75       5 3
-0 GFAS_TOLU  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c7h8fire      2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s TOLU 75       5 3
-0 GFAS_BENZ  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c6h6fire      2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s BENZ 75       5 3
-0 GFAS_XYLE  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c8h10fire     2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s XYLE 75       5 3
+0 GFAS_CO2   $ROOT/GFAS/v2025-05/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc co2fire       2003-2025/1-12/1-31/0 EFY xyz kg/m2/s CO2  75       5 3
+0 GFAS_CH4   $ROOT/GFAS/v2025-05/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc ch4fire       2003-2025/1-12/1-31/0 EFY xyz kg/m2/s CH4  75       5 3
+0 GFAS_SO2   $ROOT/GFAS/v2025-05/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc so2fire       2003-2025/1-12/1-31/0 EFY xyz kg/m2/s SO2  75       5 3
+0 GFAS_pFe   $ROOT/GFAS/v2025-05/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc so2fire       2003-2025/1-12/1-31/0 EFY xyz kg/m2/s pFe  75/66    5 3
+0 GFAS_NH3   $ROOT/GFAS/v2025-05/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc nh3fire       2003-2025/1-12/1-31/0 EFY xyz kg/m2/s NH3  75       5 3
+0 GFAS_ACET  $ROOT/GFAS/v2025-05/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc c3h6ofire     2003-2025/1-12/1-31/0 EFY xyz kg/m2/s ACET 75       5 3
+0 GFAS_ALD2  $ROOT/GFAS/v2025-05/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc c2h4ofire     2003-2025/1-12/1-31/0 EFY xyz kg/m2/s ALD2 75       5 3
+0 GFAS_ALK4  $ROOT/GFAS/v2025-05/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc hialkanesfire 2003-2025/1-12/1-31/0 EFY xyz kg/m2/s ALK4 75       5 3
+0 GFAS_PRPE1 $ROOT/GFAS/v2025-05/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc hialkenesfire 2003-2025/1-12/1-31/0 EFY xyz kg/m2/s PRPE 75       5 3
+0 GFAS_PRPE2 $ROOT/GFAS/v2025-05/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc c3h6fire      2003-2025/1-12/1-31/0 EFY xyz kg/m2/s PRPE 75       5 3
+0 GFAS_C2H6  $ROOT/GFAS/v2025-05/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc c2h6fire      2003-2025/1-12/1-31/0 EFY xyz kg/m2/s C2H6 75       5 3
+0 GFAS_C3H8  $ROOT/GFAS/v2025-05/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc c3h8fire      2003-2025/1-12/1-31/0 EFY xyz kg/m2/s C3H8 75       5 3
+0 GFAS_CH2O  $ROOT/GFAS/v2025-05/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc ch2ofire      2003-2025/1-12/1-31/0 EFY xyz kg/m2/s CH2O 75       5 3
+0 GFAS_C2H4  $ROOT/GFAS/v2025-05/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc c2h4fire      2003-2025/1-12/1-31/0 EFY xyz kg/m2/s C2H4 75       5 3
+0 GFAS_ISOP  $ROOT/GFAS/v2025-05/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc c5h8fire      2003-2025/1-12/1-31/0 EFY xyz kg/m2/s ISOP 75       5 3
+0 GFAS_DMS   $ROOT/GFAS/v2025-05/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc c2h6sfire     2003-2025/1-12/1-31/0 EFY xyz kg/m2/s DMS  75       5 3
+0 GFAS_TOLU  $ROOT/GFAS/v2025-05/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc c7h8fire      2003-2025/1-12/1-31/0 EFY xyz kg/m2/s TOLU 75       5 3
+0 GFAS_BENZ  $ROOT/GFAS/v2025-05/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc c6h6fire      2003-2025/1-12/1-31/0 EFY xyz kg/m2/s BENZ 75       5 3
+0 GFAS_XYLE  $ROOT/GFAS/v2025-05/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc c8h10fire     2003-2025/1-12/1-31/0 EFY xyz kg/m2/s XYLE 75       5 3
 )))GFAS
 
 #==============================================================================
@@ -4432,13 +4432,6 @@ VerboseOnCores:              root       # Accepted values: root all
 255 NEI2016_SO2_YRSCALE  4.773/4.701/4.626/4.625/4.171/3.717/3.273/2.879/2.446/2.038/1.591/1.525/1.469/1.237/1.000/0.767/0.735/0.641/0.583 - 2002-2020/1/1/0 C xy 1 1
 256 NEI2016_PM25_YRSCALE 1.120/1.140/1.159/1.178/1.213/1.248/1.202/1.195/1.190/1.192/1.153/1.115/1.077/1.040/1.000/0.964/0.961/0.958/0.955 - 2002-2020/1/1/0 C xy 1 1
 )))NEI2016_MONMEAN
-
-#==============================================================================
-# --- GFAS scale factors ---
-#==============================================================================
-(((GFAS
-300 GFAS_EMITL $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc mami 2003-2021/1-12/1-31/0 C xy m 1
-)))GFAS
 
 #==============================================================================
 # --- QFED vertical partitioning ---

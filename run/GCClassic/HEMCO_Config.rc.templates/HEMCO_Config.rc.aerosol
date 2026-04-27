@@ -113,7 +113,7 @@ VerboseOnCores:              root       # Accepted values: root all
     --> CMIP6_SHIP             :       ${RUNDIR_CMIP6_FIELDS}    # 1850-2100
 # ----- BIOMASS BURNING EMISSIONS ---------------------------------------------
     --> QFED2                  :       false    # 2000-2020
-    --> GFAS                   :       false    # 2003-2021
+    --> GFAS                   :       ${RUNDIR_GFAS}    # 2003-2025
     --> BB4MIPS                :       ${RUNDIR_CMIP6_FIELDS}    # 1850-2100
     --> GFED4_CLIMATOLOGY      :       false    # If true, turn off GFED ext below
     --> FINNv25                :       false    # 2012-2023
@@ -1613,15 +1613,15 @@ VerboseOnCores:              root       # Accepted values: root all
 # --- GFAS biomass burning ---
 #==============================================================================
 (((GFAS
-0 GFAS_SOAP  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc cofire        2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s SOAP 75/281 5 3
-0 GFAS_BCPI  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc bcfire        2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s BCPI 70/75  5 3
-0 GFAS_BCPO  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc bcfire        2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s BCPO 71/75  5 3
-0 GFAS_OCPI  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc ocfire        2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s OCPI 72/75  5 3
-0 GFAS_OCPO  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc ocfire        2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s OCPO 73/75  5 3
-0 GFAS_SO2   $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc so2fire       2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s SO2  75     5 3
-0 GFAS_pFe   $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc so2fire       2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s pFe  75/66  5 3
-0 GFAS_NH3   $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc nh3fire       2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s NH3  75     5 3
-0 GFAS_DMS   $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c2h6sfire     2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s DMS  75     5 3
+0 GFAS_SOAP  $ROOT/GFAS/v2025-05/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc cofire        2003-2025/1-12/1-31/0 EFY xyz kg/m2/s SOAP 75/281   5 3
+0 GFAS_BCPI  $ROOT/GFAS/v2025-05/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc bcfire        2003-2025/1-12/1-31/0 EFY xyz kg/m2/s BCPI 70/75    5 3
+0 GFAS_BCPO  $ROOT/GFAS/v2025-05/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc bcfire        2003-2025/1-12/1-31/0 EFY xyz kg/m2/s BCPO 71/75    5 3
+0 GFAS_OCPI  $ROOT/GFAS/v2025-05/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc ocfire        2003-2025/1-12/1-31/0 EFY xyz kg/m2/s OCPI 72/75    5 3
+0 GFAS_OCPO  $ROOT/GFAS/v2025-05/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc ocfire        2003-2025/1-12/1-31/0 EFY xyz kg/m2/s OCPO 73/75    5 3
+0 GFAS_SO2   $ROOT/GFAS/v2025-05/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc so2fire       2003-2025/1-12/1-31/0 EFY xyz kg/m2/s SO2  75       5 3
+0 GFAS_pFe   $ROOT/GFAS/v2025-05/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc so2fire       2003-2025/1-12/1-31/0 EFY xyz kg/m2/s pFe  75/66    5 3
+0 GFAS_NH3   $ROOT/GFAS/v2025-05/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc nh3fire       2003-2025/1-12/1-31/0 EFY xyz kg/m2/s NH3  75       5 3
+0 GFAS_DMS   $ROOT/GFAS/v2025-05/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc c2h6sfire     2003-2025/1-12/1-31/0 EFY xyz kg/m2/s DMS  75       5 3
 )))GFAS
 
 (((EMISSIONS
@@ -2474,13 +2474,6 @@ ${RUNDIR_TES_CLIM_N2O}
 255 NEI2016_SO2_YRSCALE  4.773/4.701/4.626/4.625/4.171/3.717/3.273/2.879/2.446/2.038/1.591/1.525/1.469/1.237/1.000/0.767/0.735/0.641/0.583 - 2002-2020/1/1/0 C xy 1 1
 256 NEI2016_PM25_YRSCALE 1.120/1.140/1.159/1.178/1.213/1.248/1.202/1.195/1.190/1.192/1.153/1.115/1.077/1.040/1.000/0.964/0.961/0.958/0.955 - 2002-2020/1/1/0 C xy 1 1
 )))NEI2016_MONMEAN
-
-#==============================================================================
-# --- GFAS scale factors ---
-#==============================================================================
-(((GFAS
-300 GFAS_EMITL $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc mami 2003-2021/1-12/1-31/0 C xy m 1
-)))GFAS
 
 #==============================================================================
 # --- QFED vertical partitioning ---

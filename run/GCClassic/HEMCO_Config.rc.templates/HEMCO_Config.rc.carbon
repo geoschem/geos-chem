@@ -816,7 +816,7 @@ Mask fractions:              false
 
 # --- GFAS ---
 (((GFAS
-0 GFAS_CO $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc cofire 2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s CO 75 5 3
+0 GFAS_CO    $ROOT/GFAS/v2025-05/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc cofire        2003-2025/1-12/1-31/0 EFY xyz kg/m2/s CO   75       5 3
 )))GFAS
 
 # --- FINNv2.5 biomass burning ---
@@ -1563,13 +1563,6 @@ ${RUNDIR_CO2_COPROD}
 316 INDUSTRY_LEVS $ROOT/VerticalScaleFactors/v2021-05/gc_layers.nc g_industry 2017/1/1/0 C xyz 1 1
 317 SHIP_LEVS     $ROOT/VerticalScaleFactors/v2021-05/gc_layers.nc cmv_c3     2017/1/1/0 C xyz 1 1
 )))CEDS_01x01
-
-#------------------------------------------------------------------------------
-# --- GFAS scale factors ---
-#------------------------------------------------------------------------------
-(((GFAS
-300 GFAS_EMITL $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc mami 2003-2021/1-12/1-31/0 C xy m 1
-)))GFAS
 
 #------------------------------------------------------------------------------
 # --- EPA NEI2016 (monthly-mean inventory) scale factors ---
