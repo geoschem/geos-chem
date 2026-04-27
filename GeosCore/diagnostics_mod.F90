@@ -664,7 +664,7 @@ CONTAINS
     !=======================================================================
     ! Copy species to SatDiagn (satellite diagnostic output) [v/v dry]
     !=======================================================================
-    IF ( State_Diag%Archive_SatDiagnConc ) THEN
+    IF ( State_Diag%Archive_SatDiagnConc .AND. Its_Time_for_Chem() ) THEN
 
        ! Loop over longitudes
        !$OMP PARALLEL DO                                                    &
@@ -695,7 +695,7 @@ CONTAINS
     !=======================================================================
     ! Copy species to SpeciesBC (transport boundary conditions) [v/v dry]
     !=======================================================================
-    IF ( State_Diag%Archive_SpeciesBC ) THEN
+    IF ( State_Diag%Archive_SpeciesBC .AND. Its_Time_for_Chem() ) THEN
 
        ! Point to mapping obj specific to species boundary conditions
        mapData => State_Diag%Map_SpeciesBC
@@ -756,7 +756,7 @@ CONTAINS
     !      distribution, sources, and processes" Atmos. Chem. Phys.,
     !      12, 4,539-4,4554, 2012.
     !=======================================================================
-    IF ( State_Diag%Archive_ConcAboveSfc ) THEN
+    IF ( State_Diag%Archive_ConcAboveSfc .AND. Its_Time_for_Chem() ) THEN
 
        ! Loop over the number of drydep species that we wish
        ! to save at a user-specified altitude above the surface
