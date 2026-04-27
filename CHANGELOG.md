@@ -81,6 +81,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Fixed
 - Fixed the species database entry of `DMS` to use `Is_Gas: true`, as DMS is a gas-phase species and not an aerosol
 
+### Changed
+- Changed frequency of SpeciesConcVV and SpeciesConcMND diagnostic update to every chemistry timestep (previously dynamic timestep) to avoid value oscillation for certain species when dynamic timestep is less than chemistry timestep
+
 ## [14.7.0] - 2026-02-05
 ### Added
 - Added entries for FINNv25 biomass burning emissions to template HEMCO configuration files
