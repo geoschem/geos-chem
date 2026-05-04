@@ -884,7 +884,7 @@ CONTAINS
          !IF (I.eq.17 .and. J.eq.32 .and. L.eq.1) THEN  ! SGP for 4x5
          !print*,'---------------------------------------------------------------------'
          ! print*,'TEMPTMS, RHTOMAS in chemcarbon =',TEMPTMS,RHTOMAS,I,J,L
-         ENDIF
+         !ENDIF
          PRES    = GET_PCENTER(I,j,L)*100.0 ! in Pa
          IF ( NEWSOA > 0.0e+0_fp ) THEN
             !sfarina16: SOAP -> size Resolved TOMAS SOA
