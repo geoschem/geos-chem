@@ -1812,14 +1812,6 @@ CONTAINS
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
-            ! Zero private loop variables                                                                                                                                                                                            !betty test      
-       !BINACT1 = 0.0_fp
-       !BINACT2 = 0.0_fp
-       !KMIN    = 0.0_fp
-       !SO4OXID = 0.0_fp
-
-
-       
        ! Skip non-chemistry boxes
        IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
 
@@ -1855,13 +1847,9 @@ CONTAINS
 #endif
 
           KMIN = ( BINACT1 + BINACT2 )/ 2.
-          ! DEBUG
-          !IF (L == 1) print*, 'DEBUG KMIN BINACT1 BINACT2:', I, J, L, KMIN, BINACT1, BINACT2
           ! Indicate that we are NOT calling AqOxid from wetdep, which
           ! will avoid doing any further internal unit conversion (as
           ! units are already in kg here). -- Bob Yantosca (11 Apr 2024)
-        ! DEBUG
-          !IF (L == 1) print*, 'DEBUG calling AQOXID:', I, J, L, SO4OXID, KMIN
 
           CALL AqOxid(                                                       &
                I          = I,                                               &
@@ -1890,8 +1878,7 @@ CONTAINS
          State_Met  = State_Met,                                             &
          new_units  = previous_units,                                        &
          RC         = RC                                                    )
-      !print *,'PREVIOUS at end', previous_units
-    
+         
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error('Unit conversion error', RC, &
                      'End of TOMAS_SO4_AQ in sulfate_mod.F90')

@@ -881,7 +881,7 @@ CONTAINS
          RHTOMAS = State_Met%RH(I,J,L) / 1.e2
          IF ( RHTOMAS > 0.99 ) RHTOMAS = 0.99
          !IF (I.eq.40 .and. J.eq.46 .and. L.eq.1) THEN  ! SGP for 0.25x0.3125
-         IF (I.eq.17 .and. J.eq.32 .and. L.eq.1) THEN  ! SGP for 4x5
+         !IF (I.eq.17 .and. J.eq.32 .and. L.eq.1) THEN  ! SGP for 4x5
          !print*,'---------------------------------------------------------------------'
          ! print*,'TEMPTMS, RHTOMAS in chemcarbon =',TEMPTMS,RHTOMAS,I,J,L
          ENDIF

@@ -1577,43 +1577,43 @@ CONTAINS
     parameter (neps=1E8)
 
     DOUBLE PRECISION pi, R        ! pi and gas constant (J/mol K)
-    parameter(pi=3.141592654, R=8.314) !pi and gas constant (J/mol K)
+    parameter(pi=3.141592654d0, R=8.314d0) !pi and gas constant (J/mol K)
     
     INTEGER          I1,J1,L1     ! lat, lon, level SamO
 
     ! Constants
     !----------------------------------------------------------------
-    D_frag = 10.0         ! fragility parameter
-    Tgw = 136.0           ! Tg for pure water [K]
-    Kgt = 2.5             ! Gordon-Taylor constant
-    kappa = 0.1           ! unitless
-    rho_w = 1.0           ! g/cm^3
+    D_frag = 10.0d0         ! fragility parameter
+    Tgw = 136.0d0           ! Tg for pure water [K]
+    Kgt = 2.5d0             ! Gordon-Taylor constant
+    kappa = 0.1d0           ! unitless
+    rho_w = 1.0d0           ! g/cm^3
     !rho_soa = 1.4        ! g/cm^3
-    k_bolt = 1.38064e-23  ! J/K
-    mu_c = 1e-3           ! crossover viscosity Pa s
-    alpha_nm = 0.38       ! nm
-    w_mtv = 2e4           ! mean thermal velocity [cm/s]
-    rho = 1.4
-    alpha_s = 1.0
-    MWORG = 200.0         ! Molecular weight (doesn't really do anything)
+    k_bolt = 1.38064d-23  ! J/K
+    mu_c = 1.d-3           ! crossover viscosity Pa s
+    alpha_nm = 0.38d0       ! nm
+    w_mtv = 2.d4           ! mean thermal velocity [cm/s]
+    rho = 1.4d0
+    alpha_s = 1.0d0
+    MWORG = 200.0d0         ! Molecular weight (doesn't really do anything)
 
-    O_C = 1.5_fp
+    O_C = 1.5d0
     
     ! Choose seasonal average C* at 300 K for particle and gas phase
     !----------------------------------------------------------------
    
-    C0_par = 0.29
-    C0_gas = 26.69
+    C0_par = 0.29d0
+    C0_gas = 26.69d0
     
     !----------------------------------------------------------------
 
     C0 = C0_par
    
     ! get C* for gas at ambient temperature 
-    HVAP = -11.0*LOG10(C0_gas) + 131.0 
-    PSTAR = C0_gas*R*300.0/MWORG/1.0e6
-    psatorg = PSTAR*EXP(HVAP*1.d3*(1.0/300.0-1.0/TEMPTMS)/R)
-    C_gas = psatorg/R/TEMPTMS*MWORG*1.0e6 
+    HVAP = -11.0d0*LOG10(C0_gas) + 131.0d0 
+    PSTAR = C0_gas*R*300.0d0/MWORG/1.0d6
+    psatorg = PSTAR*EXP(HVAP*1.d3*(1.0d0/300.0d0-1.0d0/TEMPTMS)/R)
+    C_gas = psatorg/R/TEMPTMS*MWORG*1.0d6 
     !----------------------------------------------------------------
 
     m_h2o = 0.0_fp
@@ -1634,36 +1634,36 @@ CONTAINS
         mp=Mktot/Nko(k)
       else
         !nothing in this bin - set to "typical value"
-        density=1500.
+        density=1500.d0
         !mp=1.4*xk(k)
         mp=sqrt(xk(k)*xk(k+1))
       endif
-      Dpk(k)=((mp/density)*(6./pi))**(0.333)
+      Dpk(k)=((mp/density)*(6.0d0/pi))**(0.333d0)
       !Dpk(k)=(mp/density*6./pi)**(0.333)
-      Xeff(k) = 100.0d0*Dpk(k)/5.
+      Xeff(k) = 100.0d0*Dpk(k)/5.0d0
       
       m_h2o = m_h2o + Mko(k,srth2o)
       m_soa = m_soa + Mko(k,srtocil)! + Mko(k,srtecil) ! should we use hydrophobic too? 
     enddo
     
     ! print(kappa,rho_w,m_s/oa,rho_soa)
-    m_h2o = (kappa*rho_w*m_soa)/(density / 1000.0 * (1.0/RHTOMAS - 1.0))
+    m_h2o = (kappa*rho_w*m_soa)/(density / 1000.0d0 * (1.0d0/RHTOMAS - 1.0d0))
     !print*,'m_h2o =',m_h2o
     worg = m_soa /(m_soa + m_h2o)
     !print*,'worg =',worg
-    Tg = 289.10 - 16.50 * LOG10(C0) - 0.29 * ((LOG10(C0))**2 + 3.23*LOG10(C0)*(O_C))
+    Tg = 289.10d0 - 16.50d0 * LOG10(C0) - 0.29d0 * ((LOG10(C0))**2 + 3.23d0*LOG10(C0)*(O_C))
     !print*,'Tg =',Tg
-    Tg_worg = ((1-worg)*Tgw + 1.0/Kgt * worg*Tg)/((1.0-worg) + 1.0/Kgt * worg)
+    Tg_worg = ((1.0d0-worg)*Tgw + 1.0d0/Kgt * worg*Tg)/((1.0d0-worg) + 1.0d0/Kgt * worg)
     !print*,'Tg_worg =',Tg_worg
-    T0 = (39.17*Tg_worg)/(D_frag + 39.17)
+    T0 = (39.17d0*Tg_worg)/(D_frag + 39.17d0)
     !print*,'T0 =',T0
-    visc = EXP(-5.0 + 0.434*(T0*D_frag)/(TEMPTMS - T0))
+    visc = EXP(-5.0d0 + 0.434d0*(T0*D_frag)/(TEMPTMS - T0))
     !print*,'visc =',visc
-    Db = 1e13*(k_bolt*TEMPTMS)/(6.0*pi*alpha_nm*mu_c)*(mu_c/visc)**0.93
-    !Db = 4.4e-18
+    Db = 1.0d13*(k_bolt*TEMPTMS)/(6.0d0*pi*alpha_nm*mu_c)*(mu_c/visc)**0.93d0
+    !Db = 4.4d-18
     !print*,'Db =', Db,'[cm^2/s]'
      
-    alpha_o = alpha_s * 1./(1. + (alpha_s*w_mtv*C_gas)/(4.*Db*rho / 1000.0)*Xeff * 1e-12)
+    alpha_o = alpha_s * 1.d0/(1.d0 + (alpha_s*w_mtv*C_gas)/(4.d0*Db*rho / 1000.0d0)*Xeff * 1.0d-12)
     
     ! Print out values at a location
     !IF (I1.eq.17 .and. J1.eq.32 .and. L1.eq.1) THEN  ! SGP for 4x5
@@ -1755,35 +1755,26 @@ CONTAINS
     !         42.88,42.88/
     
     ! This is for sulfuric acid 
-    DATA alpha1 /0.65, 0.65, 0.65, 0.65, 0.65, &
-               0.65, 0.65, 0.65, 0.65, 0.65, &  
-               0.65, 0.65, 0.65, 0.65, 0.65 /
+    alpha1 = 0.65d0
 
     ! This is for organics
-    DATA alpha2 / 0.85130502, 0.78292181, 0.69438006, 0.58869641, 0.47414331, &
-        0.36224874, 0.26352727, 0.18394973, 0.12434507, 0.08211061, &
-        0.05334735, 0.03428351, 0.02187476, 0.00986375, 0.00312802 /
+    alpha2 =(/ 0.85130502d0, 0.78292181d0, 0.69438006d0, 0.58869641d0, 0.47414331d0, & 
+           0.36224874d0, 0.26352727d0, 0.18394973d0, 0.12434507d0, 0.08211061d0, &
+           0.05334735d0, 0.03428351d0, 0.02187476d0, 0.00986375d0, 0.00312802d0 /)
     
     ! This is for sulfuric acid 
-    DATA alpha3 /0.65, 0.65, 0.65, 0.65, 0.65, &
-               0.65, 0.65, 0.65, 0.65, 0.65, &  
-               0.65, 0.65, 0.65, 0.65, 0.65, &  
-               0.65, 0.65, 0.65, 0.65, 0.65, &  
-               0.65, 0.65, 0.65, 0.65, 0.65, &  
-               0.65, 0.65, 0.65, 0.65, 0.65, &  
-               0.65, 0.65, 0.65, 0.65, 0.65, &  
-               0.65, 0.65, 0.65, 0.65, 0.65 /
+    alpha3 = 0.65d0 
 
     ! This is for organics
-    DATA alpha4 /0.94183762, 0.92781132, 0.91072309, 0.89006908, 0.86534332, &
-                0.83608042, 0.80191395, 0.76264771, 0.71833177, 0.66932918, &
-                0.61635455, 0.56046624, 0.50300132, 0.445457  , 0.38933872, &
-                0.33600652, 0.28655174, 0.24172601, 0.20192779, 0.16723688, &
-                0.13747915, 0.11230238, 0.09124849, 0.07381348, 0.05949172, &
-                0.04780533, 0.03832105, 0.0306578 , 0.02448799, 0.01953482, &
-                0.01556753, 0.01239577, 0.00986375, 0.00784483, 0.00623654, &
-                0.00495632, 0.00393786, 0.00312802, 0.00248432, 0.00197281 /
-
+    alpha4 = (/                                                               &
+       0.94183762d0, 0.92781132d0, 0.91072309d0, 0.89006908d0, 0.86534332d0,  &
+       0.83608042d0, 0.80191395d0, 0.76264771d0, 0.71833177d0, 0.66932918d0,  &
+       0.61635455d0, 0.56046624d0, 0.50300132d0, 0.445457d0,   0.38933872d0,  &
+       0.33600652d0, 0.28655174d0, 0.24172601d0, 0.20192779d0, 0.16723688d0,  &
+       0.13747915d0, 0.11230238d0, 0.09124849d0, 0.07381348d0, 0.05949172d0,  &
+       0.04780533d0, 0.03832105d0, 0.0306578d0,  0.02448799d0, 0.01953482d0,  &
+       0.01556753d0, 0.01239577d0, 0.00986375d0, 0.00784483d0, 0.00623654d0,  &
+       0.00495632d0, 0.00393786d0, 0.00312802d0, 0.00248432d0, 0.00197281d0 /)
 
 ! SamO ==============================================
 #if defined(TOMAS12) || defined(TOMAS15)
@@ -1868,9 +1859,9 @@ CONTAINS
        Kn      = 2.0 * l_ab / Dpk(k)     !S&Pv2 chapter 12 - Kn for Dahneke correction factor
        
        ! SamO changed alpha index from spec to k for bins
-       !beta(k) = ( 1.+Kn )  / ( 1.+2.*Kn*(1.+Kn)/alpha(spec) )   !S&P eqn 11.35
-       beta(k) = ( 1.+Kn )  / ( 1.+2.*Kn*(1.+Kn)/alpha(k) )   !S&P eqn 11.35 
-    enddo
+       !beta(k) = ( 1.d0+Kn )  / ( 1.d0+2.d0*Kn*(1.d0+Kn)/alpha(spec) )   !S&P eqn 11.35
+        beta(k) = ( 1.0d0+Kn )  / ( 1.0d0+2.0d0*Kn*(1.d0+Kn)/alpha(k) )   !S&P eqn 11.35 
+     enddo
     
     ! get condensation sink
     CS = 0.e+0_fp
@@ -2013,10 +2004,10 @@ CONTAINS
        elseif (bin_nuc.eq.1)then
           max_H2SO4conc=1.0e+11_fp*boxvol/1000.e+0_fp*98.e+0_fp/6.022e+23_fp
        else
-          max_H2SO4conc = 1.0e+11*boxvol/1000.e+0_fp*98.e+0_fp/6.022e+23_fp  ! SamO changed this (was 1.0e+100_fp)
+          max_H2SO4conc = 1.0e+11_fp*boxvol/1000.0_fp*98.0_fp/6.022e+23_fp  ! SamO changed this (was 1.0e+100_fp)
        endif
     else
-       max_H2SO4conc = 1.0e+11*boxvol/1000.e+0_fp*98.e+0_fp/6.022e+23_fp  ! SamO Changed this
+       max_H2SO4conc = 1.0e+11_fp*boxvol/1000.0_fp*98.0_fp/6.022e+23_fp  ! SamO Changed this
     endif
 
     ! Checks for when condensation sink is very small
@@ -2025,12 +2016,7 @@ CONTAINS
       if (CS.gt.CSeps) then
          gasConc = H2SO4rate/CS
       else
-         !if((bin_nuc.gt.0).or.(tern_nuc.gt.0).or. (ion_nuc.gt.0))then
          gasConc = max_H2SO4conc
-         !else
-         !   print*,'condensation sink too small in getH2SO4conc'
-         !   STOP
-         !endif
       endif
     !endif  !SamO
     gasConc = min(gasConc,max_H2SO4conc)
@@ -2107,17 +2093,16 @@ CONTAINS
           res = H2SO4rate - CS*gasConc - massnuc
           !print*,'res',res
           !print*,'H2SO4rate',H2SO4rate,'CS',CS,'gasConc',gasConc
-          if (iter.eq.60.and.CS.gt.1.0e-4_fp)then
-             print*,'getH2SO4conc iter break'
-             print*,'H2SO4rate',H2SO4rate,'CS',CS
-             print*,'gasConc',gasConc,'massnuc',massnuc
-             print*,'max_H2SO4conc',max_H2SO4conc
-             print*,'fn',fn
-             print*,'res/H2SO4rate',res/H2SO4rate
-          endif
+          !if (iter.eq.60.and.CS.gt.1.0e-4_fp)then
+          !   print*,'getH2SO4conc iter break'
+          !   print*,'H2SO4rate',H2SO4rate,'CS',CS
+          !   print*,'gasConc',gasConc,'massnuc',massnuc
+          !   print*,'max_H2SO4conc',max_H2SO4conc
+          !   print*,'fn',fn
+          !   print*,'res/H2SO4rate',res/H2SO4rate
+          !endif
        enddo
 
-       !SamO
        !print*,'IN getH2SO4conc'
        !print*,'fn',fn
        !print*,'H2SO4rate',H2SO4rate
@@ -2244,8 +2229,7 @@ CONTAINS
     nh3ppt = Gci(srtnh4)/17.e+0_fp/(boxmass/29.e+0_fp)*1e+12_fp* &
              PRES/101325.*273./TEMPTMS ! corrected for pressure (because this should be concentration)
     nh3moleccm3 = Gci(srtnh4)/boxvol*1000.e+0_fp/17e+0_fp*6.022e+23_fp ! Changed by SamO
-
-    Mair = 2.69E19*273.15/TEMPTMS*PRES/101325.
+    Mair = 2.69E19_fp*273.15_fp/TEMPTMS*PRES/101325.0_fp
     fn = 0.e+0_fp
     fntemp1 = 0.e+0_fp   !SamO
     fntemp2 = 0.e+0_fp   !SamO
@@ -3112,7 +3096,6 @@ CONTAINS
     if (h2so4.gt.1.e+3_fp) then
        if (nh3ppt.gt.0.1.and.tern_nuc.eq.1) then
           call napa_nucl(TEMPTMS,RHTOMAS,h2so4,nh3ppt,fn,rnuc) !ternary nuc
-          !print*,'napa fn =',fn
           if (ion_nuc.eq.1.and.ionrate.ge.1.e+0_fp) then
              call ion_nucl(h2so4,surf_area,TEMPTMS,ionrate,RHTOMAS, &
                            h1,h2,h3,h4,h5,h6)
@@ -3125,7 +3108,6 @@ CONTAINS
           endif
        elseif (bin_nuc.eq.1) then
           call vehk_nucl(TEMPTMS,RHTOMAS,h2so4,fn,rnuc) !binary nuc
-          !print*,'vehk fn =',fn
           if ((ion_nuc.eq.1).and.(ionrate.ge.1.e+0_fp)) then
              call ion_nucl(h2so4,surf_area,TEMPTMS,ionrate,RHTOMAS, &
                            h1,h2,h3,h4,h5,h6)
@@ -3180,7 +3162,7 @@ CONTAINS
 
        if (ricc_nuc .eq. 1 .and. L1.lt.36) then ! SamO only organic nucleation 
                                                 ! in the troposphere
-!          tempin=dble(TEMPTMS)
+
 !          call getCondSink_kerm(Nki,Mki,CS,Dpmean,Dp1,dens1, &
 !                                BOXVOL, TEMPTMS, PRES)
 !          call getCondSink(Nki,Mki,srtso4,CS,sinkfrac,    & 
@@ -3424,8 +3406,8 @@ CONTAINS
       !nh3i = 1e10  !SamO
       temp=tempi   !SamO
       !temp=278.0
-      nh3=nh3i*1E-6 ! I think they want it in units of 1E6 molec cm-3
-      cna=cnai*1E-6
+      nh3=nh3i*1.0d-6 ! I think they want it in units of 1E6 molec cm-3
+      cna=cnai*1.0d-6
       !cna=1E7*1E-6  !SamO
       fion=fioni
       Mair=Mairi
@@ -3433,7 +3415,7 @@ CONTAINS
       !fion = 75.0 !SamO
 
 ! CALCULATE ION CONCENTRATION
-      alpha_ion = 6d-8*sqrt(300./temp) + 6d-26*Mair*(300./temp)**4 ! Need Mair in air molec per cm3
+      alpha_ion = 6.0d-8*sqrt(300.d0/temp) + 6.0d-26*Mair*(300.d0/temp)**4 ! Need Mair in air molec per cm3
       ionc = sqrt(fion/alpha_ion) ! assume that ion-ion recombination dominates from conversion with svensmakr, need to verify
 
 ! CALCULATE k VALUES
@@ -3443,19 +3425,19 @@ CONTAINS
       !kbi = exp(ubi - vbi*(temp/1000.))
       !kti = exp(uti - vti*(temp/1000.))
       ! Complex temperature dependence (comment out this or simple)
-      kbn = exp(ubn - exp(vbn*(temp/1000. - wbn)))
-      ktn = exp(utn - exp(vtn*(temp/1000. - wtn)))
-      kbi = exp(ubi - exp(vbi*(temp/1000. - wbi)))
-      kti = exp(uti - exp(vti*(temp/1000. - wti)))
+      kbn = exp(ubn - exp(vbn*(temp/1000.0d0 - wbn)))
+      ktn = exp(utn - exp(vtn*(temp/1000.0d0 - wtn)))
+      kbi = exp(ubi - exp(vbi*(temp/1000.0d0 - wbi)))
+      kti = exp(uti - exp(vti*(temp/1000.0d0 - wti)))
 
 
 ! CALCULATE f VALUES
-      if (nh3.gt.1d-10)then
+      if (nh3.gt.1.0d-10)then
          ffn = nh3*cna**ptn/(an + (cna**ptn)/(nh3**pAn))
          ffi = nh3*cna**pti/(ai + (cna**pti)/(nh3**pAi))
       else
-         ffn = 0.
-         ffi = 0.
+         ffn = 0.d0
+         ffi = 0.d0
       endif
 
 ! CALCULATE NUCLEATION RATES
@@ -7683,8 +7665,7 @@ CONTAINS
     MOCOB = 0.E0
     MSO4  = 0.E0
     MNACL = 0.E0
-    MDUST = 0.E0
-    
+
     IF ( id_ECIL01 > 0 .AND.id_OCIL01 > 0 .AND. id_OCOB01 > 0 ) THEN
        MECIL = Spc(id_ECIL01-1+BIN)%Conc(I,J,L)
        MOCIL = Spc(id_OCIL01-1+BIN)%Conc(I,J,L)
@@ -7702,14 +7683,7 @@ CONTAINS
     INACL = MIN(101, INT(XNACL*100)+1)
     IOCIL = MIN(101, INT(XOCIL*100)+1)
 
-     !IF (L == 1) print*, 'DEBUG GETACTBIN ISO4 INACL IOCIL MSO4 MNACL MTOT BIN:', &
-     !I, J, L, ISO4, INACL, IOCIL, MSO4, MNACL, MTOT,BIN, id_ECIL01-1+BIN, id_OCIL01-1+BIN, &
-     !id_OCOB01-1+BIN, id_SF01-1+BIN, id_SS01-1+BIN     
-     !IF (L == 1) print*, 'DEBUG MECIL MOCIL MOCOB MSO4 MDUST MNACL:', I, J, L, &
-     !MECIL, MOCIL, MOCOB, MSO4, MDUST, MNACL,MTOT,XOCIL,XSO4,XNACL,ISO4,INACL,IOCIL    
-     !print*, 'DEBUG IDs: id_ECIL01, id_OCIL01, id_OCOB01, id_SF01, id_SS01, IBINS:', &
-     !id_ECIL01, id_OCIL01, id_OCOB01, id_SF01, id_SS01, IBINS
-     !==========================================================
+    !==========================================================
     ! subroutine was written considering bin 1 is 10nm
     ! in TOMAS-40, bin 1 is 1nm and bin 11 is 10nm
     !==========================================================
