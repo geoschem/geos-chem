@@ -1372,10 +1372,25 @@ CONTAINS
           H2SO4_RATE(I,J,L) = 0.0d0
        ENDIF
 
+       !IF (H2SO4_RATE(I,J,L) > 0.0_fp .AND. L == 1) THEN
+       !   print*, 'DEBUG H2SO4_RATE I,J,L:', I, J, L, H2SO4_RATE(I,J,L)
+       !ENDIF
+       
+       ! DEBUG: check PSO4AQ accumulation after KPP integration
+       !IF (C(ind_PSO4AQ) > 1.0d4 .AND. L == 1) THEN
+       !   print*, 'DEBUG PSO4AQ C(ind_PSO4AQ) I,J,L:', I, J, L, C(ind_PSO4AQ)
+       !ENDIF
+       
+
        PSO4AQ_RATE(I,J,L) = C(ind_PSO4AQ) / AVO * 98.e-3_fp * &
                             State_Met%AIRVOL(I,J,L)    * &
                             1.0e+6_fp ! kg per timestep box-1
+        ! DEBUG
+        !IF (PSO4AQ_RATE(I,J,L) > 0.0_fp .AND. L == 1) THEN
+        !     print*, 'DEBUG PSO4AQ_RATE I,J,L:', I, J, L, PSO4AQ_RATE(I,J,L)
+        !ENDIF
 
+       
        IF ( PSO4AQ_RATE(I,J,L) < 0.0d0) THEN
           write(*,*) "PSO4AQ_RATE negative in fullchem_mod.F90", &
                I, J, L, "was:", PSO4AQ_RATE(I,J,L), "  setting to 0.0d0"
@@ -1771,7 +1786,7 @@ CONTAINS
 
     ! Assume success
     RC  = GC_SUCCESS
-
+      ! print*,'PREVIOUS units', previous_units
     ! Convert species to [kg]
     CALL Convert_Spc_Units(                                                  &
          Input_Opt      = Input_Opt,                                         &
@@ -1797,6 +1812,14 @@ CONTAINS
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
+            ! Zero private loop variables                                                                                                                                                                                            !betty test      
+       !BINACT1 = 0.0_fp
+       !BINACT2 = 0.0_fp
+       !KMIN    = 0.0_fp
+       !SO4OXID = 0.0_fp
+
+
+       
        ! Skip non-chemistry boxes
        IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
 
@@ -1807,6 +1830,9 @@ CONTAINS
 !       SO4OXID = PSO4_SO2AQ(I,J,L) * State_Met%AD(I,J,L) &
 !                 / ( AIRMW / State_Chm%SpcData(id_SO4)%Info%MW_g ) ! convert v/v to kg/box
 
+        !IF (PSO4AQ_RATE(I,J,L) > 0.0_fp .AND. L == 1) THEN
+        ! print*, 'DEBUG SO4OXID in TOMAS_SO4_AQ:', I, J, L, PSO4AQ_RATE(I,J,L)
+        ! ENDIF
        IF ( SO4OXID > 0e+0_fp ) THEN
           ! JKodros (6/2/15 - Set activating bin based on which TOMAS bin
           !length being used)
@@ -1829,10 +1855,14 @@ CONTAINS
 #endif
 
           KMIN = ( BINACT1 + BINACT2 )/ 2.
-
+          ! DEBUG
+          !IF (L == 1) print*, 'DEBUG KMIN BINACT1 BINACT2:', I, J, L, KMIN, BINACT1, BINACT2
           ! Indicate that we are NOT calling AqOxid from wetdep, which
           ! will avoid doing any further internal unit conversion (as
           ! units are already in kg here). -- Bob Yantosca (11 Apr 2024)
+        ! DEBUG
+          !IF (L == 1) print*, 'DEBUG calling AQOXID:', I, J, L, SO4OXID, KMIN
+
           CALL AqOxid(                                                       &
                I          = I,                                               &
                J          = J,                                               &
@@ -1860,7 +1890,8 @@ CONTAINS
          State_Met  = State_Met,                                             &
          new_units  = previous_units,                                        &
          RC         = RC                                                    )
-
+      !print *,'PREVIOUS at end', previous_units
+    
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error('Unit conversion error', RC, &
                      'End of TOMAS_SO4_AQ in sulfate_mod.F90')
@@ -2804,8 +2835,8 @@ CONTAINS
     id_SALC     = Ind_( 'SALC'         )
     id_SALCAL   = Ind_( 'SALCAL'       )
 #ifdef TOMAS
-    id_NK05     = Ind_( 'NK5'          )
-    id_NK08     = Ind_( 'NK8'          )
+    id_NK05     = Ind_( 'NK05'          )
+    id_NK08     = Ind_( 'NK08'          )
     id_NK10     = Ind_( 'NK10'         )
     id_NK20     = Ind_( 'NK20'         )
 #endif

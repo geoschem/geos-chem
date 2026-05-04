@@ -7683,7 +7683,8 @@ CONTAINS
     MOCOB = 0.E0
     MSO4  = 0.E0
     MNACL = 0.E0
-
+    MDUST = 0.E0
+    
     IF ( id_ECIL01 > 0 .AND.id_OCIL01 > 0 .AND. id_OCOB01 > 0 ) THEN
        MECIL = Spc(id_ECIL01-1+BIN)%Conc(I,J,L)
        MOCIL = Spc(id_OCIL01-1+BIN)%Conc(I,J,L)
@@ -7701,7 +7702,14 @@ CONTAINS
     INACL = MIN(101, INT(XNACL*100)+1)
     IOCIL = MIN(101, INT(XOCIL*100)+1)
 
-    !==========================================================
+     !IF (L == 1) print*, 'DEBUG GETACTBIN ISO4 INACL IOCIL MSO4 MNACL MTOT BIN:', &
+     !I, J, L, ISO4, INACL, IOCIL, MSO4, MNACL, MTOT,BIN, id_ECIL01-1+BIN, id_OCIL01-1+BIN, &
+     !id_OCOB01-1+BIN, id_SF01-1+BIN, id_SS01-1+BIN     
+     !IF (L == 1) print*, 'DEBUG MECIL MOCIL MOCOB MSO4 MDUST MNACL:', I, J, L, &
+     !MECIL, MOCIL, MOCOB, MSO4, MDUST, MNACL,MTOT,XOCIL,XSO4,XNACL,ISO4,INACL,IOCIL    
+     !print*, 'DEBUG IDs: id_ECIL01, id_OCIL01, id_OCOB01, id_SF01, id_SS01, IBINS:', &
+     !id_ECIL01, id_OCIL01, id_OCOB01, id_SF01, id_SS01, IBINS
+     !==========================================================
     ! subroutine was written considering bin 1 is 10nm
     ! in TOMAS-40, bin 1 is 1nm and bin 11 is 10nm
     !==========================================================
