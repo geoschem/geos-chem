@@ -134,8 +134,10 @@ Mask fractions:              false
     --> AnalyticalInversion    :       false
     --> UseTotalPriorEmis      :       false    # Skips global/regional inventories
     --> Emis_PosteriorSF       :       false    # Apply posterior scale factors to total emis?
+# ----- BIOMASS BURNING EMISSIONS ---------------------------------------------
+    --> GFAS                   :       true    # 2003-2025
 # -----------------------------------------------------------------------------
-111     GFED                   : on    CH4/CO/CO2
+111     GFED                   : off   CH4/CO/CO2
     --> GFED4                  :       true
     --> GFED_daily             :       true
     --> GFED_3hourly           :       false
@@ -816,7 +818,7 @@ Mask fractions:              false
 
 # --- GFAS ---
 (((GFAS
-0 GFAS_CO $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc cofire 2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s CO 75 5 3
+0 GFAS_CO    $ROOT/GFAS/v2025-05/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc cofire        2003-2025/1-12/1-31/0 EFY xyz kg/m2/s CO   75       5 3
 )))GFAS
 
 # --- FINNv2.5 biomass burning ---

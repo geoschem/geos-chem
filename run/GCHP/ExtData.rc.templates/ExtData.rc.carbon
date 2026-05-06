@@ -331,6 +331,12 @@ OCS_BIOMASS       kgS/km2/s N Y F%y4-%m2-01T00:00:00 none 1.0e-6 COS_Flux ./HcoD
 OCS_MISSING_OCEAN kgS/km2/s N Y F%y4-%m2-01T00:00:00 none 1.0e-6 COS_Flux ./HcoDir/OCS_FLUX/v2022-11/MissingOcean/LUKAI/%y4/%m2.nc
 OCS_OCEAN         kgS/km2/s N Y F%y4-%m2-01T00:00:00 none 1.0e-6 COS_Flux ./HcoDir/OCS_FLUX/v2022-11/OceanCOS/Kettle/%y4/%m2.nc
 
+
+#==============================================================================
+# --- GFAS biomass burning (GFAS) ---
+#==============================================================================
+GFAS_CO    kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none cofire        ./HcoDir/GFAS/v2025-05/%y4/%m2/GFAS-smoke-%y4%m2%d2.nc
+
 ###############################################################################
 ###
 ### HEMCO Extension Data (update if HEMCO_Config.rc changes)
