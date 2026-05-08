@@ -8,9 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Changed
 - Changed `NK5` to `NK05` and `NK8` to `NK08` in `fullchem_mod.F90` to fix missing leading zero bug for TOMAS
 - Renamed GCHP history diagnostics for upwards mass flux to remove the `_R4` suffix
+- Updated utility script `run/shared/rtd_species_by_simulation.py` to read the `species_database.yml` for Hg simulations
 
 ### Fixed
-- Restored missing line `CH4_BBN:` to `run/shared/species_database.yml
+- Restored missing line `CH4_BBN:` to `run/shared/species_database.yml`
 
 ## [14.7.1] - 2026-04-08
 ### Added
