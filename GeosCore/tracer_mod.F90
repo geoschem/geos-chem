@@ -1,7 +1,11 @@
 ! Might actually not need this (ewl)
-!#if defined( MODEL_GEOS ) || defined( MODEL_GCHP )
-!#include "MAPL.h"
-!#endif
+#ifdef MAPL_ESMF
+#ifdef MAPL3
+#include "MAPL.h"
+#else
+#include "MAPL_Generic.h"
+#endif
+#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -71,8 +75,13 @@ CONTAINS
     USE UnitConv_Mod
 
 #ifdef MAPL_ESMF
-    !USE ESMF ! is this needed?
-    USE MAPL_CommsMod, only: MAPL_CommsAllReduceSum ! Does this still work in mapl3?
+    USE ESMF
+#ifdef MAPL3
+    USE MAPL_CommsMod, only: MAPL_CommsAllReduceSum
+#else
+    USE MAPL
+    USE MAPL_CommsMod, only: MAPL_CommsAllReduceSum
+#endif
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -120,7 +129,7 @@ CONTAINS
     ! Objects
     TYPE(Species), POINTER :: SpcInfo
 
-#if defined( MODEL_GEOS ) || defined( MODEL_GCHP )
+#ifdef MAPL_ESMF
     INTEGER       :: status
     TYPE(ESMF_VM) :: vm
 #endif
@@ -140,7 +149,7 @@ CONTAINS
     Total_Spc   = 0.0_fp
     Flux        = 0.0_fp
 
-#if defined( MODEL_GEOS ) || defined( MODEL_GCHP )
+#ifdef MAPL_ESMF
     call ESMF_VmGetCurrent(vm, rc=status)
     _VERIFY(status)
 #endif

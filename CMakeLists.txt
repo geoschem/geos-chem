@@ -87,9 +87,12 @@ if(MODEL_GCHP)
   set(KPPSA OFF CACHE BOOL
     "Switch to build the KPP-Standalone Box Model"
   )
+  set(MAPL3 OFF CACHE BOOL
+    "Switch to build with MAPL3 rather than MAPL2"
+  )
   
   # Local variables
-  set(GTMM                    FALSE)
+  set(GTMM FALSE)
   set(MECH "fullchem" CACHE STRING "Name of the chemistry mechanism to use")
   
   # Configure build properties for GEOS-Chem
@@ -98,7 +101,6 @@ if(MODEL_GCHP)
     MODEL_GCHP
     USE_ESMF
     MAPL_ESMF
-    MAPL3
     EXTERNAL_GRID
     NC_HAS_COMPRESSION
     $<$<BOOL:${USE_REAL8}>:USE_REAL8> $<$<BOOL:${RRTMG}>:RRTMG>
@@ -109,6 +111,7 @@ if(MODEL_GCHP)
     $<$<STREQUAL:${TOMAS_BINS},40>:TOMAS40>
     $<$<BOOL:${LUO_WETDEP}>:LUO_WETDEP>
     $<$<BOOL:${FASTJX}>:FASTJX>
+    $<$<BOOL:${MAPL3}>:MAPL3>
   )
   
   if(NOT MAPL3)
