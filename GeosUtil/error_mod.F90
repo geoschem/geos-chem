@@ -1,7 +1,9 @@
+#ifdef MAPL_ESMF
 #ifdef MAPL3
 #include "MAPL.h"
 #else
-#include"MAPL_Generic.h"
+#include "MAPL_Generic.h"
+#endif
 #endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -255,7 +257,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( LINUX_GFORTRAN )
+#if defined( LINUX_GFORTRAN )
 
     IT_IS_A_FINITE = ((.not.ISNAN(VALUE)) .and. &
                       (VALUE.lt.HUGE(1.d0)) .and. &

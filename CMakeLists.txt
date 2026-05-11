@@ -34,9 +34,13 @@ message("=================================================================")
 #
 # Optionally, super project can define and configure this target.
 #-----------------------------------------------------------------------------
-#if(NOT TARGET GEOSChemBuildProperties)
+if(MODEL_GCHP)
+  add_library(GEOSChemBuildProperties INTERFACE)
+else()
+  if(NOT TARGET GEOSChemBuildProperties)
     add_library(GEOSChemBuildProperties INTERFACE)
-#endif()
+  endif()
+endif()
 
 #-----------------------------------------------------------------------------
 # Add all the subdirectories.
@@ -67,6 +71,8 @@ if(MODEL_GCHP)
   add_subdirectory(Interfaces/GCHP)
 endif()
 
+# This next part is in the GCHP repo if using MAPL2
+if(MAPL3)
 #-----------------------------------------------------------------------------
 # Additional GEOS-Chem settings if using GCHP (all necessary?)
 #-----------------------------------------------------------------------------
@@ -247,3 +253,4 @@ if(MODEL_GCHP)
   gc_pretty_print(VARIABLE KPPSA IS_BOOLEAN)
 endif()
 
+endif()

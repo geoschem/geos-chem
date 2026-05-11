@@ -21,11 +21,13 @@ MODULE inquireMod
 !
 ! !USES:
 !
+#ifdef MAPL_ESMF
+  USE ESMF
 #ifdef MAPL3
   USE mapl_ErrorHandlingMod, only: MAPL_Verify
 #else
-  USE ESMF
   USE MAPL_Mod
+#endif
 #endif
 
   IMPLICIT NONE
