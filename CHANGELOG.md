@@ -16,7 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added code blocks for MAPL3 code in development
 - Added GCHP utility script extractPerformance.sh to scrape allPEs.log for timing summary in GCHP run directories
 - Added GCHP build scripts to GCHP runScriptSamples for Harvard
-- Added 3D GFAS emission entries in `HEMCO_Config.rc` and `ExtData.rc`
+- Added 3D GFAS emission entries in `HEMCO_Config.rc` and `ExtData.rc` (including emission factors for species only in GFED4)
 
 ### Changed
 - Renamed `State_Chm%Isorrop*` fields to `State_Chm%Ate*` (aerosol thermodynamical equilibrium), as ISORROPIA is no longer used
@@ -28,6 +28,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated the minimum version of KPP needed to build the fullchem mechanism from 3.2.0 to 3.4.0
 - Changed C-preprocessor switch `MODEL_` to `MODEL_EXTERNAL`, and `ESMF_` to `USE_ESMF`
 - Changed default fire emission inventory to GFAS
+- Changed default fire emission inventory from GFED to GFAS
+- Updated ExtNr and Cat for biomass burning entries in template `HEMCO_Diagn.rc` files
 
 ### Fixed
 - Fixed incorrect variable names and removed unused variables in `NcdfUtil/ncdf_mod.F90`

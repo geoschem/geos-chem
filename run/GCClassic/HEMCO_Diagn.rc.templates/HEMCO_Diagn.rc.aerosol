@@ -31,11 +31,11 @@
 EmisBCPI_Total     BCPI   -1     -1  -1   3   kg/m2/s  BCPI_emission_flux_from_all_sectors
 EmisBCPI_Aircraft  BCPI   0      20  -1   3   kg/m2/s  BCPI_emission_flux_from_aircraft
 EmisBCPI_Anthro    BCPI   0      1   -1   3   kg/m2/s  BCPI_emission_flux_from_anthropogenic
-EmisBCPI_BioBurn   BCPI   111    -1  -1   2   kg/m2/s  BCPI_emission_flux_from_biomass_burning
+EmisBCPI_BioBurn   BCPI   0      5   -1   2   kg/m2/s  BCPI_emission_flux_from_biomass_burning
 EmisBCPI_Ship      BCPI   0      10  -1   2   kg/m2/s  BCPI_emission_flux_from_ships
 EmisBCPO_Total     BCPO   -1     -1  -1   3   kg/m2/s  BCPO_emission_flux_from_all_sectors
 EmisBCPO_Anthro    BCPO   0      1   -1   3   kg/m2/s  BCPO_emission_flux_from_anthropogenic
-EmisBCPO_BioBurn   BCPO   111    -1  -1   2   kg/m2/s  BCPO_emission_flux_from_biomass_burning
+EmisBCPO_BioBurn   BCPO   0      5   -1   2   kg/m2/s  BCPO_emission_flux_from_biomass_burning
 EmisBCPO_Ship      BCPO   0      10  -1   2   kg/m2/s  BCPO_emission_flux_from_ships
 
 ###############################################################################
@@ -68,13 +68,13 @@ EmisDSTbin7_Natural   DSTbin7   0      3   -1   2   kg/m2/s  DSTbin7_emission_fl
 ###############################################################################
 #####  LIMO emissions                                                     #####
 ###############################################################################
-EmisLIMO_Biogenic  LIMO   0      3   -1   2   kg/m2/s  LIMO_emission_flux_from_biogenic_sources
+EmisLIMO_Biogenic  LIMO   0      3    -1   2   kg/m2/s  LIMO_emission_flux_from_biogenic_sources
 
 ###############################################################################
 #####  MTPA emissions                                                     #####
 ###############################################################################
 EmisMTPA_Total     MTPA   -1     -1  -1   3   kg/m2/s  MTPA_emission_flux_from_all_sectors
-EmisMTPA_BioBurn   MTPA   111    -1  -1   2   kg/m2/s  MTPA_emission_flux_from_biomass_burning
+EmisMTPA_BioBurn   MTPA   0      5   -1   2   kg/m2/s  MTPA_emission_flux_from_biomass_burning
 EmisMTPA_Biogenic  MTPA   0      3   -1   2   kg/m2/s  MTPA_emission_flux_from_biogenic_sources
 
 ###############################################################################
@@ -87,7 +87,7 @@ EmisMTPO_Biogenic  MTPO   0      3   -1   2   kg/m2/s  MTPO_emission_flux_from_b
 ###############################################################################
 EmisNH3_Total      NH3    -1     -1  -1   3   kg/m2/s  NH3_emission_flux_from_all_sectors
 EmisNH3_Anthro     NH3    0      1   -1   3   kg/m2/s  NH3_emission_flux_from_anthropogenic
-EmisNH3_BioBurn    NH3    111    -1  -1   2   kg/m2/s  NH3_emission_flux_from_biomass_burning
+EmisNH3_BioBurn    NH3    0      5   -1   2   kg/m2/s  NH3_emission_flux_from_biomass_burning
 EmisNH3_Natural    NH3    0      3   -1   2   kg/m2/s  NH3_emission_flux_from_natural_sources
 EmisNH3_Seabirds   NH3    0      30  -1   2   kg/m2/s  NH3_emission_flux_from_seabirds
 EmisNH3_Ship       NH3    0      10  -1   2   kg/m2/s  NH3_emission_flux_from_ships
@@ -98,11 +98,11 @@ EmisNH3_Ship       NH3    0      10  -1   2   kg/m2/s  NH3_emission_flux_from_sh
 EmisOCPI_Total     OCPI   -1     -1  -1   3   kg/m2/s  OCPI_emission_flux_from_all_sectors
 EmisOCPI_Aircraft  OCPI   0      20  -1   3   kg/m2/s  OCPI_emission_flux_from_aircraft
 EmisOCPI_Anthro    OCPI   0      1   -1   3   kg/m2/s  OCPI_emission_flux_from_anthropogenic
-EmisOCPI_BioBurn   OCPI   111    -1  -1   2   kg/m2/s  OCPI_emission_flux_from_biomass_burning
+EmisOCPI_BioBurn   OCPI   0      5  -1   2   kg/m2/s  OCPI_emission_flux_from_biomass_burning
 EmisOCPI_Ship      OCPI   0      10  -1   2   kg/m2/s  OCPI_emission_flux_from_ships
 EmisOCPO_Total     OCPO   -1     -1  -1   3   kg/m2/s  OCPO_emission_flux_from_all_sectors
 EmisOCPO_Anthro    OCPO   0      1   -1   3   kg/m2/s  OCPO_emission_flux_from_anthropogenic
-EmisOCPO_BioBurn   OCPO   111    -1  -1   2   kg/m2/s  OCPO_emission_flux_from_biomass_burning
+EmisOCPO_BioBurn   OCPO   0      5   -1   2   kg/m2/s  OCPO_emission_flux_from_biomass_burning
 EmisOCPO_Ship      OCPO   0      10  -1   2   kg/m2/s  OCPO_emission_flux_from_ships
 
 ###############################################################################
@@ -110,7 +110,7 @@ EmisOCPO_Ship      OCPO   0      10  -1   2   kg/m2/s  OCPO_emission_flux_from_s
 ###############################################################################
 EmispFe_Total      pFe    -1     -1  -1   3   kg/m2/s  pFe_emission_flux_from_all_sectors
 EmispFe_Anthro     pFe    0      1   -1   3   kg/m2/s  pFe_emission_flux_from_anthropogenic
-EmispFe_BioBurn    pFe    111    -1  -1   2   kg/m2/s  pFe_emission_flux_from_GFED_inventory
+EmispFe_BioBurn    pFe    0      5   -1   2   kg/m2/s  pFe_emission_flux_from_GFED_inventory
 EmispFe_Ship       pFe    0      10  -1   2   kg/m2/s  pFe_emission_flux_from_ships
 
 ###############################################################################
@@ -135,7 +135,7 @@ EmisSALCCL_Natural  SALCCL 0      3   -1   2   kg/m2/s  SALCCL_emission_flux_fro
 EmisSO2_Total      SO2    -1     -1  -1   3   kg/m2/s  SO2_emission_flux_from_all_sectors
 EmisSO2_Aircraft   SO2    0      20  -1   3   kg/m2/s  SO2_emission_flux_from_aircraft
 EmisSO2_Anthro     SO2    0      1   -1   3   kg/m2/s  SO2_emission_flux_from_anthropogenic
-EmisSO2_BioBurn    SO2    111    -1  -1   2   kg/m2/s  SO2_emission_flux_from_biomass_burning
+EmisSO2_BioBurn    SO2    0      5   -1   2   kg/m2/s  SO2_emission_flux_from_biomass_burning
 EmisSO2_VolcErupt  SO2    117    51  -1   3   kg/m2/s  SO2_emission_flux_from_eruptive_volcano
 EmisSO2_VolcDegas  SO2    117    52  -1   3   kg/m2/s  SO2_emission_flux_from_noneruptive_volcano
 EmisSO2_Ship       SO2    0      10  -1   2   kg/m2/s  SO2_emission_flux_from_ships
@@ -155,7 +155,7 @@ EmisSOAP_Total     SOAP   -1     -1  -1   3   kg/m2/s  SOAP_emission_flux_from_a
 EmisSOAP_Aircraft  SOAP   0      20  -1   3   kg/m2/s  SOAP_emission_flux_from_aircraft
 EmisSOAP_Anthro    SOAP   0      1   -1   3   kg/m2/s  SOAP_emission_flux_from_anthropogenic
 EmisSOAP_Biogenic  SOAP   0      3   -1   2   kg/m2/s  SOAP_emission_flux_from_monoterpenes
-EmisSOAP_BioBurn   SOAP   111    -1  -1   2   kg/m2/s  SOAP_emission_flux_from_biomass_burning
+EmisSOAP_BioBurn   SOAP   0      5   -1   2   kg/m2/s  SOAP_emission_flux_from_biomass_burning
 EmisSOAP_Ship      SOAP   0      10  -1   2   kg/m2/s  SOAP_emission_flux_from_ships
 
 ###############################################################################
