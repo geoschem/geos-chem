@@ -1,4 +1,8 @@
+#ifdef MAPL3
 #include "MAPL.h"
+#else
+#include "MAPL_Generic.h"
+#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------

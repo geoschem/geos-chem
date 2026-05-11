@@ -1,5 +1,8 @@
+#ifdef MAPL3
 #include "MAPL.h"
-
+#else
+#include "MAPL_Generic.h"
+#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
@@ -2480,8 +2483,8 @@ CONTAINS
        !CALL GetHcoState( HcoState )
        _ASSERT(ASSOCIATED(HcoState),'HcoState is not associated')
        HcoState%GRIDCOMP => GC
-       HcoState%IMPORT   => IMPORT
-       HcoState%EXPORT   => EXPORT
+       HcoState%importState   => IMPORT
+       HcoState%exportState   => EXPORT
        !HcoState => NULL()
 
 #endif
@@ -2494,8 +2497,8 @@ CONTAINS
    ! Link HEMCO state to gridcomp objects
    ASSERT_(ASSOCIATED(HcoState))
    HcoState%GRIDCOMP => GC
-   HcoState%IMPORT   => IMPORT
-   HcoState%EXPORT   => EXPORT
+   HcoState%importState   => IMPORT
+   HcoState%exportState   => EXPORT
 #endif
 #ifdef ADJOINT
        call MAPL_GetPointer( IMPORT, CostFuncMask, &
@@ -3343,8 +3346,8 @@ CONTAINS
 #if defined( MODEL_GEOS )
     ! Unlink HEMCO state from gridcomp objects
     HcoState%GRIDCOMP => NULL()
-    HcoState%IMPORT   => NULL()
-    HcoState%EXPORT   => NULL()
+    HcoState%importState   => NULL()
+    HcoState%exportState   => NULL()
 #endif
 
     ! Successful return
@@ -3525,8 +3528,8 @@ CONTAINS
     ! Link HEMCO state to gridcomp objects
     _ASSERT(ASSOCIATED(HcoState),'HcoState is not associated')
     HcoState%GRIDCOMP => GC
-    HcoState%IMPORT   => IMPORT
-    HcoState%EXPORT   => EXPORT
+    HcoState%importState   => IMPORT
+    HcoState%exportState   => EXPORT
 #endif
 
 #ifdef ADJOINT
