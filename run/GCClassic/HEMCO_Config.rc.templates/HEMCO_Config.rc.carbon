@@ -816,7 +816,9 @@ Mask fractions:              false
 
 # --- GFAS ---
 (((GFAS
-0 GFAS_CO    $ROOT/GFAS/v2025-05/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc cofire        2003-2025/1-12/1-31/0 EFY xyz kg/m2/s CO   75       5 3
+0 GFAS_CO    $ROOT/GFAS/v2025-05/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc cofire        2003-2100/1-12/1-31/0 EFY xyz kg/m2/s CO   75       5 3
+0 GFAS_CO    $ROOT/GFAS/v2025-05/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc cofire        2003-2100/1-12/1-31/0 EFY xyz kg/m2/s CO   75       5 3
+0 GFAS_CO    $ROOT/GFAS/v2025-05/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc cofire        2003-2100/1-12/1-31/0 EFY xyz kg/m2/s CO   75       5 3
 )))GFAS
 
 # --- FINNv2.5 biomass burning ---

@@ -40,6 +40,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Removed obsolete code in dust_mod.F90
 - Removed unused subroutine I_Am_UnOPENed in inquireMod.F90
 
+### Removed
+- Removed `GFAS_EMITL` scale factor from `HEMCO_Config.rc` templates, it is no longer needed
+
 ## [14.7.1] - 2026-04-08
 ### Added
 - Added `HTAP_SHIP` toggle in `HEMCO_Config.rc.carbon` templates for GC-Classic and GCHP
