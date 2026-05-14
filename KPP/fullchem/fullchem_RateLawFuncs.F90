@@ -25,7 +25,7 @@ MODULE fullchem_RateLawFuncs
 !
 ! !DEFINED PARAMETERS:
 !
-  ! Indices for aerosol type (1 .. NAEROTYPE=14)
+  ! Indices for aerosol type (1 .. NAEROTYPE=15)
   INTEGER,  PRIVATE, PARAMETER :: DU1            = 1  ! Dust (Reff = 0.151 um)
   INTEGER,  PRIVATE, PARAMETER :: DU2            = 2  ! Dust (Reff = 0.253 um)
   INTEGER,  PRIVATE, PARAMETER :: DU3            = 3  ! Dust (Reff = 0.402 um)
@@ -38,8 +38,9 @@ MODULE fullchem_RateLawFuncs
   INTEGER,  PRIVATE, PARAMETER :: ORC            = 10 ! Organic Carbon
   INTEGER,  PRIVATE, PARAMETER :: SSA            = 11 ! Accum-mode sea salt
   INTEGER,  PRIVATE, PARAMETER :: SSC            = 12 ! Coarse-mode sea salt
-  INTEGER,  PRIVATE, PARAMETER :: SLA            = 13 ! Strat sulfate liq aer
-  INTEGER,  PRIVATE, PARAMETER :: IIC            = 14 ! Irregular ice cloud
+  INTEGER,  PRIVATE, PARAMETER :: BRC            = 13 ! Brown carbon
+  INTEGER,  PRIVATE, PARAMETER :: SLA            = 14 ! Strat sulfate liq aer
+  INTEGER,  PRIVATE, PARAMETER :: IIC            = 15 ! Irregular ice cloud
 
   ! Indices for Fine and Coarse sea-salt indices
   INTEGER,  PRIVATE, PARAMETER :: SS_FINE        = 1
@@ -1481,6 +1482,7 @@ CONTAINS
     k = k + Ars_L1k( H%xArea(ORC), H%xRadi(ORC), H%gamma_HO2, srMw )
     k = k + Ars_L1k( H%xArea(SSA), H%xRadi(SSA), H%gamma_HO2, srMw )
     k = k + Ars_L1k( H%xArea(SSC), H%xRadi(SSC), H%gamma_HO2, srMw )
+    k = k + Ars_L1k( H%xArea(BRC), H%xRadi(BRC), H%gamma_HO2, srMw )
   END FUNCTION HO2uptk1stOrd
 
   !=========================================================================

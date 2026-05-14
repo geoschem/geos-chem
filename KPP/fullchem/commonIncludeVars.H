@@ -94,8 +94,8 @@
   !$OMP THREADPRIVATE( K_CLD )
 
   ! Liquid water conversion factor
-  ! - Size = number of aerosol types (nAeroType)
-  REAL(dp) :: CVFAC(14)
+  ! - Size = number of aerosol types (nAeroType = 15 with BrC aerosol)
+  REAL(dp) :: CVFAC(15)
   !$OMP THREADPRIVATE( CVFAC )
 
   ! Proton activity [unitless] and H+ concentration [M]
@@ -191,11 +191,11 @@
      REAL(dp) :: vAir           ! Volume of air [cm3]
      REAL(dp) :: vIce           ! Ice volume [cm3]
      REAL(dp) :: vLiq           ! Liquid volume [cm3]
-     REAL(dp) :: wetArea(14)    ! Aerosol specific wet sfc area [cm2/cm3]
-     REAL(dp) :: xArea(14)      ! Aerosol specific sfc area  [cm2/cm3]
-     REAL(dp) :: xH2O(14)       ! Aerosol water content [cm3/cm3]
-     REAL(dp) :: xRadi(14)      ! Aerosol effective radius [cm]
-     REAL(dp) :: xVol(14)       ! Aerosol specific volume [cm3/cm3]
+     REAL(dp) :: wetArea(15)    ! Aerosol specific wet sfc area [cm2/cm3]
+     REAL(dp) :: xArea(15)      ! Aerosol specific sfc area  [cm2/cm3]
+     REAL(dp) :: xH2O(15)       ! Aerosol water content [cm3/cm3]
+     REAL(dp) :: xRadi(15)      ! Aerosol effective radius [cm]
+     REAL(dp) :: xVol(15)       ! Aerosol specific volume [cm3/cm3]
      !
      ! Additional fields only used by the Hg simulation
      !

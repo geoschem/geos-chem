@@ -272,7 +272,7 @@ MODULE CARBON_MOD
   INTEGER :: id_TSOG3,   id_XYLE,   id_LBRO2N, id_LBRO2H, id_LTRO2N
   INTEGER :: id_LTRO2H,  id_LXRO2N, id_LXRO2H, id_LNRO2N, id_LNRO2H
   INTEGER :: id_LISOPOH, id_LISOPNO3
-  INTEGER :: id_SOAS,    id_SOAP
+  INTEGER :: id_SOAS,    id_SOAP,   id_BRC
 
 #ifdef APM
   REAL(fp), ALLOCATABLE :: BCCONVNEW(:,:,:)
@@ -7676,6 +7676,7 @@ CONTAINS
    id_OH       = IND_('OH'      )
    id_OCPO     = IND_('OCPO'    )
    id_OCPI     = IND_('OCPI'    )
+   id_BRC      = IND_('BRC'     )
    id_OPOA1    = IND_('OPOA1'   )
    id_OPOG1    = IND_('OPOG1'   )
    id_OPOA2    = IND_('OPOA2'   )
