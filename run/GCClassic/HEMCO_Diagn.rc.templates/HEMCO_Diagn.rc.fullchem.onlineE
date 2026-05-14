@@ -12,13 +12,33 @@
 # !REMARKS:
 #  For more information about HEMCO diagnostics, see hemco.readthedocs.io.
 #
-#  NOTES FOR BIOMASS BURNING:
-#  1. For GFED extension,    set ExtNr = 111, Cat = -1, Hier = -1.
-#  2. For offline emissions, set ExtNr = 0,   Cat =  5, Hier = -1
+#  ATTENTION!  If you switch between online and offline emissions, you
+#  will need to adjust the following diagnostic entries as described here:
 #
-# !REVISION HISTORY:
-#  13 Feb 2018 - E. Lundgren - Initial version
-#  See https://github.com/geoschem/geos-chem for complete history
+#  Biogenic emissions (Emis*_Biogenic)
+#  ------------------------------------------------------------------------
+#  1. If using MEGAN extension        : set ExtNr = 108, Cat = -1, Hier = -1
+#  2. If using OFFLINE_BIOGENICVOC    : set ExtNr = 0,   Cat = 4,  Hier = -1
+#
+#  Biomass emissions (Emis*_BioBurn)
+#  -------------------------------------------------------------------------
+#  1. If using GFED extension         : set ExtNr = 111, Cat = -1, Hier = -1
+#  2. If using GFAS, FINNv25, FINNv25 : set ExtNr = 0,   Cat =  5, Hier = -1
+#
+#  Dust emissions(EmisDSTbin*_Natural)
+#  -------------------------------------------------------------------------
+#  1. If using DustL23M extension     : set ExtNr = 125, Cat = -1, Hier = -1
+#  2. If using OFFLINE_DUST           : set ExtNr = 0,   Cat = 3,  Hier = -1
+#
+#  Sea salt emissions (Emis*SAL*_Natural)
+#  -------------------------------------------------------------------------
+#  1. If using SeaSalt extension      : set ExtNr = 107, Cat = -1, Hier = -1
+#  2. If using OFFLINE_SEASALT        : set ExtNr = 0,   Cat = 3,  Hier = -1 
+#
+#  Soil NOx emissions (EmisNO_Soil)
+#  -------------------------------------------------------------------------
+#  1. If using SoilNOx extension      : set ExtNr = 104, Cat = -1, Hier = -1
+#  2. If using OFFLINE_SOILNOX        : set ExtNr = 0,   Cat = 3,  Hier = -1
 #EOP
 #------------------------------------------------------------------------------
 #BOC

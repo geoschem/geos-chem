@@ -127,7 +127,7 @@ VerboseOnCores:              root       # Accepted values: root all
     --> CMIP6_SHIP             :       false    # 1850-2100
 # ----- BIOMASS BURNING EMISSIONS ---------------------------------------------
     --> QFED2                  :       false    # 2000-2020
-    --> GFAS                   :       true     # 2003-2021
+    --> GFAS                   :       false    # 2003-2021
     --> BB4MIPS                :       false    # 1850-2100
 # ----- OFFLINE EMISSIONS -----------------------------------------------------
 # To use online emissions instead set the offline emissions to 'false' and the
@@ -197,7 +197,7 @@ VerboseOnCores:              root       # Accepted values: root all
     --> Monoterp to SOAS       :       0.050
     --> Othrterp to SOAP       :       0.050
     --> Othrterp to SOAS       :       0.050
-111     GFED                   : off    NO/CO/ALK4/ACET/MEK/ALD2/PRPE/C2H2/C2H4/C3H8/CH2O/C2H6/SO2/NH3/BCPO/BCPI/OCPO/OCPI/POG1/POG2/MTPA/BENZ/TOLU/XYLE/NAP/EOH/MOH/SOAP/FURA/PHEN/MVK/ISOP/ACTA/MGLY/GLYX/RCHO/HCOOH/ACR/STYR/C4H6
+111     GFED                   : on    NO/CO/ALK4/ACET/MEK/ALD2/PRPE/C2H2/C2H4/C3H8/CH2O/C2H6/SO2/NH3/BCPO/BCPI/OCPO/OCPI/POG1/POG2/MTPA/BENZ/TOLU/XYLE/NAP/EOH/MOH/SOAP/FURA/PHEN/MVK/ISOP/ACTA/MGLY/GLYX/RCHO/HCOOH/ACR/STYR/C4H6
     --> GFED4                  :       true
     --> GFED_daily             :       false
     --> GFED_3hourly           :       false

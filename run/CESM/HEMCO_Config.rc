@@ -127,7 +127,7 @@ VerboseOnCores:              root       # Accepted values: root all
     --> CMIP6_SHIP             :       false    # 1850-2100
 # ----- BIOMASS BURNING EMISSIONS ---------------------------------------------
     --> QFED2                  :       false    # 2000-2020
-    --> GFAS                   :       true     # 2003-2025
+    --> GFAS                   :       false    # 2003-2025
     --> BB4MIPS                :       false    # 1850-2100
     --> GFED4_CLIMATOLOGY      :       false    # If true, turn off GFED ext below
 # ----- OFFLINE EMISSIONS -----------------------------------------------------
@@ -200,7 +200,7 @@ VerboseOnCores:              root       # Accepted values: root all
     --> Othrterp to SOAS       :       0.050
 # For CESM: (1) use bc_a4 and pom_a4 instead of BCPO, BCPI, OCPO, and OCPI in GFED, and
 # (2) add scaling for bc_a4 and pom_a4
-111     GFED                   : off    NO/CO/ALK4/ACET/MEK/ALD2/PRPE/C2H2/C2H4/C3H8/CH2O/C2H6/SO2/NH3/bc_a4/pom_a4/POG1/POG2/MTPA/BENZ/TOLU/XYLE/NAP/EOH/MOH/SOAP/FURA/PHEN/MVK/ISOP/ACTA/MGLY/GLYX/RCHO/HCOOH/ACR/STYR/C4H6
+111     GFED                   : on    NO/CO/ALK4/ACET/MEK/ALD2/PRPE/C2H2/C2H4/C3H8/CH2O/C2H6/SO2/NH3/bc_a4/pom_a4/POG1/POG2/MTPA/BENZ/TOLU/XYLE/NAP/EOH/MOH/SOAP/FURA/PHEN/MVK/ISOP/ACTA/MGLY/GLYX/RCHO/HCOOH/ACR/STYR/C4H6
     --> GFED4                  :       true
     --> GFED_daily             :       false
     --> GFED_3hourly           :       false

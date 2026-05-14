@@ -12,9 +12,13 @@
 # !REMARKS:
 #  For more information about HEMCO diagnostics, see hemco.readthedocs.io.
 #
-#  NOTES FOR BIOMASS BURNING:
-#  1. For GFED extension,    set ExtNr = 111, Cat = -1, Hier = -1.
-#  2. For offline emissions, set ExtNr = 0,   Cat =  5, Hier = -1
+#  ATTENTION!  If you switch between online and offline emissions, you
+#  will need to adjust the following diagnostic entries as described here:
+#
+#  Biomass emissions (Emis*_BiomassBurn)
+#  -------------------------------------------------------------------------
+#  1. If using GFED extension         : set ExtNr = 111, Cat = -1, Hier = -1
+#  2. If using GFAS, FINNv25, FINNv25 : set ExtNr = 0,   Cat =  5, Hier = -1
 #EOP
 #------------------------------------------------------------------------------
 #BOC
