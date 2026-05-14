@@ -71,11 +71,14 @@ if(MODEL_GCHP)
   add_subdirectory(Interfaces/GCHP)
 endif()
 
-# This next part is in the GCHP repo if using MAPL2
+#-----------------------------------------------------------------------------
+# Additional GEOS-Chem settings if using GCHP
+#-----------------------------------------------------------------------------
+# This next part is in the GCHP repo if using MAPL2, but is moved here for
+# MAPL3 to make maintenance of most GEOS-Chem settings confined to one
+# repository, and the library hierarchy more logical.
+
 if(MAPL3)
-#-----------------------------------------------------------------------------
-# Additional GEOS-Chem settings if using GCHP (all necessary?)
-#-----------------------------------------------------------------------------
 if(MODEL_GCHP)
 
   set(RRTMG OFF CACHE BOOL
@@ -103,7 +106,6 @@ if(MODEL_GCHP)
   
   # Configure build properties for GEOS-Chem
   target_compile_definitions(GEOSChemBuildProperties INTERFACE
-    MODEL_GCHPCTM
     MODEL_GCHP
     USE_ESMF
     MAPL_ESMF
@@ -119,50 +121,32 @@ if(MODEL_GCHP)
     $<$<BOOL:${FASTJX}>:FASTJX>
     $<$<BOOL:${MAPL3}>:MAPL3>
   )
-  
-  if(NOT MAPL3)
-    target_link_libraries(GEOSChemBuildProperties INTERFACE
-      $<LINK_ONLY:MAPL.base>
-      $<LINK_ONLY:FVdycoreCubed_GridComp>
-      $<LINK_ONLY:HCOI_MAPL_ESMF>
-      $<$<BOOL:${OMP}>:OpenMP::OpenMP_Fortran>
-      MPI::MPI_C MPI::MPI_Fortran
-    )
-    target_include_directories(GEOSChemBuildProperties INTERFACE
-      $<TARGET_PROPERTY:MAPL.base,INTERFACE_INCLUDE_DIRECTORIES>
-      $<TARGET_PROPERTY:FVdycoreCubed_GridComp,INTERFACE_INCLUDE_DIRECTORIES>
-      $<TARGET_PROPERTY:HCOI_MAPL_ESMF,INTERFACE_INCLUDE_DIRECTORIES>
-      ${CMAKE_Fortran_MODULE_DIRECTORY}
-    )
-#   GeosCore
-  endif()
-  if(MAPL3)
-    target_link_libraries(GEOSChemBuildProperties INTERFACE
-      $<LINK_ONLY:MAPL.base>
-      $<LINK_ONLY:FVdycoreCubed_GridComp>
-      $<LINK_ONLY:HCOI_MAPL_ESMF>
-      $<$<BOOL:${OMP}>:OpenMP::OpenMP_Fortran>
-      MPI::MPI_C MPI::MPI_Fortran
-      $<LINK_ONLY:mapl3g>
-      $<LINK_ONLY:MAPL.generic3g>
-      $<LINK_ONLY:MAPL.state>
-    )
-    target_include_directories(GEOSChemBuildProperties INTERFACE
-      $<TARGET_PROPERTY:mapl3g,INTERFACE_INCLUDE_DIRECTORIES>
-      $<TARGET_PROPERTY:MAPL.generic3g,INTERFACE_INCLUDE_DIRECTORIES>
-      $<TARGET_PROPERTY:MAPL.state,INTERFACE_INCLUDE_DIRECTORIES>
-      $<TARGET_PROPERTY:MAPL.base,INTERFACE_INCLUDE_DIRECTORIES>
-      $<TARGET_PROPERTY:FVdycoreCubed_GridComp,INTERFACE_INCLUDE_DIRECTORIES>
-      $<TARGET_PROPERTY:HCOI_MAPL_ESMF,INTERFACE_INCLUDE_DIRECTORIES>
-      ${CMAKE_Fortran_MODULE_DIRECTORY}
-    )
-    # Turn off acg for now
-    #mapl_acg(GEOSchem_GridComp GEOSchem_StateSpecs.rc
-    #  IMPORT_SPECS EXPORT_SPECS INTERNAL_SPECS
-    #  GET_POINTERS DECLARE_POINTERS
-    #  3g
-    #)
-  endif()
+
+  target_link_libraries(GEOSChemBuildProperties INTERFACE
+    $<LINK_ONLY:MAPL.base>
+    $<LINK_ONLY:FVdycoreCubed_GridComp>
+    $<LINK_ONLY:HCOI_MAPL_ESMF>
+    $<$<BOOL:${OMP}>:OpenMP::OpenMP_Fortran>
+    MPI::MPI_C MPI::MPI_Fortran
+    $<LINK_ONLY:mapl3g>
+    $<LINK_ONLY:MAPL.generic3g>
+    $<LINK_ONLY:MAPL.state>
+  )
+  target_include_directories(GEOSChemBuildProperties INTERFACE
+    $<TARGET_PROPERTY:mapl3g,INTERFACE_INCLUDE_DIRECTORIES>
+    $<TARGET_PROPERTY:MAPL.generic3g,INTERFACE_INCLUDE_DIRECTORIES>
+    $<TARGET_PROPERTY:MAPL.state,INTERFACE_INCLUDE_DIRECTORIES>
+    $<TARGET_PROPERTY:MAPL.base,INTERFACE_INCLUDE_DIRECTORIES>
+    $<TARGET_PROPERTY:FVdycoreCubed_GridComp,INTERFACE_INCLUDE_DIRECTORIES>
+    $<TARGET_PROPERTY:HCOI_MAPL_ESMF,INTERFACE_INCLUDE_DIRECTORIES>
+    ${CMAKE_Fortran_MODULE_DIRECTORY}
+  )
+  # Turn off acg for now
+  #mapl_acg(GEOSchem_GridComp GEOSchem_StateSpecs.rc
+  #  IMPORT_SPECS EXPORT_SPECS INTERNAL_SPECS
+  #  GET_POINTERS DECLARE_POINTERS
+  #  3g
+  #)
 
   set(GEOSChem_Fortran_FLAGS_Intel
       -cpp -w -auto -noalign "SHELL:-convert big_endian" "SHELL:-fp-model source"
@@ -251,6 +235,6 @@ if(MODEL_GCHP)
   gc_pretty_print(VARIABLE LUO_WETDEP IS_BOOLEAN)
   gc_pretty_print(VARIABLE FASTJX IS_BOOLEAN)
   gc_pretty_print(VARIABLE KPPSA IS_BOOLEAN)
-endif()
 
+endif()
 endif()

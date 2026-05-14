@@ -855,11 +855,7 @@ CONTAINS
 !
 ! !DESCRIPTION: Subroutine GCHP\_CAP\_TROPOPAUSE\_PRS caps the tropopause
 !  pressure in polar latitudes to 200 hPa, so that we don't end up doing
-!  troposheric chemistry too high over the poles.  This is done in the
-!  standalone GEOS-Chem, and we also need to apply this when running
-!  GEOS-Chem within the GEOS-5 GCM.
-!
-! ewl question: do we do this in CESM too? If yes, update this description.
+!  tropospheric chemistry too high over the poles.
 !\\
 !\\
 ! !INTERFACE:
