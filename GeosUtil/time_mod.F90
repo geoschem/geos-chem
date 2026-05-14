@@ -98,7 +98,7 @@ MODULE TIME_MOD
   PUBLIC  :: SYSTEM_DATE_TIME
   PUBLIC  :: SYSTEM_TIMESTAMP
   PUBLIC  :: TIMESTAMP_DIAG
-#if defined( USE_ESMF ) || defined( MODEL_ )
+#if defined( MODEL_GCHP ) || defined( MODEL_EXTERNAL )
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   !%%%  NOTE: THESE ROUTINES WILL BE OMITTED UNLESS GEOS-Chem     %%%
   !%%%  IS COMPILED FOR GCHP OR FOR CONNECTION TO EXTERNAL ESMs   %%%
@@ -3638,7 +3638,7 @@ CONTAINS
 
   END SUBROUTINE TIMESTAMP_DIAG
 !EOC
-#if defined( USE_ESMF ) || defined( MODEL_ )
+#if defined( MODEL_GCHP ) || defined( MODEL_EXTERNAL )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
