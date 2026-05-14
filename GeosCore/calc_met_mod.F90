@@ -30,7 +30,7 @@ MODULE CALC_MET_MOD
   PUBLIC  :: INTERP
   PUBLIC  :: SET_DRY_SURFACE_PRESSURE
   PUBLIC  :: Set_Clock_Tracer
-#if defined( USE_ESMF ) || defined( EXTERNAL_GRID )
+#if defined( EXTERNAL_GRID )
   PUBLIC  :: GCHP_Cap_Tropopause_Prs
 #endif
 !
@@ -845,7 +845,7 @@ CONTAINS
 
   END SUBROUTINE INTERP
 !EOC
-#if defined( USE_ESMF ) || defined( EXTERNAL_GRID )
+#if defined( EXTERNAL_GRID )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------

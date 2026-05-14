@@ -352,11 +352,11 @@ CONTAINS
 
           !IF ( Input_Opt%Verbose ) CALL DEBUG_MSG('DONE GET_PEDGE')
 
-#if defined( USE_ESMF ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
           !-----------------------------------------------------------
           !       %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
           !
-          ! When we are connecting to the GEOS-5 GCM, we don't define
+          ! When we are connecting to a GCM, we don't define
           ! L_OVERWRLD.  We cannot know the maximum extent of the
           ! tropopause in the GCM; we instead have to diagnose it at
           ! every timestep by comparing the pressure at a grid box to
