@@ -1,4 +1,4 @@
-#include "MAPL.h"
+#include "MAPL_Generic.h"
 
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Model                            !
