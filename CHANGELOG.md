@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added multiphase sulfate chemistry and cloud Hplus diagnostic for Travis et al. (2025)
 - Added `IONIC` output argument in calls to HETP driver routine `MACH_HETP_Main15Cases`
 - Added APM restart file paths to `run/shared/download_data.yml`
+- Added code blocks for MAPL3 code in development
 
 ### Changed
 - Renamed `State_Chm%Isorrop*` fields to `State_Chm%Ate*` (aerosol thermodynamical equilibrium), as ISORROPIA is no longer used
@@ -21,12 +22,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated `run/shared/download_data.py` and `run/shared/setupForRestarts.sh` to read APM restart file paths
 - Selected RODAS3.1 as the default integration method for the fullchem mechanism; Regenerated fullchem solver files with KPP 3.4.0
 - Updated the minimum version of KPP needed to build the fullchem mechanism from 3.2.0 to 3.4.0
+- Changed C-preprocessor switch MODEL_ to MODEL_EXTERNAL, and ESMF_ to USE_ESMF
 
 ### Fixed
 - Fixed incorrect variable names and removed unused variables in `NcdfUtil/ncdf_mod.F90`
-
-### Fixed
 - Fixed incorrect Arrhenius "A" coefficient (1.97d-12 --> 1.97d-11) in C3H8 + OH = A3O2 rxn
+
+### Removed
+- Removed obsolete code in dust_mod.F90
+- Removed unused subroutine I_Am_UnOPENed in inquireMod.F90
 
 ## [14.7.1] - 2026-04-08
 ### Added
