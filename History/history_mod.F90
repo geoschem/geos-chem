@@ -173,7 +173,13 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! Then determine the fields that will be saved to each collection
+    ! Then, initialize the netCDF coordinate variables,
+    ! which are stored as fields of the State_Grid object.
+    !=======================================================================
+    CALL History_InitCoordVars( State_Grid )
+
+    !=======================================================================
+    ! Finally, determine the fields that will be saved to each collection
     ! NOTE: For dry-run, enter to print out file name & status
     !=======================================================================
     CALL History_ReadCollectionData( Input_Opt,  State_Chm, State_Diag,      &
@@ -185,12 +191,6 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
-
-    !=======================================================================
-    ! Finally, initialize the netCDF coordinate variables,
-    ! which are stored as fields of the State_Grid object.
-    !=======================================================================
-    CALL History_InitCoordVars( State_Grid )
 
   END SUBROUTINE History_Init
 !EOC
@@ -589,7 +589,7 @@ CONTAINS
     USE Species_Mod,           ONLY : Species
     USE State_Chm_Mod
     USE State_Diag_Mod
-    USE State_Grid_Mod,        ONLY : GrdState, Lookup_Grid
+    USE State_Grid_Mod,        ONLY : GrdState
     USE State_Met_Mod
 !
 ! !INPUT PARAMETERS:
@@ -675,12 +675,8 @@ CONTAINS
     TYPE(Species),       POINTER :: ThisSpc
 
     ! Pointer arrays
-    REAL(f8),            POINTER :: Grid_Lat (:    )
-    REAL(f8),            POINTER :: Grid_LatE(:    )
-    REAL(f8),            POINTER :: Grid_Lon (:    )
-    REAL(f8),            POINTER :: Grid_LonE(:    )
-    REAL(fp),            POINTER :: Ptr3d    (:,:,:)
-    REAL(f4),            POINTER :: Ptr3d_4  (:,:,:)
+    REAL(fp),            POINTER :: Ptr3d  (:,:,:)
+    REAL(f4),            POINTER :: Ptr3d_4(:,:,:)
 
     !=======================================================================
     ! Initialize
@@ -732,10 +728,6 @@ CONTAINS
        Ptr3d          => NULL()
        Ptr3d_4        => NULL()
        ThisSpc        => NULL()
-       Grid_Lat       => NULL()
-       Grid_LatE      => NULL()
-       Grid_Lon       => NULL()
-       Grid_LonE      => NULL()
 
        ! Initialize Strings
        Description    =  ''
@@ -771,58 +763,6 @@ CONTAINS
 
        ! Compute the length of the simulation, in elapsed seconds
        SimLengthSec   = NINT( ( JulianDateEnd - JulianDate ) * SECONDS_PER_DAY )
-
-       !====================================================================
-       ! Get pointers to the grid longitudes and latitudes
-       !====================================================================
-
-       ! Lookup latitude centers
-       CALL Lookup_Grid( Input_Opt  = Input_Opt,                             &
-                         State_Grid = State_Grid,                            &
-                         Variable   = 'GRID_LAT',                            &
-                         Ptr1d_8    = Grid_Lat,                              &
-                         RC         = RC                                    )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not get pointer to latitudes (aka GRID_LAT)!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-       ! Lookup latitude edges
-       CALL Lookup_Grid( Input_Opt  = Input_Opt,                             &
-                         State_Grid = State_Grid,                            &
-                         Variable   = 'GRID_LATE',                           &
-                         Ptr1d_8    = Grid_LatE,                             &
-                         RC         = RC                                    )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not get pointer to latitude edges (aka GRID_LATE)!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-       ! Lookup longitude centers
-       CALL Lookup_Grid( Input_Opt  = Input_Opt,                             &
-                         State_Grid = State_Grid,                            &
-                         Variable   = 'GRID_LON',                            &
-                         Ptr1d_8    = Grid_Lon,                              &
-                         RC         = RC                                    )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not get pointer to longitudes (aka GRID_LON)!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc)
-          RETURN
-       ENDIF
-
-       ! Lookup longitude edges
-       CALL Lookup_Grid( Input_Opt  = Input_Opt,                             &
-                         State_Grid = State_Grid,                            &
-                         Variable   = 'GRID_LONE',                           &
-                         Ptr1d_8    = Grid_LonE,                             &
-                         RC         = RC                                    )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not get pointer to longitude edges (aka GRID_LONE)!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc)
-          RETURN
-       ENDIF
     ENDIF
 
     !=======================================================================
@@ -1097,13 +1037,13 @@ CONTAINS
              ENDIF
 
              ! Find the longitude indices for lonMin and lonMax values
-             DO X = 1, SIZE( Grid_LonE )-1
-                IF ( Grid_LonE(X  ) <= Subset(1)  .and.                      &
-                     Grid_LonE(X+1) >  Subset(1) ) THEN
+             DO X = 1, SIZE( State_Grid%LonE )-1
+                IF ( State_Grid%LonE(X  ) <= Subset(1)  .and.                &
+                     State_Grid%LonE(X+1) >  Subset(1) ) THEN
                    CollectionSubsetInd(1,C) = X
                 ENDIF
-                IF ( Grid_LonE(X  ) <= Subset(2)  .and.                      &
-                     Grid_LonE(X+1) >  Subset(2) ) THEN
+                IF ( State_Grid%LonE(X  ) <= Subset(2)  .and.                &
+                     State_Grid%LonE(X+1) >  Subset(2) ) THEN
                    CollectionSubsetInd(2,C) = X
                 ENDIF
              ENDDO
@@ -1122,7 +1062,7 @@ CONTAINS
           ENDIF
        ENDIF
 
-       ! "LON_RANGE": Specifies a latitude range for subsetting
+       ! "LAT_RANGE": Specifies a latitude range for subsetting
        ! the data grid. The required order is: latMin, latMax
        Pattern = 'LAT_RANGE'
        Subset  =  UNDEFINED_DBL
@@ -1150,13 +1090,13 @@ CONTAINS
              ENDIF
 
              ! Find the latitude indices for latMin and latMax values
-             DO Y = 1, SIZE( Grid_LatE )-1
-                IF ( Grid_LatE(Y  ) <= Subset(1)  .and.                      &
-                     Grid_LatE(Y+1) >  Subset(1) ) THEN
+             DO Y = 1, SIZE( State_Grid%LatE )-1
+                IF ( State_Grid%LatE(Y  ) <= Subset(1)  .and.                &
+                     State_Grid%LatE(Y+1) >  Subset(1) ) THEN
                    CollectionSubsetInd(3,C) = Y
                 ENDIF
-                IF ( Grid_LatE(Y  ) <= Subset(2)  .and.                      &
-                     Grid_LatE(Y+1) >  Subset(2) ) THEN
+                IF ( State_Grid%LatE(Y  ) <= Subset(2)  .and.                &
+                     State_Grid%LatE(Y+1) >  Subset(2) ) THEN
                    CollectionSubsetInd(4,C) = Y
                 ENDIF
              ENDDO
@@ -1962,12 +1902,6 @@ CONTAINS
     ! Cleanup and quit
     !=======================================================================
 999 CONTINUE
-
-    ! Free pointers
-    Grid_Lat  => NULL()
-    Grid_LatE => NULL()
-    Grid_Lon  => NULL()
-    Grid_LonE => NULL()
 
     ! Close the file
     CLOSE( fId )

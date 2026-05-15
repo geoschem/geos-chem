@@ -10,7 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Renamed GCHP history diagnostics for upwards mass flux to remove the `_R4` suffix
 
 ### Fixed
-- Restored missing line `CH4_BBN:` to `run/shared/species_database.yml
+- Restored missing line `CH4_BBN:` to `run/shared/species_database.yml`
+- Fixed a bug preventing GC-Classic HISTORY collection subsetting with `LON_RANGE` and `LAT_RANGE` from working properly
 
 ## [14.7.1] - 2026-04-08
 ### Added
