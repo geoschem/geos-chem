@@ -1,6 +1,37 @@
+# For a complete user guide to this file, see GMAO MAPL wiki:
+# https://github.com/GEOS-ESM/MAPL/wiki/ExtData-Next-Generation---User-Guide
+
 ######################################################################
+######################################################################
+#
+# Collections:
+#
+# The 'Collections' section of this file is a list of key names. Each
+# name corresponds to an input file or set of input files with the same path
+# and filename format, i.e. representable by a template containing date tokens.
+#
+# Collections are used in the 'Exports' section of this file. Each entry in
+# the 'Exports' section describes an array in the MAPL ExtData component in
+# GCHP that can be used elsewhere in the model, i.e. exported from MAPL.
+# Each export description includes a collection to indicate the offline
+# source of the data to be read.
+#
+# In the 'Collections' section, collections not used do not need to be
+# commented out. Excluding file read is done by commenting out entries
+# in the `Exports` section instead.
+#
+# Collections:
+#   dataset1:
+#     template: character string
+#     ref_time: optional, character string, default: simulation start time
+#     freq: optional, character string
+#     valid_range: optional, character string
+#
+######################################################################
+######################################################################
+
 Collections:
-######################################################################
+
   #-------------------------------------------------------------------
   # Meteorology collections
   #-------------------------------------------------------------------
@@ -51,6 +82,8 @@ Collections:
   EDGAR_v43.CO.TRO.0.1x0.1.nc:
     template: ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.TRO.0.1x0.1.nc
   CEDS_CO_0.1x0.1_%y4.nc:
+    # All data in valid_range must be locally available. Edit or download as needed.
+    valid_range: "1980-01-01/2019-12-01T00:00"
     template: ./HcoDir/CEDS/v2024-06/%y4/CEDS_CO_0.1x0.1_%y4.nc
   Rn222_Emis_Zhang_Liu_et_al_05x05_mass.nc:
     template: ./HcoDir/ZHANG_Rn222/v2021-11/Rn222_Emis_Zhang_Liu_et_al_05x05_mass.nc
@@ -69,13 +102,50 @@ Collections:
   EDGAR_v43.Seasonal.1x1.nc:
     template: ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc
 
+
 ######################################################################
-# Samplings (rules for data read and interpolation)
 ######################################################################
+#
+# Samplings
+#
+# The 'Samplings' section of this file is a list of named rules for
+# data read and interpolation.
+#
+# Samplings are used in the 'Exports' section of this file. Each entry in
+# the 'Exports' section specifies sampling name to describe when to read
+# data in the collection, whether it should be interpolated, and how to
+# handle data not found.
+#
+# Samplings:
+#   sample_label:
+#     extrapolation: optional, character string, default: 'none'
+#     source_time: optional, character string
+#     time_interpolation: optional, logical
+#     update_reference_time: optional, character string, default: simulation start
+#     update_frequency: optional, character string, default: every timestep
+#     update_offset: optional, character string
+#     exact: optional, logical
+#
+######################################################################
+######################################################################
+
 Samplings:
-  #-------------------------------------------------------------------
-  # Sampling rules for dynamic meteorology
-  #-------------------------------------------------------------------
+
+  #===================================================================
+  # Sampling rule for constant data
+  #===================================================================
+
+  constant:
+    extrapolation: persist_closest
+
+  #===================================================================
+  # Sampling rules without extrapolation
+  #
+  # The model will crash if the data for the simulation time is not
+  # found. For example, all meteorology data must be available for
+  # the simulation time for the model to run successfully.
+  #===================================================================
+
   offset_1hr30min_nointerp:
     update_offset: PT1H30M
     time_interpolation: False
@@ -88,39 +158,58 @@ Samplings:
     update_offset: PT10M
     time_interpolation: True
 
-  #-------------------------------------------------------------------
-  # Sampling rule for constants
-  #-------------------------------------------------------------------
-  constant:
-    extrapolation: persist_closest
-
-  #-------------------------------------------------------------------
-  # Sampling rule for monthly and daily
-  #-------------------------------------------------------------------
-  monthly_nointerp:
-    update_frequency: P1M
-    extrapolation: clim
-    time_interpolation: False
-    update_reference_time: '0'
-
-  annual_nointerp:
-    update_frequency: P1Y
-    extrapolation: clim
-    time_interpolation: False
-    update_reference_time: '0'
-
-  #-------------------------------------------------------------------
-  # Sampling rule for daily with interpolation
-  #-------------------------------------------------------------------
   daily_interp:
     update_frequency: PT24H
     time_interpolation: True
-    update_reference_time: '0'
+
+  #===================================================================
+  # Sampling rules with extrapolation = clim (climatology)
+  #
+  # The model will NOT crash if the data read for the export is not found,
+  # as long as the export's collection entry has a 'valid_range' specified
+  # and all data in the range is available on the file system. In this case,
+  # the nearest full year of data will be reused cyclically.
+  #===================================================================
+
+  monthly_nointerp:
+    extrapolation: clim
+    update_frequency: P1M
+    time_interpolation: False
+
+  annual_nointerp:
+    extrapolation: clim
+    update_frequency: P1Y
+    time_interpolation: False
 
 ######################################################################
-# Exports (each entry is equivalent to one row in ExtData.rc)
 ######################################################################
+#
+# Exports
+#
+# The 'Exports' section of this file is a list of MAPL objects that
+# are created by reading offline files, regridding them, and sending
+# them to gridded components in the model. For example, offline meteorology
+# file variables are read by MAPL, regridding to cubed-sphere, and
+# exported to GEOS-Chem as arrays. The information needed to transform
+# an offline file variable to an export array is listed in this section.
+# Each Export entry has a collection name from the 'Collections' section,
+# the name of the variable in the file, and a sample name that maps to
+# the read rules in the 'Samplings' section.
+#
+# Exports:
+#   variable_name_in_field:
+#     collection: character string
+#     variable: character string
+#     linear_transformation: optional, list of 2 real number
+#     regrid: optional, character string
+#     sample: either sample label or map with sampling options, optional
+#     fail_on_missing_file: optional, logical
+#
+######################################################################
+######################################################################
+
 Exports:
+
   #-------------------------------------------------------------------
   # Fields from MERRA2.A3dyn.05x0625.nc4:
   #-------------------------------------------------------------------
@@ -1100,7 +1189,7 @@ Exports:
     variable: TRO
 
   #-------------------------------------------------------------------
-  # Fields from /dev/null
+  # Fields from /dev/null (empty arrays created without file read)
   #-------------------------------------------------------------------
   CONV_DEPTH:
     collection: /dev/null
