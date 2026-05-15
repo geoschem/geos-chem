@@ -92,12 +92,13 @@ MODULE AEROSOL_MOD
   INTEGER :: id_ASOA1,   id_ASOA2,   id_ASOA3,   id_DUST01
   INTEGER :: id_SOAS,    id_SALACL,  id_HMS,     id_SOAGX
   INTEGER :: id_SOAIE,   id_INDIOL,  id_LVOCOA
+  INTEGER :: id_BrC
 
   ! Index to map between NRHAER and species database hygroscopic species
   ! NOTE: Increasing value of NRHAER in CMN_SIZE_Mod.F90 (e.g. if there is
   ! a new hygroscopic species) requires manual update of this mapping
   ! (ewl, 1/23/17)
-  INTEGER :: Map_NRHAER(5)
+  INTEGER :: Map_NRHAER(6)
 
   
 CONTAINS
@@ -122,6 +123,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE CMN_SIZE_Mod,    ONLY : NRHAER
     USE ErrCode_Mod
     USE ERROR_MOD
 
@@ -527,6 +529,17 @@ CONTAINS
           IF ( IS_OCPI ) THEN
              State_Chm%AerMass%OCPI(I,J,L) = Spc(id_OCPI)%Conc(I,J,L) &
                            * State_chm%AerMass%OCFOPOA(I,J) / AIRVOL(I,J,L)
+          ENDIF
+
+          ! BrC [kg/m3]
+          ! Species concentrations are KG_SPECIES within AEROSOL_CONC. (MH,5/6/26)
+          IF ( NRHAER == 6 ) THEN
+             State_Chm%AerMass%WAERSL(I,J,L,6) = 0.0_fp
+             IF ( id_BrC > 0 ) THEN
+                State_Chm%AerMass%WAERSL(I,J,L,6) =                    &
+                     State_Chm%AerMass%WAERSL(I,J,L,6) +               &
+                     Spc(id_BrC)%Conc(I,J,L) / AIRVOL(I,J,L)
+             ENDIF
           ENDIF
 
           ! Now avoid division by zero (bmy, 4/20/04)
@@ -1460,6 +1473,9 @@ CONTAINS
     ENDIF
     MSDENS(4) = State_Chm%SpcData(id_SALA)%Info%Density
     MSDENS(5) = State_Chm%SpcData(id_SALC)%Info%Density
+    IF ( NRHAER == 6 .and. id_BrC > 0 ) THEN
+       MSDENS(6) = State_Chm%SpcData(id_BrC)%Info%Density
+    ENDIF
 
     ! These default values unused (actively retrieved from ucx_mod)
     MSDENS(NRHAER+1) = 1700.0d0 ! SSA/STS
@@ -2473,6 +2489,7 @@ CONTAINS
        id_NIT        = Ind_( 'NIT'     )
        id_OCPO       = Ind_( 'OCPO'    )
        id_OCPI       = Ind_( 'OCPI'    )
+       id_BrC        = Ind_( 'BRC'     )
        id_SOAS       = Ind_( 'SOAS'    )
        id_SALA       = Ind_( 'SALA'    )
        id_SALC       = Ind_( 'SALC'    )
@@ -2544,9 +2561,11 @@ CONTAINS
                 Map_NRHAER(N) = 4
              CASE ( 'SALC' )
                 Map_NRHAER(N) = 5
+             CASE ( 'BRC' )
+                Map_NRHAER(N) = 6
              CASE DEFAULT
                 ErrMsg = 'WARNING: aerosol diagnostics not defined' // &
-                         ' for NRHAER greater than 5!'
+                         ' for NRHAER greater than 6!'
                 CALL GC_ERROR( ErrMsg, RC, 'Init_Aerosol in aerosol_mod.F90' )
                 SpcInfo => NULL()
                 RETURN
@@ -2739,7 +2758,7 @@ CONTAINS
     ! info but ref index is similar e.g. Scarchilli et al. (2005)
     !(DAR 05/2015)
     SPECFIL = (/ "so4.dat  ", "soot.dat ", "org.dat  ", "ssa.dat  ",         &
-                 "ssc.dat  ", "h2so4.dat", "h2so4.dat", "dust.dat "        /)
+                 "ssc.dat  ", "brc.dat  ", "h2so4.dat", "dust.dat "        /)
 
     ! Loop over the array of filenames
     DO k = 1, State_Chm%Phot%NSPAA
