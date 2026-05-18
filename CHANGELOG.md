@@ -14,6 +14,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added APM restart file paths to `run/shared/download_data.yml`
 - Added for TOMAS, organic and Dunne new particle formation, 3D GFAS capability, and updates for accomodation coefficients
 - Added code blocks for MAPL3 code in development
+- Added GCHP utility script extractPerformance.sh to scrape allPEs.log for timing summary in GCHP run directories
+- Added GCHP build scripts to GCHP runScriptSamples for Harvard
 
 ### Changed
 - Renamed `State_Chm%Isorrop*` fields to `State_Chm%Ate*` (aerosol thermodynamical equilibrium), as ISORROPIA is no longer used
@@ -28,6 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Fixed
 - Fixed incorrect variable names and removed unused variables in `NcdfUtil/ncdf_mod.F90`
 - Fixed incorrect Arrhenius "A" coefficient (1.97d-12 --> 1.97d-11) in C3H8 + OH = A3O2 rxn
+- Fixed GCHP transport tracers extdata.yaml to include valid_range for CEDS
 
 ### Removed
 - Removed obsolete code in dust_mod.F90
