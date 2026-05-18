@@ -1,5 +1,8 @@
+#ifdef MAPL3
+#include "MAPL.h"
+#else
 #include "MAPL_Generic.h"
-
+#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
@@ -1727,7 +1730,7 @@ CONTAINS
     ENDIF
 #endif
 
-#ifdef MODEL_GCHPCTM
+#ifdef MODEL_GCHP
     ! Set delta pressure export to interal state variable DELP_DRY.
     ! This is used in the first timestep in FV3, before advection, to
     ! adjust species v/v for conservation of restart file mass, if
@@ -2480,8 +2483,8 @@ CONTAINS
        !CALL GetHcoState( HcoState )
        _ASSERT(ASSOCIATED(HcoState),'HcoState is not associated')
        HcoState%GRIDCOMP => GC
-       HcoState%IMPORT   => IMPORT
-       HcoState%EXPORT   => EXPORT
+       HcoState%importState   => IMPORT
+       HcoState%exportState   => EXPORT
        !HcoState => NULL()
 
 #endif
@@ -2494,8 +2497,8 @@ CONTAINS
    ! Link HEMCO state to gridcomp objects
    ASSERT_(ASSOCIATED(HcoState))
    HcoState%GRIDCOMP => GC
-   HcoState%IMPORT   => IMPORT
-   HcoState%EXPORT   => EXPORT
+   HcoState%importState   => IMPORT
+   HcoState%exportState   => EXPORT
 #endif
 #ifdef ADJOINT
        call MAPL_GetPointer( IMPORT, CostFuncMask, &
@@ -2662,7 +2665,7 @@ CONTAINS
 #include "Includes_Before_Run.H"
        CALL MAPL_TimerOff(STATE, "CP_BFRE")
 
-#if defined( MODEL_GCHPCTM )
+#if defined( MODEL_GCHP )
        !=======================================================================
        ! Point GEOS-Chem species concentration arrays to internal state
        !=======================================================================
@@ -3081,7 +3084,7 @@ CONTAINS
        ! be seen by other components (moist, turbulence, ...)
        !=======================================================================
 
-#if defined( MODEL_GCHPCTM )
+#if defined( MODEL_GCHP )
        CALL MAPL_TimerOn(STATE, "CP_AFTR")
 #endif
 
@@ -3138,7 +3141,7 @@ CONTAINS
        phms = nhms
 #endif
 
-#if defined( MODEL_GCHPCTM )
+#if defined( MODEL_GCHP )
 #ifdef ADJOINT
        IF (Input_Opt%Is_Adjoint) THEN
           State_Chm%SpeciesAdj = State_Chm%SpeciesAdj(:,:,State_Grid%NZ:1:-1,:)
@@ -3304,7 +3307,7 @@ CONTAINS
     CALL CopyGCStates2Exports( am_I_Root, Input_Opt, HistoryConfig, STATUS )
     _VERIFY(STATUS)
 
-#if defined( MODEL_GCHPCTM )
+#if defined( MODEL_GCHP )
     !=======================================================================
     ! Nullify GEOS-Chem species concentration pointers
     !=======================================================================
@@ -3343,8 +3346,8 @@ CONTAINS
 #if defined( MODEL_GEOS )
     ! Unlink HEMCO state from gridcomp objects
     HcoState%GRIDCOMP => NULL()
-    HcoState%IMPORT   => NULL()
-    HcoState%EXPORT   => NULL()
+    HcoState%importState   => NULL()
+    HcoState%exportState   => NULL()
 #endif
 
     ! Successful return
@@ -3525,8 +3528,8 @@ CONTAINS
     ! Link HEMCO state to gridcomp objects
     _ASSERT(ASSOCIATED(HcoState),'HcoState is not associated')
     HcoState%GRIDCOMP => GC
-    HcoState%IMPORT   => IMPORT
-    HcoState%EXPORT   => EXPORT
+    HcoState%importState   => IMPORT
+    HcoState%exportState   => EXPORT
 #endif
 
 #ifdef ADJOINT
