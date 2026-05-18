@@ -84,7 +84,7 @@ CONTAINS
 !BOC
 
     CHARACTER(LEN=1000) :: Message
-#if USE_ESMF
+#ifdef USE_ESMF
     INTEGER             :: localPET, STATUS
     CHARACTER(4)        :: localPETchar
     CHARACTER(LEN=1023) :: MSG, MSG1, MSG2

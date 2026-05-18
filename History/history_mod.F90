@@ -1462,7 +1462,7 @@ CONTAINS
           ! NOTE: If CollectionDuration is 6 digits long, then assume
           ! that to be FileCloseHms.  If longer, then assume that it is
           ! both FileCloseYmd and FileCloseHms. Note that, like frequency,
-          ! this is differen than for GCHP which allows hours to be
+          ! this is different than for GCHP which allows hours to be
           ! greater than two digits, and requires a different 'monthly'
           ! entry for monthly duration.
           !
