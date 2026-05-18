@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added `IONIC` output argument in calls to HETP driver routine `MACH_HETP_Main15Cases`
 - Added APM restart file paths to `run/shared/download_data.yml`
 - Added for TOMAS, organic and Dunne new particle formation, 3D GFAS capability, and updates for accomodation coefficients
+- Added GCHP utility script extractPerformance.sh to scrape allPEs.log for timing summary in GCHP run directories
 
 ### Changed
 - Renamed `State_Chm%Isorrop*` fields to `State_Chm%Ate*` (aerosol thermodynamical equilibrium), as ISORROPIA is no longer used
