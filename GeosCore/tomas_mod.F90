@@ -185,8 +185,6 @@ MODULE TOMAS_MOD
   INTEGER, PRIVATE :: id_SS01
 
   REAL(fp), ALLOCATABLE, PUBLIC :: ORG_NUC(:,:,:) ! SamO
-  REAL(fp), PRIVATE :: ORG_NUC2                              ! SamO
-
 
 CONTAINS
 !EOC
@@ -343,6 +341,7 @@ CONTAINS
     REAL(fp)            :: QSAT     !used in RH calculation
     INTEGER             :: TRACNUM
     REAL(fp)            :: FRAC
+    REAL(fp)            :: ORG_NUC2 ! SamO
     CHARACTER(LEN=255)  :: MSG, LOC ! species unit check
 
     ! Arguments for CHECK_VALUE; avoids array temporaries (bmy, 1/28/14)
@@ -498,6 +497,7 @@ CONTAINS
     !$OMP PRIVATE( fn1,      num_iter,    Nknuc,    Mknuc,      Nkcond      )&
     !$OMP PRIVATE( Mkcond,   ERRORSWITCH, tot_s_1a, tot_n_1a,   ERR_VAR     )&
     !$OMP PRIVATE( ERR_MSG,  ERR_IND,     TRACNUM,  NH3_TO_NH4, SURF_AREA   )&
+    !$OMP PRIVATE( ORG_NUC2                                                 )&
     !$OMP SCHEDULE( DYNAMIC, 24                                             )&
     !$OMP COLLAPSE( 3                                                       )
     DO L = 1, State_Grid%NZ
@@ -704,7 +704,7 @@ CONTAINS
           CALL COND_NUC(Nk,Mk,Gc,Nkout,Mkout,Gcout,fn,fn1, &
                         H2SO4rate_o,adt,num_iter,Nknuc,Mknuc,Nkcond,Mkcond, &
                         ionrate, surf_area, BOXVOL, BOXMASS, TEMPTMS, PRES, &
-                        RHTOMAS, ERRORSWITCH, l, I, J, L)
+                        RHTOMAS, ERRORSWITCH, l, I, J, L, ORG_NUC2)
 
           !sfdebug if(printdebug) then
           !sfdebug    !print*,'Before COND_NUC Gc(srtso4)=',Gc(srtso4)
@@ -1007,7 +1007,7 @@ CONTAINS
   SUBROUTINE COND_NUC(Nki,Mki,Gci,Nkf,Mkf,Gcf,fnavg,fn1avg, &
                       H2SO4rate,dti,num_iter,Nknuc,Mknuc,Nkcond,Mkcond, &
                       ionrate, surf_area, BOXVOL, BOXMASS, TEMPTMS, PRES, &
-                      RHTOMAS, errswitch, lev,I1,J1,L1)
+                      RHTOMAS, errswitch, lev,I1,J1,L1, ORG_NUC2)
 !
 ! !INPUT PARAMETERS:
 !
@@ -1042,6 +1042,7 @@ CONTAINS
     INTEGER          I1,J1,L1     ! lat, lon, level SamO
     REAL(fp)   surf_area
     REAL(fp)   ionrate
+    REAL(fp)   ORG_NUC2
 !
 ! !REVISION HISTORY:
 !  See https://github.com/geoschem/geos-chem for complete history
@@ -1133,7 +1134,7 @@ CONTAINS
     call getH2SO4conc(Nk1, Mk1, H2SO4rate, CS1, Gc1(srtnh4), &
                       gasConc, ionrate, surf_area, &
                       BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS, lev, &
-                      I1,J1,L1)
+                      I1,J1,L1, ORG_NUC2)
     if( pdbg) print*,'gasConc',gasConc
     Gc1(srtso4) = gasConc
     addt = min_tstep
@@ -1145,7 +1146,7 @@ CONTAINS
     !Get change size distribution due to nucleation with initial guess
     call nucleation(Nk1,Mk1,Gc1,Nk2,Mk2,Gc2,fn,fn1,totmass,nuc_bin, &
                     addt, ionrate, surf_area, BOXVOL, BOXMASS, TEMPTMS, &
-                    PRES, RHTOMAS, PDBG, lev,I1,J1,L1)
+                    PRES, RHTOMAS, PDBG, lev,I1,J1,L1, ORG_NUC2)
 
     if(pdbg) then
        print*,'COND_NUC: Found an error at nucleation --> TERMINATE'
@@ -1281,7 +1282,7 @@ CONTAINS
           call getH2SO4conc(Nk1, Mk1, H2SO4rate, CS1, Gc1(srtnh4), &
                             gasConc, ionrate, surf_area, &
                             BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS, lev, &
-                            I1,J1,L1)
+                            I1,J1,L1, ORG_NUC2)
           Gc1(srtso4) = gasConc
        endif
        if( pdbg)    print*,'gasConc',gasConc
@@ -1301,7 +1302,7 @@ CONTAINS
        tempvar = pdbg
        call nucleation(Nk1,Mk1,Gc1,Nk2,Mk2,Gc2,fn,fn1,totmass, &
                        nuc_bin,addt, ionrate, surf_area, BOXVOL, BOXMASS, &
-                       TEMPTMS, PRES, RHTOMAS, PDBG, lev,I1,J1,L1)
+                       TEMPTMS, PRES, RHTOMAS, PDBG, lev,I1,J1,L1, ORG_NUC2)
 
        if(pdbg) then
           print*,'COND_NUC: Error at nucleation[2] --> TERMINATE'
@@ -1904,7 +1905,7 @@ CONTAINS
 !
   SUBROUTINE getH2SO4conc(Nk, Mk, H2SO4rate, CS, NH3conc, gasConc, &
                           ionrate, surf_area, BOXVOL, BOXMASS, &
-                          TEMPTMS, PRES, RHTOMAS, lev,I1,J1,L1)
+                          TEMPTMS, PRES, RHTOMAS, lev,I1,J1,L1, ORG_NUC2)
 !
 ! !USES:
 !
@@ -1925,6 +1926,7 @@ CONTAINS
     REAL*4, INTENT(IN)  :: BOXVOL,  BOXMASS, TEMPTMS
     REAL*4, INTENT(IN)  :: PRES,    RHTOMAS
     integer                lev
+    REAL(fp), INTENT(IN) :: ORG_NUC2
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -2022,7 +2024,7 @@ CONTAINS
     
     call getNucRate(Nk, Mk, Gci,fn,mnuc,nflg,ionrate, surf_area, &
                     BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS, lev,&
-                    I1,J1,L1)
+                    I1,J1,L1, ORG_NUC2)
     
 
     if (fn.gt.0.e+0_fp) then      ! nucleation occured
@@ -2034,7 +2036,7 @@ CONTAINS
        Gci(srtso4) = gasConc_lo*1.000001e+0_fp
        call getNucRate(Nk,Mk,Gci,fn1,mnuc1,nflg,ionrate,surf_area, &
                        BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS, lev,&
-                       I1,J1,L1)
+                       I1,J1,L1, ORG_NUC2)
        if (fn1.gt.0.e+0_fp) then
           massnuc = mnuc1*fn1*boxvol*98.e+0_fp/96.e+0_fp
           !massnuc = 4.e+0_fp/3.e+0_fp*pi*(rnuc1*1.e-9_fp)**3*1350.*fn1*boxvol*
@@ -2085,7 +2087,7 @@ CONTAINS
           Gci(srtso4) = gasConc
           call getNucRate(Nk, Mk,Gci,fn,mnuc,nflg,ionrate,surf_area, &
                           BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS, lev,&
-                          I1,J1,L1)
+                          I1,J1,L1, ORG_NUC2)
           massnuc = mnuc*fn*boxvol*98.e+0_fp/96.e+0_fp
           res = H2SO4rate - CS*gasConc - massnuc
           !print*,'res',res
@@ -2133,7 +2135,7 @@ CONTAINS
 !
   SUBROUTINE getNucRate(Nk, Mk, Gci,fn,mnuc,nflg, ionrate,surf_area, &
                         BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS, lev,&
-                        I1,J1,L1)
+                        I1,J1,L1, ORG_NUC2)
 !
 ! !USES:
 !
@@ -2148,6 +2150,7 @@ CONTAINS
     REAL*4,   INTENT(IN)       :: BOXVOL,  BOXMASS, TEMPTMS
     REAL*4,   INTENT(IN)       :: PRES,    RHTOMAS
     REAL(fp), INTENT(IN)       :: Gci(icomp-1)
+    REAL(fp), INTENT(IN)       :: ORG_NUC2
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -2976,7 +2979,7 @@ CONTAINS
 !
   SUBROUTINE NUCLEATION(Nki,Mki,Gci,Nkf,Mkf,Gcf,fn,fn1,totsulf, &
                         nuc_bin,dt,ionrate, surf_area, BOXVOL, BOXMASS, &
-                        TEMPTMS, PRES, RHTOMAS, pdbg,lev,I1,J1,L1)
+                        TEMPTMS, PRES, RHTOMAS, pdbg,lev,I1,J1,L1, ORG_NUC2)
 !
 ! !USES:
 !
@@ -3017,6 +3020,7 @@ CONTAINS
 
     REAL(fp)                     ionrate
     REAL(fp)                     surf_area
+    REAL(fp), INTENT(IN) :: ORG_NUC2
 !
 ! !REVISION HISTORY:
 !  See https://github.com/geoschem/geos-chem for complete history
