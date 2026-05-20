@@ -486,26 +486,23 @@ CONTAINS
     ! NOTE: This doesn't have to be !$OMP+PRIVATE (bmy, 2/7/20)
     ADT = GET_TS_CHEM()
 
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    !%%% NOTE: THIS PARALLEL LOOP MAY BE ABLE TO BE REVERSED TO L-J-I
-    !%%% WHICH IS MUCH MORE EFFICIENT (bmy, 1/28/14)
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    !$OMP PARALLEL DO         &
-    !$OMP DEFAULT( SHARED )   &
-    !$OMP PRIVATE( I, J, L )  &
-    !$OMP PRIVATE( PRES, TEMPTMS, BOXMASS, RHTOMAS, BOXVOL )       &
-    !$OMP PRIVATE( printneg, ionrate, lev, weight, GC, N, NK, JC ) &
-    !$OMP PRIVATE( MK, H2SO4rate_o, tot_n_1, k, tot_s_1, MPNUM )   &
-    !$OMP PRIVATE( Nkd, Mkd, TOT_NK, TOT_MK, TRANSFER )            &
-    !$OMP PRIVATE( Nkout,Mkout,Gcout,fn,fn1 )                      &
-    !$OMP PRIVATE( num_iter,Nknuc,Mknuc,Nkcond )                   &
-    !$OMP PRIVATE( Mkcond, ERRORSWITCH, tot_s_1a, tot_n_1a )       &
-    !$OMP PRIVATE( ERR_VAR, ERR_MSG, ERR_IND )                     &
-    !$OMP PRIVATE( TRACNUM, NH3_TO_NH4, SURF_AREA )                &
-    !$OMP SCHEDULE( DYNAMIC )
-    DO I = 1, State_Grid%NX
-    DO J = 1, State_Grid%NY
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I,        J,           PRES,     TEMPTMS,    BOXMASS     )&
+    !$OMP PRIVATE( RHTOMAS,  BOXVOL,      printneg, ionrate,    lev         )&
+    !$OMP PRIVATE( weight,   GC,          N,        NK,         JC          )&
+    !$OMP PRIVATE( MK,       H2SO4rate_o, tot_n_1,  k,          tot_s_1     )&
+    !$OMP PRIVATE( MPNUM,    Nkd,         Mkd,      TOT_NK,     TOT_MK      )&
+    !$OMP PRIVATE( TRANSFER, Nkout,       Mkout,    Gcout,      fn          )&
+    !$OMP PRIVATE( fn1,      num_iter,    Nknuc,    Mknuc,      Nkcond      )&
+    !$OMP PRIVATE( Mkcond,   ERRORSWITCH, tot_s_1a, tot_n_1a,   ERR_VAR     )&
+    !$OMP PRIVATE( ERR_MSG,  ERR_IND,     TRACNUM,  NH3_TO_NH4, SURF_AREA   )&
+    !$OMP PRIVATE( ORG_NUC2                                                 )&
+    !$OMP SCHEDULE( DYNAMIC, 24                                             )&
+    !$OMP COLLAPSE( 3                                                       )
     DO L = 1, State_Grid%NZ
+    DO J = 1, State_Grid%NY
+    DO I = 1, State_Grid%NX
 
        ! Skip non-chemgrid boxes
        IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
@@ -8110,11 +8107,12 @@ CONTAINS
     CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid, State_Met, &
                   State_Diag, 'AERO_DIADEN called from DEPVEL', RC )
 
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( MECIL, MECOB, MOCIL, MOCOB, MDUST ) &
-    !$OMP PRIVATE( BIN, I, J, TRACID, WID, MH2O, MSO4, MNACL ) &
-    !$OMP SCHEDULE( DYNAMIC )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( MECIL, MECOB, MOCIL,  MOCOB, MDUST,  BIN                 )&
+    !$OMP PRIVATE( I,     J,     TRACID, WID  , MH2O,   MSO4, MNACL         )&
+    !$OMP SCHEDULE( DYNAMIC, 24                                             )&
+    !$OMP COLLAPSE( 3                                                       )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
     DO BIN = 1, IBINS
@@ -8292,15 +8290,17 @@ CONTAINS
        L2 = LL
     ENDIF
 
-    !$OMP PARALLEL DO        &
-    !$OMP DEFAULT( SHARED )  &
-    !$OMP PRIVATE( I, J, L ) &
-    !$OMP PRIVATE( Nk, Nkd, Mk, Mkd, K, TRACNUM, JC, MPNUM, BOXVOL, BOXMASS ) &
-    !$OMP PRIVATE( GC, GCd, ERRORSWITCH ) &
-    !$OMP SCHEDULE( DYNAMIC )
-    DO I = I1, I2
-    DO J = J1, J2
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I,           J,      L,       Nk,      Nkd               )&
+    !$OMP PRIVATE( Mk,          Mkd,    K,       TRACNUM, JC                )&
+    !$OMP PRIVATE( MPNUM,       BOXVOL, BOXMASS, GC,      GCd               )&
+    !$OMP PRIVATE( ERRORSWITCH                                              )&
+    !$OMP SCHEDULE( DYNAMIC, 24                                             )&
+    !$OMP COLLAPSE( 3                                                       )
     DO L = L1, L2
+    DO J = J1, J2
+    DO I = I1, I2
 
        BOXVOL  = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3
        BOXMASS = State_Met%AD(I,J,L) !kg
