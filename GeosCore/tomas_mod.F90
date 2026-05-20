@@ -187,6 +187,7 @@ MODULE TOMAS_MOD
   REAL(fp), ALLOCATABLE, PUBLIC :: ORG_NUC(:,:,:) ! SamO
   REAL(fp), PRIVATE :: ORG_NUC2                              ! SamO
 
+
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -497,7 +498,6 @@ CONTAINS
     !$OMP PRIVATE( fn1,      num_iter,    Nknuc,    Mknuc,      Nkcond      )&
     !$OMP PRIVATE( Mkcond,   ERRORSWITCH, tot_s_1a, tot_n_1a,   ERR_VAR     )&
     !$OMP PRIVATE( ERR_MSG,  ERR_IND,     TRACNUM,  NH3_TO_NH4, SURF_AREA   )&
-    !$OMP PRIVATE( ORG_NUC2                                                 )&
     !$OMP SCHEDULE( DYNAMIC, 24                                             )&
     !$OMP COLLAPSE( 3                                                       )
     DO L = 1, State_Grid%NZ
@@ -7110,6 +7110,10 @@ CONTAINS
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'H2SO4_RATE' )
     H2SO4_RATE = 0.0e+0_fp
 
+    ALLOCATE( ORG_NUC(State_Grid%NX,State_Grid%NY,State_Grid%NZ), STAT=AS)
+    IF ( AS /= 0 ) CALL ALLOC_ERR( 'ORG_NUC' )
+    ORG_NUC = 0.0e+0_fp
+
     ALLOCATE( PSO4AQ_RATE(State_Grid%NX,State_Grid%NY,State_Grid%NZ), STAT=AS )
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSO4AQ_RATE' )
     PSO4AQ_RATE = 0.0e+0_fp
@@ -11349,6 +11353,7 @@ CONTAINS
     IF ( ALLOCATED( MOLWT       ) ) DEALLOCATE( MOLWT       )
     IF ( ALLOCATED( MOLWT       ) ) DEALLOCATE( MOLWT       )
     IF ( ALLOCATED( H2SO4_RATE  ) ) DEALLOCATE( H2SO4_RATE  )
+    IF ( ALLOCATED( ORG_NUC     ) ) DEALLOCATE( ORG_NUC     )
     IF ( ALLOCATED( PSO4AQ_RATE ) ) DEALLOCATE( PSO4AQ_RATE )
 
   END SUBROUTINE CLEANUP_TOMAS
