@@ -26,6 +26,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Selected RODAS3.1 as the default integration method for the fullchem mechanism; Regenerated fullchem solver files with KPP 3.4.0
 - Updated the minimum version of KPP needed to build the fullchem mechanism from 3.2.0 to 3.4.0
 - Changed C-preprocessor switch MODEL_ to MODEL_EXTERNAL, and ESMF_ to USE_ESMF
+- Updated `HEMCO_Config.rc` and `ExtData.rc` templates to read corrected GEFED4 emissons files in `HEMCO/GFED4/v2026-05`
 
 ### Fixed
 - Fixed incorrect variable names and removed unused variables in `NcdfUtil/ncdf_mod.F90`
