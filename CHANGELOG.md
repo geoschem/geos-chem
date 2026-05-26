@@ -25,8 +25,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated `run/shared/download_data.py` and `run/shared/setupForRestarts.sh` to read APM restart file paths
 - Selected RODAS3.1 as the default integration method for the fullchem mechanism; Regenerated fullchem solver files with KPP 3.4.0
 - Updated the minimum version of KPP needed to build the fullchem mechanism from 3.2.0 to 3.4.0
-- Changed C-preprocessor switch MODEL_ to MODEL_EXTERNAL, and ESMF_ to USE_ESMF
+- Changed C-preprocessor switch `MODEL_` to `MODEL_EXTERNAL`, and `ESMF_` to `USE_ESMF`
 - Changed the order of DO loops in `GeosCore/tomas_mod.F90` from `I-J-L` to `L-J-I` and added `!$OMP COLLAPSE( 3 )` statements
+- Updated run directory configuration files for GFAS (extension number 112)
 
 ### Fixed
 - Fixed incorrect variable names and removed unused variables in `NcdfUtil/ncdf_mod.F90`
