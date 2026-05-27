@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added code blocks for MAPL3 code in development
 - Added GCHP utility script extractPerformance.sh to scrape allPEs.log for timing summary in GCHP run directories
 - Added GCHP build scripts to GCHP runScriptSamples for Harvard
+- Added several additional run, build, and utility scripts to GCHP runScriptSamples for Harvard and AWS pcluster
 
 ### Changed
 - Renamed `State_Chm%Isorrop*` fields to `State_Chm%Ate*` (aerosol thermodynamical equilibrium), as ISORROPIA is no longer used
