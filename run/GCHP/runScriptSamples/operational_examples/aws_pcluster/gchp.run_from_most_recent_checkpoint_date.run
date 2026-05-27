@@ -1,0 +1,210 @@
+#!/bin/bash
+# ~ Lizzie Lundgren, May 2026
+#
+# This scripts assumes presence of gchp.env file that loads necessary libraries on AWS.
+# 
+# Recommended instances to include in partition for 48-core runs.
+#  c5-24xlarge
+#  c6i-24xlarge
+#  c7i-24xlarge
+#  c8i-24xlarge
+#  c6a-24xlarge
+#  m6i-24xlarge
+#  m7i-24xlarge
+#  m6a-24xlarge
+#  m7a-12xlarge
+
+#SBATCH -c 1
+#SBATCH -N 1
+#SBATCH -n 48
+#SBATCH -t 0-6:00
+#SBATCH -p spot48core
+#SBATCH --open-mode=append
+
+# Note start time in slurm log
+echo "Job ${SLURM_JOB_ID} started at" `date`
+echo -e "\nUsing AWS $(ec2-metadata -t)\n"
+
+# Exit if command fails
+set -e
+
+# Debug option to print all commands executed in this script
+#set -x
+
+# Get simulation start from cap_restart
+if [ -f cap_restart ]; then
+    cap_restart_date=$(cut -c 1-8 cap_restart)
+    echo -e "Start date in cap_restart: ${cap_restart_date}\n"
+else
+    echo -e "ERROR: File cap_restart does not exist! Create cap_restart containing simulation start date with format YYYYMMDD HHmmSS.\n"
+   exit 1
+fi
+
+# Get simulation resolution for use in restart filenames
+Nres=$(grep "CS_RES=" setCommonRunSettings.sh | cut -c 8- | xargs )
+
+#=========================================================================================
+# gcchem_internal_restart* files may be present if an AWS spot job was terminated
+# and then restarted. This section finds the latest checkpoint file, if any. If the date
+# is more recent than the date in cap_restart then that becomes the new start date and
+# the file is renamed with the proper filename format. Any remaining gcchem* files
+# are deleted.
+#=========================================================================================
+
+# Check if any are mid-run checkpoints                                    
+if ls ./Restarts/gcchem_internal_checkpoint.* >/dev/null 2>&1; then
+
+    # Get the file path for the one with the most recent date                                                           
+    chkpnt="$(ls -1 ./Restarts/gcchem_internal_checkpoint*.nc4 | tail -n 1)"
+    chkpnt_date=${chkpnt:38:8}
+
+    # Check if this date is after the date in cap_restart. If yes, update start time and rename.
+    if (( 10#$chkpnt_date > 10#$cap_restart_date )); then
+        echo -e "Checkpoint date ${ckpnt_date} is later than cap_restart date ${cap_restart_date}"
+
+        # Set new start date and rename the checkpoint file to expected restart file format                            
+        echo "${chkpnt_date} 000000" > cap_restart
+        echo -e "Updated cap_restart to ${chkpnt_date}\n"
+        echo -e "Moved .${chkpnt} to ${new_chkpnt}\n"
+        new_chkpnt=./Restarts/GEOSChem.Restart.${chkpnt_date}_0000z.c${Nres}.nc4
+        mv ${chkpnt} ${new_chkpnt}
+    fi
+fi
+
+# Remove any remaining gcchem_internal_checkpoint* files, if any
+rm -f ./Restarts/gcchem_internal_checkpoint*
+
+#=========================================================================================
+# Cleanup and set up log
+#=========================================================================================
+
+# Define ID name (edit to be unique if doing many simultaneous runs
+id=run
+
+# Set GCHP log name to contain start date string (might now be different from original).
+# Append if file already exists to document if it reran starting at the same date.
+cap_restart_date=$(cut -c 1-8 cap_restart)
+log=gchp.${id}.${cap_restart_date}_0000z.log
+echo "Writing to log file ${log}" >> ${log}
+echo -e "\nUsing AWS $(ec2-metadata -t)\n" >> ${log}
+
+##==========================================================================================
+## Optional code to update CAP.rc end date to end of month                                  
+##==========================================================================================
+#
+#end_date=$(date -d "${cap_restart_date%??}01 + 1 month" +%Y%m%d)
+#sed -i "s/\(END_DATE:[[:space:]]*\)[0-9]\{8\}/\1${end_date}/" CAP.rc
+#echo -e "Updated end date in CAP.rc to ${end_date}\n"
+
+##==================================================================================
+## Optional code to update setCommonRunSettings.sh duration to end minus start
+##==================================================================================
+#
+## Extract Year, Month, Day for both
+#sY=${cap_restart_date:0:4}
+#sM=${cap_restart_date:4:2}
+#sD=${cap_restart_date:6:2}
+#eY=${end_date:0:4}
+#eM=${end_date:4:2}
+#eD=${end_date:6:2}
+#
+## Calculate raw differences. Make sure strings are converted to integer with base-10.
+#diffY=$(( 10#$eY - 10#$sY ))
+#diffM=$(( 10#$eM - 10#$sM ))
+#diffD=$(( 10#$eD - 10#$sD ))
+#
+## Adjust if days are negative
+#if [ $diffD -lt 0 ]; then
+#    diffM=$(( diffM - 1 ))
+#    prev_month_days=$(date -d "${end_date:0:6}01 - 1 day" +%d)
+#    diffD=$(( diffD + prev_month_days ))
+#fi
+#
+## Adjust if months are negative
+#if [ $diffM -lt 0 ]; then
+#    diffY=$(( diffY - 1 ))
+#    diffM=$(( diffM + 12 ))
+#fi
+#
+## Format with leading zeros (e.g., 1 becomes 01)
+#printf -v duration_string "%04d%02d%02d 0000" $diffY $diffM $diffD
+#
+#sed -i "s/Run_Duration=\"[^\"]*\"/Run_Duration=\"$duration_string\"/" setCommonRunSettings.sh
+#echo -e "Updated setCommonRunSettings.sh to use duration ${duration_string}\n"
+
+#=============================================================================
+# Update config files based on settings in setCommonRunSettings.sh,
+# set restart symlink, load run env, and do sanity checks
+#=============================================================================
+
+source setCommonRunSettings.sh >> ${log}
+source setRestartLink.sh >> ${log}
+source gchp.env >> ${log}
+source checkRunSettings.sh >> ${log}
+
+#=============================================================================
+# Set up for executing GCHP
+#=============================================================================
+
+# Cannon-specific setting to get around connection issues at high # cores
+export OMPI_MCL_btl=openib
+
+# Run GCHP and evenly distribute tasks across nodes
+NX=$( grep NX GCHP.rc | awk '{print $2}' )
+NY=$( grep NY GCHP.rc | awk '{print $2}' )
+coreCount=$(( ${NX} * ${NY} ))
+planeCount=$(( ${coreCount} / ${SLURM_NNODES} ))
+if [[ $(( ${coreCount} % ${SLURM_NNODES} )) > 0 ]]; then
+    planeCount=$(( ${planeCount} + 1 ))
+fi
+
+# Turn off exit if command fails to allow script to finish if GCHP exits early
+set +e
+
+#=============================================================================
+# Run the model
+#=============================================================================
+
+echo '===> Executing GCHP at' `date` >> $log
+echo 'Executing GCHP at' `date`
+
+time srun -n ${coreCount} -N ${SLURM_NNODES} -m plane=${planeCount} --mpi=pmix ./gchp >> ${log}
+
+echo '===> Execution of GCHP done at' `date` >> $log
+echo 'Execution of GCHP done at' `date`
+
+#=============================================================================
+# Rename mid-run checkpoint files, if any. Discard file if time corresponds
+# to run start time since duplicate with initial restart file.
+#=============================================================================
+chkpnts=$(ls Restarts)
+for chkpnt in ${chkpnts}
+do
+    if [[ "$chkpnt" == *"gcchem_internal_checkpoint."* ]]; then
+        chkpnt_time=${chkpnt:27:13}
+        if [[ "${chkpnt_time}" = "${start_str:0:13}" ]]; then
+            rm ./Restarts/${chkpnt}
+        else
+            new_chkpnt=./Restarts/GEOSChem.Restart.${chkpnt_time}z.c${Nres}.nc4
+            mv ./Restarts/${chkpnt} ${new_chkpnt}
+        fi
+    fi
+done
+
+#=============================================================================
+# Rename restart file and update restart symlink if new start time ok
+#=============================================================================
+new_start_str=$(sed 's/ /_/g' cap_restart)
+if [[ "${new_start_str}" = "${start_str}" || "${new_start_str}" = "" ]]; then
+    echo "ERROR: GCHP failed to run to completion. Check the log file for more information."
+    rm -f Restarts/gcchem_internal_checkpoint
+    exit 1
+else
+    mv Restarts/gcchem_internal_checkpoint Restarts/GEOSChem.Restart.${new_start_str:0:13}z.c${Nres}.nc4
+    source setRestartLink.sh
+    echo "Moved ./Restarts/gcchem_internal_checkpoint to ./Restarts/GEOSChem.Restart.${new_start_str:0:13}z.c${N}.nc4"
+fi
+
+echo '===> Run ended at' `date` >> $log
+
+exit 0
