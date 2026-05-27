@@ -13,6 +13,7 @@
 ##------------------------------------
 #SBATCH -p sapphire,huce_cascade,seas_compute,shared
 #SBATCH --mem=180000
+#SBATCH --job-name=gchp.run
 #SBATCH --mail-type=END
 
 ###############################################################################

@@ -6,29 +6,36 @@
 # the number of runs as an argument. You must have gchp.run in your run directory.
 
 # One argument: number of runs
+
 numRuns=${1}
 if [[ "x${numRuns}" == "x" ]]; then
     echo "ERROR: Specify number of runs as argument, e.g. ./gchp.submit_consecutive_jobs.sh 2"
     exit
 fi
 
-# Sanity check number of runs, start date, and duration per run
-echo "Submitting ${numRuns} jobs"
-echo "Duration:  $(grep "Run_Duration=" setCommonRunSettings.sh | cut -c 14- | xargs)"
-echo "Start:     $(cat cap_restart)"
+slog=gchp.submit.log
 
-# Submit first job   
+# Sanity check number of runs, start date, and duration per run
+
+echo " " >> $slog
+echo "Submitting ${numRuns} jobs at" `date` >> $slog
+echo "Duration per job:  $(grep "Run_Duration=" setCommonRunSettings.sh | cut -c 14- | xargs)"  >> $slog
+echo "Start of 1st job:  $(cat cap_restart)"  >> $slog
+
+# Submit first job
+
 msg=$(sbatch gchp.run)
-echo $msg
+echo "Executing command: sbatch gchp.run" >> $slog
+echo $msg >> $slog
 IFS=', ' IFS=', ' read -r -a msgarray <<< "$msg"
 jobid=${msgarray[3]}
 
 # Submit additional jobs
-for i in $(seq 1 $((numRuns-1))); 
+for i in $(seq 1 $((numRuns-1)));
 do
-  msg=$(sbatch --dependency=afterok:$jobid gchp.run)
-  echo $msg
-  IFS=', ' IFS=', ' read -r -a msgarray <<< "$msg"
-  jobid=${msgarray[3]}
+    msg=$(sbatch --dependency=afterok:$jobid gchp.run)
+    echo "Executing command: sbatch --dependency=afterok:$jobid gchp.run"  >> $slog
+    echo $msg >> $slog
+    IFS=', ' IFS=', ' read -r -a msgarray <<< "$msg"
+    jobid=${msgarray[3]}
 done
-
