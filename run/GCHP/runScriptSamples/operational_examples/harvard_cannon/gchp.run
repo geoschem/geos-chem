@@ -11,7 +11,7 @@
 ## Use this for 1-year runs
 ##SBATCH -t 1-0:00
 ##------------------------------------
-#SBATCH -p sapphire,huce_cascade,seas_compute,shared
+#SBATCH -p sapphire,huce_cascade,seas_compute,shared,huce_ice
 #SBATCH --mem=180000
 #SBATCH --job-name=gchp.run
 #SBATCH --mail-type=END
