@@ -182,7 +182,7 @@ for chkpnt in ${chkpnts}
 do
     if [[ "$chkpnt" == *"gcchem_internal_checkpoint."* ]]; then
         chkpnt_time=${chkpnt:27:13}
-        if [[ "${chkpnt_time}" = "${start_str:0:13}" ]]; then
+        if [[ "${chkpnt_time}" == "${start_str:0:13}" ]]; then
             rm ./Restarts/${chkpnt}
         else
             new_chkpnt=./Restarts/GEOSChem.Restart.${chkpnt_time}z.c${Nres}.nc4
@@ -195,7 +195,7 @@ done
 # Rename restart file and update restart symlink if new start time ok
 #=============================================================================
 new_start_str=$(sed 's/ /_/g' cap_restart)
-if [[ "${new_start_str}" = "${start_str}" || "${new_start_str}" = "" ]]; then
+if [[ "${new_start_str}" == "${start_str}" || "${new_start_str}" == "" ]]; then
     echo "ERROR: GCHP failed to run to completion. Check the log file for more information."
     rm -f Restarts/gcchem_internal_checkpoint
     exit 1
