@@ -4,11 +4,10 @@
 #SBATCH -N 1
 #SBATCH -c 1
 #SBATCH -t 0-1:00
-#SBATCH -p sapphire,huce_cascade,seas_compute,shared
+#SBATCH -p ____
 #SBATCH --mem=60000
 #SBATCH --job-name=build.carbon
-#SBATCH --output=slurm-%j.build.log
-#SBATCH --mail-type=END
+#SBATCH --output=slurm.%x.%j.log
 
 source gchp.env
 cd build
