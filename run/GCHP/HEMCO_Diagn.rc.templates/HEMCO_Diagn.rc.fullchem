@@ -822,7 +822,7 @@ HcoConvectiveCloudTopHeight     -1 103 -1 -1 2 level           Convective_cloud_
 #InvGFAS_BCPI         BCPI   112  -1  -1  2   kg/m2/s  BCPI_emission_flux_from_GFAS_extension
 #InvGFAS_BCPO         BCPO   112  -1  -1  2   kg/m2/s  BCPO_emission_flux_from_GFAS_extension
 #InvGFAS_BENZ         BENZ   112  -1  -1  2   kg/m2/s  BENZ_emission_flux_from_GFAS_extension
-#InvGFAS_C2H6         C2H2   112  -1  -1  2   kg/m2/s  C2H2_emission_flux_from_GFAS_extension
+#InvGFAS_C2H2         C2H2   112  -1  -1  2   kg/m2/s  C2H2_emission_flux_from_GFAS_extension
 #InvGFAS_C2H4         C2H4   112  -1  -1  2   kg/m2/s  C2H4_emission_flux_from_GFAS_extension
 #InvGFAS_C2H6         C2H6   112  -1  -1  2   kg/m2/s  C2H6_emission_flux_from_GFAS_extension
 #InvGFAS_C3H8         C3H8   112  -1  -1  2   kg/m2/s  C3H8_emission_flux_from_GFAS_extension
