@@ -205,21 +205,6 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
     # 4x5 merra2 fullchem
     create_rundir "1\n1\n1\n1\n1\n${rundirsDir}\n\nn\nn\n" "${log}"
 
-    # 4x5 merra2 carbon CH4, straddling 00z
-    # Create a run directory for this test by copying the carbon_CH4 rundir
-    # Update config files (start at 18 UTC, end at 01 UTC next day)
-    straddleDir="gc_4x5_merra2_carbon_CH4_straddle_00z"
-    echo "... ${itRoot}/rundirs/${straddleDir}"
-    cd "${rundirsDir}"
-    cp -r "gc_4x5_merra2_carbon_CH4" "${straddleDir}"
-    cd "${straddleDir}"
-    sed_ie "s|20190101\, 000000|20190101\, 180000|" "geoschem_config.yml"
-    sed_ie "s|20190101\, 010000|20190102\, 010000|" "geoschem_config.yml"
-    sed_ie "s|00000000 010000|00000000 070000|"     "HISTORY.rc"
-    sed_ie "s|EFYO|EY|"                             "HEMCO_Config.rc"
-    sed_ie "s|2003-2100/1-12/1-31/0 EFY|2003-2100/1-12/1-31/0 C  |" "HEMCO_Config.rc"
-    cd "${rundirsDir}"
-
     # Exit after creating a few rundirs if $quick is "yes"
     if [[ "X${quick}" == "XYES" ]]; then
         cd ${thisDir}
@@ -328,6 +313,27 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
     # Activate the ObsPack diagnostic
     cp -r "${obsPk}" .
     toggle_geoschem_config_option "geoschem_config.yml" "obspack"     "true "
+
+    # Switch back to the rundirs folder
+    cd "${rundirsDir}"
+
+    #=========================================================================
+    # 4x5 merra2 carbon CH4, straddling 00z
+    #=========================================================================
+
+    # Create a run directory for this test by copying the carbon_CH4 rundir
+    straddleDir="gc_4x5_merra2_carbon_CH4_straddle_00z"
+    echo "... ${itRoot}/rundirs/${straddleDir}"
+    cd "${rundirsDir}"
+    cp -r "gc_4x5_merra2_carbon_CH4" "${straddleDir}"
+    cd "${straddleDir}"
+
+    # Update config files (start at 18 UTC, end at 01 UTC next day)
+    sed_ie "s|20190101\, 000000|20190101\, 180000|" "geoschem_config.yml"
+    sed_ie "s|20190101\, 010000|20190102\, 010000|" "geoschem_config.yml"
+    sed_ie "s|00000000 010000|00000000 070000|"     "HISTORY.rc"
+    sed_ie "s|EFYO|EY|"                             "HEMCO_Config.rc"
+    sed_ie "s|2003-2100/1-12/1-31/0 EFY|2003-2100/1-12/1-31/0 C  |" "HEMCO_Config.rc"
 
     # Switch back to the rundirs folder
     cd "${rundirsDir}"
