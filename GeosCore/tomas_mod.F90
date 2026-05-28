@@ -185,7 +185,6 @@ MODULE TOMAS_MOD
   INTEGER, PRIVATE :: id_SS01
 
   REAL(fp), ALLOCATABLE, PUBLIC :: ORG_NUC(:,:,:) ! SamO
-  REAL(fp), PRIVATE :: ORG_NUC2                              ! SamO
 
 CONTAINS
 !EOC
@@ -342,6 +341,7 @@ CONTAINS
     REAL(fp)            :: QSAT     !used in RH calculation
     INTEGER             :: TRACNUM
     REAL(fp)            :: FRAC
+    REAL(fp)            :: ORG_NUC2 ! SamO
     CHARACTER(LEN=255)  :: MSG, LOC ! species unit check
 
     ! Arguments for CHECK_VALUE; avoids array temporaries (bmy, 1/28/14)
@@ -486,26 +486,23 @@ CONTAINS
     ! NOTE: This doesn't have to be !$OMP+PRIVATE (bmy, 2/7/20)
     ADT = GET_TS_CHEM()
 
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    !%%% NOTE: THIS PARALLEL LOOP MAY BE ABLE TO BE REVERSED TO L-J-I
-    !%%% WHICH IS MUCH MORE EFFICIENT (bmy, 1/28/14)
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    !$OMP PARALLEL DO         &
-    !$OMP DEFAULT( SHARED )   &
-    !$OMP PRIVATE( I, J, L )  &
-    !$OMP PRIVATE( PRES, TEMPTMS, BOXMASS, RHTOMAS, BOXVOL )       &
-    !$OMP PRIVATE( printneg, ionrate, lev, weight, GC, N, NK, JC ) &
-    !$OMP PRIVATE( MK, H2SO4rate_o, tot_n_1, k, tot_s_1, MPNUM )   &
-    !$OMP PRIVATE( Nkd, Mkd, TOT_NK, TOT_MK, TRANSFER )            &
-    !$OMP PRIVATE( Nkout,Mkout,Gcout,fn,fn1 )                      &
-    !$OMP PRIVATE( num_iter,Nknuc,Mknuc,Nkcond )                   &
-    !$OMP PRIVATE( Mkcond, ERRORSWITCH, tot_s_1a, tot_n_1a )       &
-    !$OMP PRIVATE( ERR_VAR, ERR_MSG, ERR_IND )                     &
-    !$OMP PRIVATE( TRACNUM, NH3_TO_NH4, SURF_AREA )                &
-    !$OMP SCHEDULE( DYNAMIC )
-    DO I = 1, State_Grid%NX
-    DO J = 1, State_Grid%NY
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I,        J,           PRES,     TEMPTMS,    BOXMASS     )&
+    !$OMP PRIVATE( RHTOMAS,  BOXVOL,      printneg, ionrate,    lev         )&
+    !$OMP PRIVATE( weight,   GC,          N,        NK,         JC          )&
+    !$OMP PRIVATE( MK,       H2SO4rate_o, tot_n_1,  k,          tot_s_1     )&
+    !$OMP PRIVATE( MPNUM,    Nkd,         Mkd,      TOT_NK,     TOT_MK      )&
+    !$OMP PRIVATE( TRANSFER, Nkout,       Mkout,    Gcout,      fn          )&
+    !$OMP PRIVATE( fn1,      num_iter,    Nknuc,    Mknuc,      Nkcond      )&
+    !$OMP PRIVATE( Mkcond,   ERRORSWITCH, tot_s_1a, tot_n_1a,   ERR_VAR     )&
+    !$OMP PRIVATE( ERR_MSG,  ERR_IND,     TRACNUM,  NH3_TO_NH4, SURF_AREA   )&
+    !$OMP PRIVATE( ORG_NUC2                                                 )&
+    !$OMP SCHEDULE( DYNAMIC, 24                                             )&
+    !$OMP COLLAPSE( 3                                                       )
     DO L = 1, State_Grid%NZ
+    DO J = 1, State_Grid%NY
+    DO I = 1, State_Grid%NX
 
        ! Skip non-chemgrid boxes
        IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
@@ -707,7 +704,7 @@ CONTAINS
           CALL COND_NUC(Nk,Mk,Gc,Nkout,Mkout,Gcout,fn,fn1, &
                         H2SO4rate_o,adt,num_iter,Nknuc,Mknuc,Nkcond,Mkcond, &
                         ionrate, surf_area, BOXVOL, BOXMASS, TEMPTMS, PRES, &
-                        RHTOMAS, ERRORSWITCH, l, I, J, L)
+                        RHTOMAS, ERRORSWITCH, l, I, J, L, ORG_NUC2)
 
           !sfdebug if(printdebug) then
           !sfdebug    !print*,'Before COND_NUC Gc(srtso4)=',Gc(srtso4)
@@ -1010,7 +1007,7 @@ CONTAINS
   SUBROUTINE COND_NUC(Nki,Mki,Gci,Nkf,Mkf,Gcf,fnavg,fn1avg, &
                       H2SO4rate,dti,num_iter,Nknuc,Mknuc,Nkcond,Mkcond, &
                       ionrate, surf_area, BOXVOL, BOXMASS, TEMPTMS, PRES, &
-                      RHTOMAS, errswitch, lev,I1,J1,L1)
+                      RHTOMAS, errswitch, lev,I1,J1,L1, ORG_NUC2)
 !
 ! !INPUT PARAMETERS:
 !
@@ -1045,6 +1042,7 @@ CONTAINS
     INTEGER          I1,J1,L1     ! lat, lon, level SamO
     REAL(fp)   surf_area
     REAL(fp)   ionrate
+    REAL(fp)   ORG_NUC2
 !
 ! !REVISION HISTORY:
 !  See https://github.com/geoschem/geos-chem for complete history
@@ -1136,7 +1134,7 @@ CONTAINS
     call getH2SO4conc(Nk1, Mk1, H2SO4rate, CS1, Gc1(srtnh4), &
                       gasConc, ionrate, surf_area, &
                       BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS, lev, &
-                      I1,J1,L1)
+                      I1,J1,L1, ORG_NUC2)
     if( pdbg) print*,'gasConc',gasConc
     Gc1(srtso4) = gasConc
     addt = min_tstep
@@ -1148,7 +1146,7 @@ CONTAINS
     !Get change size distribution due to nucleation with initial guess
     call nucleation(Nk1,Mk1,Gc1,Nk2,Mk2,Gc2,fn,fn1,totmass,nuc_bin, &
                     addt, ionrate, surf_area, BOXVOL, BOXMASS, TEMPTMS, &
-                    PRES, RHTOMAS, PDBG, lev,I1,J1,L1)
+                    PRES, RHTOMAS, PDBG, lev,I1,J1,L1, ORG_NUC2)
 
     if(pdbg) then
        print*,'COND_NUC: Found an error at nucleation --> TERMINATE'
@@ -1284,7 +1282,7 @@ CONTAINS
           call getH2SO4conc(Nk1, Mk1, H2SO4rate, CS1, Gc1(srtnh4), &
                             gasConc, ionrate, surf_area, &
                             BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS, lev, &
-                            I1,J1,L1)
+                            I1,J1,L1, ORG_NUC2)
           Gc1(srtso4) = gasConc
        endif
        if( pdbg)    print*,'gasConc',gasConc
@@ -1304,7 +1302,7 @@ CONTAINS
        tempvar = pdbg
        call nucleation(Nk1,Mk1,Gc1,Nk2,Mk2,Gc2,fn,fn1,totmass, &
                        nuc_bin,addt, ionrate, surf_area, BOXVOL, BOXMASS, &
-                       TEMPTMS, PRES, RHTOMAS, PDBG, lev,I1,J1,L1)
+                       TEMPTMS, PRES, RHTOMAS, PDBG, lev,I1,J1,L1, ORG_NUC2)
 
        if(pdbg) then
           print*,'COND_NUC: Error at nucleation[2] --> TERMINATE'
@@ -1907,7 +1905,7 @@ CONTAINS
 !
   SUBROUTINE getH2SO4conc(Nk, Mk, H2SO4rate, CS, NH3conc, gasConc, &
                           ionrate, surf_area, BOXVOL, BOXMASS, &
-                          TEMPTMS, PRES, RHTOMAS, lev,I1,J1,L1)
+                          TEMPTMS, PRES, RHTOMAS, lev,I1,J1,L1, ORG_NUC2)
 !
 ! !USES:
 !
@@ -1928,6 +1926,7 @@ CONTAINS
     REAL*4, INTENT(IN)  :: BOXVOL,  BOXMASS, TEMPTMS
     REAL*4, INTENT(IN)  :: PRES,    RHTOMAS
     integer                lev
+    REAL(fp), INTENT(IN) :: ORG_NUC2
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -2025,7 +2024,7 @@ CONTAINS
     
     call getNucRate(Nk, Mk, Gci,fn,mnuc,nflg,ionrate, surf_area, &
                     BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS, lev,&
-                    I1,J1,L1)
+                    I1,J1,L1, ORG_NUC2)
     
 
     if (fn.gt.0.e+0_fp) then      ! nucleation occured
@@ -2037,7 +2036,7 @@ CONTAINS
        Gci(srtso4) = gasConc_lo*1.000001e+0_fp
        call getNucRate(Nk,Mk,Gci,fn1,mnuc1,nflg,ionrate,surf_area, &
                        BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS, lev,&
-                       I1,J1,L1)
+                       I1,J1,L1, ORG_NUC2)
        if (fn1.gt.0.e+0_fp) then
           massnuc = mnuc1*fn1*boxvol*98.e+0_fp/96.e+0_fp
           !massnuc = 4.e+0_fp/3.e+0_fp*pi*(rnuc1*1.e-9_fp)**3*1350.*fn1*boxvol*
@@ -2088,7 +2087,7 @@ CONTAINS
           Gci(srtso4) = gasConc
           call getNucRate(Nk, Mk,Gci,fn,mnuc,nflg,ionrate,surf_area, &
                           BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS, lev,&
-                          I1,J1,L1)
+                          I1,J1,L1, ORG_NUC2)
           massnuc = mnuc*fn*boxvol*98.e+0_fp/96.e+0_fp
           res = H2SO4rate - CS*gasConc - massnuc
           !print*,'res',res
@@ -2136,7 +2135,7 @@ CONTAINS
 !
   SUBROUTINE getNucRate(Nk, Mk, Gci,fn,mnuc,nflg, ionrate,surf_area, &
                         BOXVOL, BOXMASS, TEMPTMS, PRES, RHTOMAS, lev,&
-                        I1,J1,L1)
+                        I1,J1,L1, ORG_NUC2)
 !
 ! !USES:
 !
@@ -2151,6 +2150,7 @@ CONTAINS
     REAL*4,   INTENT(IN)       :: BOXVOL,  BOXMASS, TEMPTMS
     REAL*4,   INTENT(IN)       :: PRES,    RHTOMAS
     REAL(fp), INTENT(IN)       :: Gci(icomp-1)
+    REAL(fp), INTENT(IN)       :: ORG_NUC2
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -2979,7 +2979,7 @@ CONTAINS
 !
   SUBROUTINE NUCLEATION(Nki,Mki,Gci,Nkf,Mkf,Gcf,fn,fn1,totsulf, &
                         nuc_bin,dt,ionrate, surf_area, BOXVOL, BOXMASS, &
-                        TEMPTMS, PRES, RHTOMAS, pdbg,lev,I1,J1,L1)
+                        TEMPTMS, PRES, RHTOMAS, pdbg,lev,I1,J1,L1, ORG_NUC2)
 !
 ! !USES:
 !
@@ -3020,6 +3020,7 @@ CONTAINS
 
     REAL(fp)                     ionrate
     REAL(fp)                     surf_area
+    REAL(fp), INTENT(IN) :: ORG_NUC2
 !
 ! !REVISION HISTORY:
 !  See https://github.com/geoschem/geos-chem for complete history
@@ -7113,6 +7114,10 @@ CONTAINS
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'H2SO4_RATE' )
     H2SO4_RATE = 0.0e+0_fp
 
+    ALLOCATE( ORG_NUC(State_Grid%NX,State_Grid%NY,State_Grid%NZ), STAT=AS)
+    IF ( AS /= 0 ) CALL ALLOC_ERR( 'ORG_NUC' )
+    ORG_NUC = 0.0e+0_fp
+
     ALLOCATE( PSO4AQ_RATE(State_Grid%NX,State_Grid%NY,State_Grid%NZ), STAT=AS )
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSO4AQ_RATE' )
     PSO4AQ_RATE = 0.0e+0_fp
@@ -8110,11 +8115,12 @@ CONTAINS
     CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid, State_Met, &
                   State_Diag, 'AERO_DIADEN called from DEPVEL', RC )
 
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( MECIL, MECOB, MOCIL, MOCOB, MDUST ) &
-    !$OMP PRIVATE( BIN, I, J, TRACID, WID, MH2O, MSO4, MNACL ) &
-    !$OMP SCHEDULE( DYNAMIC )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( MECIL, MECOB, MOCIL,  MOCOB, MDUST,  BIN                 )&
+    !$OMP PRIVATE( I,     J,     TRACID, WID  , MH2O,   MSO4, MNACL         )&
+    !$OMP SCHEDULE( DYNAMIC, 24                                             )&
+    !$OMP COLLAPSE( 3                                                       )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
     DO BIN = 1, IBINS
@@ -8292,15 +8298,17 @@ CONTAINS
        L2 = LL
     ENDIF
 
-    !$OMP PARALLEL DO        &
-    !$OMP DEFAULT( SHARED )  &
-    !$OMP PRIVATE( I, J, L ) &
-    !$OMP PRIVATE( Nk, Nkd, Mk, Mkd, K, TRACNUM, JC, MPNUM, BOXVOL, BOXMASS ) &
-    !$OMP PRIVATE( GC, GCd, ERRORSWITCH ) &
-    !$OMP SCHEDULE( DYNAMIC )
-    DO I = I1, I2
-    DO J = J1, J2
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I,           J,      L,       Nk,      Nkd               )&
+    !$OMP PRIVATE( Mk,          Mkd,    K,       TRACNUM, JC                )&
+    !$OMP PRIVATE( MPNUM,       BOXVOL, BOXMASS, GC,      GCd               )&
+    !$OMP PRIVATE( ERRORSWITCH                                              )&
+    !$OMP SCHEDULE( DYNAMIC, 24                                             )&
+    !$OMP COLLAPSE( 3                                                       )
     DO L = L1, L2
+    DO J = J1, J2
+    DO I = I1, I2
 
        BOXVOL  = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3
        BOXMASS = State_Met%AD(I,J,L) !kg
@@ -11349,6 +11357,7 @@ CONTAINS
     IF ( ALLOCATED( MOLWT       ) ) DEALLOCATE( MOLWT       )
     IF ( ALLOCATED( MOLWT       ) ) DEALLOCATE( MOLWT       )
     IF ( ALLOCATED( H2SO4_RATE  ) ) DEALLOCATE( H2SO4_RATE  )
+    IF ( ALLOCATED( ORG_NUC     ) ) DEALLOCATE( ORG_NUC     )
     IF ( ALLOCATED( PSO4AQ_RATE ) ) DEALLOCATE( PSO4AQ_RATE )
 
   END SUBROUTINE CLEANUP_TOMAS

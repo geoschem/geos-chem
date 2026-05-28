@@ -408,13 +408,6 @@ CONTAINS
     REAL(fp)           :: EMITRATE(State_Grid%NX,State_Grid%NY)
 #endif
 
-#ifdef TOMAS
-  ! ---------------------------------------------------------- SamO
-    IF (.NOT. ALLOCATED (ORG_NUC)) THEN
-      ALLOCATE(ORG_NUC(State_Grid%NX,State_Grid%NY,State_Grid%NZ))
-    ENDIF
-  ! ---------------------------------------------------------- SamO
-#endif
 
     !=================================================================
     ! CHEMCARBON begins here!
@@ -5061,12 +5054,6 @@ CONTAINS
                id_OCOB01 > 1 ) ) THEN
       CALL ERROR_STOP ( 'TOMAS Species not defined!', LOC )
    ENDIF
-
-   ! ---------------------------------------------------------- SamO
-    IF (.NOT. ALLOCATED (ORG_NUC)) THEN
-      ALLOCATE(ORG_NUC(State_Grid%NX,State_Grid%NY,State_Grid%NZ))
-    ENDIF
-  ! ---------------------------------------------------------- SamO
 
    ! Emission timestep [seconds]
    DTSRCE = HcoState%TS_EMIS
