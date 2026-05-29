@@ -204,6 +204,8 @@ VerboseOnCores:              root       # Accepted values: root all
     --> fraction POG1          :       0.49
     --> CO to SOAP             :       0.013
     --> GFED_subgrid_coag      :       false
+112     GFAS                   : ${RUNDIR_GFAS_EXT}   ACET/ACR/ACTA/ALD2/ALK4/BCPI/BCPO/BENZ/C2H2/C2H4/C2H6/C3H8/C4H6/CH2O/CO/DMS/EOH/FURA/GLYX/HCOOH/ISOP/MEK/MGLY/MOH/MTPA/MVK/NAP/NH3/NO/OCPI/OCPO/pFe/PHEN/POG1/POG2/PRPE/RCHO/SO2/SOAP/STYR/TOLU/XYLE
+    --> Vertical Profile Species:      CO
 117     Volcano                : on    SO2
     --> Volcano_Source         :       AeroCom
     --> Volcano_Table          :       ${RUNDIR_VOLC_TABLE}
