@@ -4,7 +4,7 @@
 #SBATCH -N 1
 #SBATCH -c 1
 #SBATCH -t 0-1:00
-#SBATCH -p sapphire,huce_cascade,seas_compute,shared,huce_ice
+#SBATCH -p ____
 #SBATCH --mem=60000
 #SBATCH --job-name=build.carbon
 #SBATCH --output=slurm.%x.%j.log

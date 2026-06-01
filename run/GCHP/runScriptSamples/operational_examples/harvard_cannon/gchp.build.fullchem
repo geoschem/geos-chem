@@ -6,12 +6,12 @@
 #SBATCH -t 0-1:00
 #SBATCH -p sapphire,huce_cascade,seas_compute,shared,huce_ice
 #SBATCH --mem=60000
-#SBATCH --job-name=build.carbon
+#SBATCH --job-name=build.fullchem
 #SBATCH --output=slurm.%x.%j.log
 
 source gchp.env
 cd build
-cmake ../CodeDir -DRUNDIR=.. -DMECH=carbon
+cmake ../CodeDir -DRUNDIR=..
 make -j
 make install
 cd ..
