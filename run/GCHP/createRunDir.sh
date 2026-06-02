@@ -642,7 +642,7 @@ cp ./gitignore                        ${rundir}/.gitignore
 
 # Only copy extdata.yaml used in ExtData2G if using Transport Tracers
 # (extdata.yaml not yet available for other simulations)
-if [[ "x${sim_name}" == "xTransportTracers" ]]; then
+if [[ "x${sim_name}" == "xTransportTracers" || "x${sim_name}" == "xtagO3" ]]; then
     cp ./ExtData2G.yaml.templates/extdata.yaml.${sim_name} ${rundir}/extdata.yaml
 fi
 
@@ -925,7 +925,7 @@ printf "\n  -- Example run scripts are in the runScriptSamples subdirectory"
 printf "\n  -- For more information visit the GCHP user guide at"
 printf "\n     https://readthedocs.org/projects/gchp/\n\n"
 
-if [[ "x${sim_name}" == "xTransportTracers" ]]; then
+if [[ "x${sim_name}" == "xTransportTracers" || "x${sim_name}" == "xtagO3" ]]; then
     printf "\n\n*** NOTE: ExtData2G is now available as beta! ***\n"
     printf " - New configuration file extdata.yaml is located in your run directory\n"
     printf " - It is configured for use with MERRA2 meteorology at grid resolutions <= C180\n"
