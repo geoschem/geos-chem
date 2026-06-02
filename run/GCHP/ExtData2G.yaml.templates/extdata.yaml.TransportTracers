@@ -32,76 +32,106 @@
 
 Collections:
 
-  #-------------------------------------------------------------------
+  #===================================================================
   # Meteorology collections
-  #-------------------------------------------------------------------
-  MERRA2.A3dyn.05x0625.nc4:
+  #===================================================================
+
+  MERRA2.A3dyn.05x0625:
     template: ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A3dyn.05x0625.nc4
-  MERRA2.I3.05x0625.nc4:
+  MERRA2.I3.05x0625:
     template: ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.I3.05x0625.nc4
-  MERRA2.A1.05x0625.nc4:
+  MERRA2.A1.05x0625:
     template: ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
-  MERRA2.A3cld.05x0625.nc4:
+  MERRA2.A3cld.05x0625:
     template: ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A3cld.05x0625.nc4
-  MERRA2.A3mstC.05x0625.nc4:
+  MERRA2.A3mstC.05x0625:
     template: ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A3mstC.05x0625.nc4
-  MERRA2.A3mstE.05x0625.nc4:
+  MERRA2.A3mstE.05x0625:
     template: ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A3mstE.05x0625.nc4
-  MERRA2.20150101.CN.05x0625.nc4:
+  MERRA2.20150101.CN.05x0625:
     template: ./MetDir/2015/01/MERRA2.20150101.CN.05x0625.nc4
 
-  #-------------------------------------------------------------------
-  # Land map and LAI collections
-  #-------------------------------------------------------------------
-  Olson_2001_Land_Map.025x025.generic.nc:
+  #===================================================================
+  # Land map collections
+  #===================================================================
+
+  Olson_2001_Land_Map.025x025.generic:
     template: ./ChemDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
-  Condensed_Yuan_proc_MODIS_XLAI.025x025.%y4.nc:
+
+  #===================================================================
+  # LAI collections
+  #===================================================================
+
+  Condensed_Yuan_proc_MODIS_XLAI.025x025:
+    valid_range: "2000-01-01/2020-12-31T00:00"
     template: ./HcoDir/Yuan_XLAI/v2021-06/Condensed_Yuan_proc_MODIS_XLAI.025x025.%y4.nc
 
-  #-------------------------------------------------------------------
-  # SF6, CO, and Rn222 emissions collections
-  #-------------------------------------------------------------------
-  EDGAR_v42_SF6_IPCC_2.generic.01x01.nc:
+  #===================================================================
+  # Timezones collections
+  #===================================================================
+
+  timezones_vohra_2017_0.1x0.1:
+    valid_range: "2017-01-01/2017-12-31T00:00"
+    template: ./HcoDir/TIMEZONES/v2024-02/timezones_vohra_2017_0.1x0.1.nc
+
+  #===================================================================
+  # SF6 emissions collections
+  #===================================================================
+
+  EDGAR_v42_SF6_IPCC_2.generic.01x01:
     template: ./HcoDir/SF6/v2019-01/EDGAR_v42_SF6_IPCC_2.generic.01x01.nc
-  EDGAR_v43.CO.ENG.0.1x0.1.nc:
+
+  #===================================================================
+  # Anthropogenic CO 25-day and 50-day tracers collections
+  #===================================================================
+
+  #-------------------------------------------------------------------
+  # EDGARv43
+  #-------------------------------------------------------------------
+
+  EDGAR_v43.CO.ENG.0.1x0.1:
     template: ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.ENG.0.1x0.1.nc
-  EDGAR_v43.CO.FFF.0.1x0.1.nc:
+  EDGAR_v43.CO.FFF.0.1x0.1:
     template: ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.FFF.0.1x0.1.nc
-  EDGAR_v43.CO.IND.0.1x0.1.nc:
-    template: ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.IND.0.1x0.1.nc
-  EDGAR_v43.CO.POW.0.1x0.1.nc:
+  EDGAR_v43.CO.IND.0.1x0.1:
+     template: ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.IND.0.1x0.1.nc
+  EDGAR_v43.CO.POW.0.1x0.1:
     template: ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.POW.0.1x0.1.nc
-  EDGAR_v43.CO.PPA.0.1x0.1.nc:
+  EDGAR_v43.CO.PPA.0.1x0.1:
     template: ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.PPA.0.1x0.1.nc
-  EDGAR_v43.CO.RCO.0.1x0.1.nc:
+  EDGAR_v43.CO.RCO.0.1x0.1:
     template: ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.RCO.0.1x0.1.nc
-  EDGAR_v43.CO.SWD.0.1x0.1.nc:
+  EDGAR_v43.CO.SWD.0.1x0.1:
     template: ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.SWD.0.1x0.1.nc
-  EDGAR_v43.CO.TNG.0.1x0.1.nc:
+  EDGAR_v43.CO.TNG.0.1x0.1:
     template: ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.TNG.0.1x0.1.nc
-  EDGAR_v43.CO.TRO.0.1x0.1.nc:
+  EDGAR_v43.CO.TRO.0.1x0.1:
     template: ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.TRO.0.1x0.1.nc
-  CEDS_CO_0.1x0.1_%y4.nc:
+  EDGAR_v43.Seasonal.1x1:
+    template: ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc
+
+  #-------------------------------------------------------------------
+  # CEDS
+  #-------------------------------------------------------------------
+
+  CEDS_CO_0.1x0.1:
     # All data in valid_range must be locally available. Edit or download as needed.
     valid_range: "1980-01-01/2019-12-01T00:00"
     template: ./HcoDir/CEDS/v2024-06/%y4/CEDS_CO_0.1x0.1_%y4.nc
-  Rn222_Emis_Zhang_Liu_et_al_05x05_mass.nc:
-    template: ./HcoDir/ZHANG_Rn222/v2021-11/Rn222_Emis_Zhang_Liu_et_al_05x05_mass.nc
 
   #-------------------------------------------------------------------
-  # Timezones collection
+  # HTAP
   #-------------------------------------------------------------------
-  timezones_vohra_2017_0.1x0.1.nc:
-    template: ./HcoDir/TIMEZONES/v2024-02/timezones_vohra_2017_0.1x0.1.nc
 
-  #-------------------------------------------------------------------
-  # Scale factors collections
-  #-------------------------------------------------------------------
-  AnnualScalar.geos.1x1.nc:
+  AnnualScalar.geos.1x1:
     template: ./HcoDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
-  EDGAR_v43.Seasonal.1x1.nc:
-    template: ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc
 
+  #===================================================================
+  # Rn222 emissions collections
+  #===================================================================
+
+  Rn222_Emis_Zhang_Liu_et_al_05x05_mass:
+    template: ./HcoDir/ZHANG_Rn222/v2021-11/Rn222_Emis_Zhang_Liu_et_al_05x05_mass.nc
 
 ######################################################################
 ######################################################################
@@ -139,47 +169,51 @@ Samplings:
     extrapolation: persist_closest
 
   #===================================================================
-  # Sampling rules without extrapolation
+  # Sampling rules without extrapolation (*_noextrap)
   #
-  # The model will crash if the data for the simulation time is not
-  # found. For example, all meteorology data must be available for
-  # the simulation time for the model to run successfully.
+  # The model will crash if the data for the simulation year is not
+  # found. To use the nearest year available use one of the sampling
+  # rules with extrapolation instead (*_extrap).
   #===================================================================
 
-  offset_1hr30min_nointerp:
+  offset_1hr30min_nointerp_noextrap:
     update_offset: PT1H30M
     time_interpolation: False
 
-  offset_30min_nointerp:
+  offset_30min_nointerp_noextrap:
     update_offset: PT30M
     time_interpolation: False
 
-  offset_10min_interp:
+  offset_10min_interp_noextrap:
     update_offset: PT10M
     time_interpolation: True
 
-  daily_interp:
+  daily_interp_noextrap:
     update_frequency: PT24H
+    update_reference_time: '0'
     time_interpolation: True
 
   #===================================================================
-  # Sampling rules with extrapolation = clim (climatology)
+  # Sampling rules with extrapolation (*_extrap)
   #
-  # The model will NOT crash if the data read for the export is not found,
-  # as long as the export's collection entry has a 'valid_range' specified
-  # and all data in the range is available on the file system. In this case,
-  # the nearest full year of data will be reused cyclically.
+  # The model will not crash if data for the current year is not found.
+  # The nearest FULL YEAR of data will be reused cyclically (extrapolated).
+  # The export collection must have a 'valid_range' specified in the
+  # Collections section of this file. All data in that range must be
+  # available on the file system of the model will crash in initialization.
   #===================================================================
 
-  monthly_nointerp:
-    extrapolation: clim
+  monthly_nointerp_extrap:
     update_frequency: P1M
+    update_reference_time: '0'
     time_interpolation: False
-
-  annual_nointerp:
     extrapolation: clim
+
+  annual_nointerp_extrap:
     update_frequency: P1Y
+    update_reference_time: '0'
     time_interpolation: False
+    extrapolation: clim
 
 ######################################################################
 ######################################################################
@@ -210,987 +244,1004 @@ Samplings:
 
 Exports:
 
-  #-------------------------------------------------------------------
-  # Fields from MERRA2.A3dyn.05x0625.nc4:
-  #-------------------------------------------------------------------
+  #===================================================================
+  # Fields from MERRA2.A3dyn.05x0625:
+  #===================================================================
+
   DTRAIN:
-    collection: MERRA2.A3dyn.05x0625.nc4
+    collection: MERRA2.A3dyn.05x0625
     regrid: CONSERVE
-    sample: offset_1hr30min_nointerp
+    sample: offset_1hr30min_nointerp_noextrap
     variable: DTRAIN
   OMEGA:
-    collection: MERRA2.A3dyn.05x0625.nc4
+    collection: MERRA2.A3dyn.05x0625
     regrid: CONSERVE
-    sample: offset_1hr30min_nointerp
+    sample: offset_1hr30min_nointerp_noextrap
     variable: OMEGA
   RH:
-    collection: MERRA2.A3dyn.05x0625.nc4
+    collection: MERRA2.A3dyn.05x0625
     regrid: CONSERVE
-    sample: offset_1hr30min_nointerp
+    sample: offset_1hr30min_nointerp_noextrap
     variable: RH
   UA;VA:
-    collection: MERRA2.A3dyn.05x0625.nc4
+    collection: MERRA2.A3dyn.05x0625
     regrid: CONSERVE
-    sample: offset_1hr30min_nointerp
+    sample: offset_1hr30min_nointerp_noextrap
     variable: U;V
 
-  #-------------------------------------------------------------------
-  # Fields from MERRA2.I3.05x0625.nc4:
-  #-------------------------------------------------------------------
+  #===================================================================
+  # Fields from MERRA2.I3.05x0625:
+  #===================================================================
+
   PS1:
-    collection: MERRA2.I3.05x0625.nc4
+    collection: MERRA2.I3.05x0625
     linear_transformation:
       - 0.0
       - 0.01
     regrid: CONSERVE
     variable: PS
   PS2:
-    collection: MERRA2.I3.05x0625.nc4
+    collection: MERRA2.I3.05x0625
     linear_transformation:
       - 0.0
       - 0.01
     regrid: CONSERVE
-    sample: offset_10min_interp
+    sample: offset_10min_interp_noextrap
     variable: PS
   SPHU1:
-    collection: MERRA2.I3.05x0625.nc4
+    collection: MERRA2.I3.05x0625
     regrid: CONSERVE
     variable: QV
   SPHU2:
-    collection: MERRA2.I3.05x0625.nc4
+    collection: MERRA2.I3.05x0625
     regrid: CONSERVE
-    sample: offset_10min_interp
+    sample: offset_10min_interp_noextrap
     variable: QV
   TMPU1:
-    collection: MERRA2.I3.05x0625.nc4
+    collection: MERRA2.I3.05x0625
     regrid: CONSERVE
     variable: T
   TMPU2:
-    collection: MERRA2.I3.05x0625.nc4
+    collection: MERRA2.I3.05x0625
     regrid: CONSERVE
-    sample: offset_10min_interp
+    sample: offset_10min_interp_noextrap
     variable: T
 
-  #-------------------------------------------------------------------
-  # Fields from MERRA2.A1.05x0625.nc4:
-  #-------------------------------------------------------------------
+  #===================================================================
+  # Fields from MERRA2.A1.05x0625:
+  #===================================================================
+
   ALBD:
-    collection: MERRA2.A1.05x0625.nc4
+    collection: MERRA2.A1.05x0625
     regrid: CONSERVE
-    sample: offset_30min_nointerp
+    sample: offset_30min_nointerp_noextrap
     variable: ALBEDO
   CLDFRC:
-    collection: MERRA2.A1.05x0625.nc4
+    collection: MERRA2.A1.05x0625
     regrid: CONSERVE
-    sample: offset_30min_nointerp
+    sample: offset_30min_nointerp_noextrap
     variable: CLDTOT
   EFLUX:
-    collection: MERRA2.A1.05x0625.nc4
+    collection: MERRA2.A1.05x0625
     regrid: CONSERVE
-    sample: offset_30min_nointerp
+    sample: offset_30min_nointerp_noextrap
     variable: EFLUX
   EVAP:
-    collection: MERRA2.A1.05x0625.nc4
+    collection: MERRA2.A1.05x0625
     regrid: CONSERVE
-    sample: offset_30min_nointerp
+    sample: offset_30min_nointerp_noextrap
     variable: EVAP
   FRSEAICE:
-    collection: MERRA2.A1.05x0625.nc4
+    collection: MERRA2.A1.05x0625
     regrid: CONSERVE
-    sample: offset_30min_nointerp
+    sample: offset_30min_nointerp_noextrap
     variable: FRSEAICE
   FRSNO:
-    collection: MERRA2.A1.05x0625.nc4
+    collection: MERRA2.A1.05x0625
     regrid: CONSERVE
-    sample: offset_30min_nointerp
+    sample: offset_30min_nointerp_noextrap
     variable: FRSNO
   GRN:
-    collection: MERRA2.A1.05x0625.nc4
+    collection: MERRA2.A1.05x0625
     regrid: CONSERVE
-    sample: offset_30min_nointerp
+    sample: offset_30min_nointerp_noextrap
     variable: GRN
   GWETROOT:
-    collection: MERRA2.A1.05x0625.nc4
+    collection: MERRA2.A1.05x0625
     regrid: CONSERVE
-    sample: offset_30min_nointerp
+    sample: offset_30min_nointerp_noextrap
     variable: GWETROOT
   GWETTOP:
-    collection: MERRA2.A1.05x0625.nc4
+    collection: MERRA2.A1.05x0625
     regrid: CONSERVE
-    sample: offset_30min_nointerp
+    sample: offset_30min_nointerp_noextrap
     variable: GWETTOP
   HFLUX:
-    collection: MERRA2.A1.05x0625.nc4
+    collection: MERRA2.A1.05x0625
     regrid: CONSERVE
-    sample: offset_30min_nointerp
+    sample: offset_30min_nointerp_noextrap
     variable: HFLUX
   LAI:
-    collection: MERRA2.A1.05x0625.nc4
+    collection: MERRA2.A1.05x0625
     regrid: CONSERVE
-    sample: offset_30min_nointerp
+    sample: offset_30min_nointerp_noextrap
     variable: LAI
   PARDF:
-    collection: MERRA2.A1.05x0625.nc4
+    collection: MERRA2.A1.05x0625
     regrid: CONSERVE
-    sample: offset_30min_nointerp
+    sample: offset_30min_nointerp_noextrap
     variable: PARDF
   PARDR:
-    collection: MERRA2.A1.05x0625.nc4
+    collection: MERRA2.A1.05x0625
     regrid: CONSERVE
-    sample: offset_30min_nointerp
+    sample: offset_30min_nointerp_noextrap
     variable: PARDR
   PBLH:
-    collection: MERRA2.A1.05x0625.nc4
+    collection: MERRA2.A1.05x0625
     regrid: CONSERVE
-    sample: offset_30min_nointerp
+    sample: offset_30min_nointerp_noextrap
     variable: PBLH
   PRECANV:
-    collection: MERRA2.A1.05x0625.nc4
+    collection: MERRA2.A1.05x0625
     regrid: CONSERVE
-    sample: offset_30min_nointerp
+    sample: offset_30min_nointerp_noextrap
     variable: PRECANV
   PRECCON:
-    collection: MERRA2.A1.05x0625.nc4
+    collection: MERRA2.A1.05x0625
     regrid: CONSERVE
-    sample: offset_30min_nointerp
+    sample: offset_30min_nointerp_noextrap
     variable: PRECCON
   PRECLSC:
-    collection: MERRA2.A1.05x0625.nc4
+    collection: MERRA2.A1.05x0625
     regrid: CONSERVE
-    sample: offset_30min_nointerp
+    sample: offset_30min_nointerp_noextrap
     variable: PRECLSC
   PRECSNO:
-    collection: MERRA2.A1.05x0625.nc4
+    collection: MERRA2.A1.05x0625
     regrid: CONSERVE
-    sample: offset_30min_nointerp
+    sample: offset_30min_nointerp_noextrap
     variable: PRECSNO
   PRECTOT:
-    collection: MERRA2.A1.05x0625.nc4
+    collection: MERRA2.A1.05x0625
     regrid: CONSERVE
-    sample: offset_30min_nointerp
+    sample: offset_30min_nointerp_noextrap
     variable: PRECTOT
   QV2M:
-    collection: MERRA2.A1.05x0625.nc4
+    collection: MERRA2.A1.05x0625
     regrid: CONSERVE
-    sample: offset_30min_nointerp
+    sample: offset_30min_nointerp_noextrap
     variable: QV2M
   RADSWG:
-    collection: MERRA2.A1.05x0625.nc4
+    collection: MERRA2.A1.05x0625
     regrid: CONSERVE
-    sample: offset_30min_nointerp
+    sample: offset_30min_nointerp_noextrap
     variable: SWGDN
   SEAICE00:
-    collection: MERRA2.A1.05x0625.nc4
+    collection: MERRA2.A1.05x0625
     regrid: CONSERVE
-    sample: offset_30min_nointerp
+    sample: offset_30min_nointerp_noextrap
     variable: SEAICE00
   SEAICE10:
-    collection: MERRA2.A1.05x0625.nc4
+    collection: MERRA2.A1.05x0625
     regrid: CONSERVE
-    sample: offset_30min_nointerp
+    sample: offset_30min_nointerp_noextrap
     variable: SEAICE10
   SEAICE20:
-    collection: MERRA2.A1.05x0625.nc4
+    collection: MERRA2.A1.05x0625
     regrid: CONSERVE
-    sample: offset_30min_nointerp
+    sample: offset_30min_nointerp_noextrap
     variable: SEAICE20
   SEAICE30:
-    collection: MERRA2.A1.05x0625.nc4
+    collection: MERRA2.A1.05x0625
     regrid: CONSERVE
-    sample: offset_30min_nointerp
+    sample: offset_30min_nointerp_noextrap
     variable: SEAICE30
   SEAICE40:
-    collection: MERRA2.A1.05x0625.nc4
+    collection: MERRA2.A1.05x0625
     regrid: CONSERVE
-    sample: offset_30min_nointerp
+    sample: offset_30min_nointerp_noextrap
     variable: SEAICE40
   SEAICE50:
-    collection: MERRA2.A1.05x0625.nc4
+    collection: MERRA2.A1.05x0625
     regrid: CONSERVE
-    sample: offset_30min_nointerp
+    sample: offset_30min_nointerp_noextrap
     variable: SEAICE50
   SEAICE60:
-    collection: MERRA2.A1.05x0625.nc4
+    collection: MERRA2.A1.05x0625
     regrid: CONSERVE
-    sample: offset_30min_nointerp
+    sample: offset_30min_nointerp_noextrap
     variable: SEAICE60
   SEAICE70:
-    collection: MERRA2.A1.05x0625.nc4
+    collection: MERRA2.A1.05x0625
     regrid: CONSERVE
-    sample: offset_30min_nointerp
+    sample: offset_30min_nointerp_noextrap
     variable: SEAICE70
   SEAICE80:
-    collection: MERRA2.A1.05x0625.nc4
+    collection: MERRA2.A1.05x0625
     regrid: CONSERVE
-    sample: offset_30min_nointerp
+    sample: offset_30min_nointerp_noextrap
     variable: SEAICE80
   SEAICE90:
-    collection: MERRA2.A1.05x0625.nc4
+    collection: MERRA2.A1.05x0625
     regrid: CONSERVE
-    sample: offset_30min_nointerp
+    sample: offset_30min_nointerp_noextrap
     variable: SEAICE90
   SLP:
-    collection: MERRA2.A1.05x0625.nc4
+    collection: MERRA2.A1.05x0625
     linear_transformation:
       - 0.0
       - 0.01
     regrid: CONSERVE
-    sample: offset_30min_nointerp
+    sample: offset_30min_nointerp_noextrap
     variable: SLP
   SNODP:
-    collection: MERRA2.A1.05x0625.nc4
+    collection: MERRA2.A1.05x0625
     regrid: CONSERVE
-    sample: offset_30min_nointerp
+    sample: offset_30min_nointerp_noextrap
     variable: SNODP
   SNOMAS:
-    collection: MERRA2.A1.05x0625.nc4
+    collection: MERRA2.A1.05x0625
     regrid: CONSERVE
-    sample: offset_30min_nointerp
+    sample: offset_30min_nointerp_noextrap
     variable: SNOMAS
   TO3:
-    collection: MERRA2.A1.05x0625.nc4
+    collection: MERRA2.A1.05x0625
     regrid: CONSERVE
-    sample: offset_30min_nointerp
+    sample: offset_30min_nointerp_noextrap
     variable: TO3
   TROPP:
-    collection: MERRA2.A1.05x0625.nc4
+    collection: MERRA2.A1.05x0625
     linear_transformation:
       - 0.0
       - 0.01
     regrid: CONSERVE
-    sample: offset_30min_nointerp
+    sample: offset_30min_nointerp_noextrap
     variable: TROPPT
   TS:
-    collection: MERRA2.A1.05x0625.nc4
+    collection: MERRA2.A1.05x0625
     regrid: CONSERVE
-    sample: offset_30min_nointerp
+    sample: offset_30min_nointerp_noextrap
     variable: T2M
   TSKIN:
-    collection: MERRA2.A1.05x0625.nc4
+    collection: MERRA2.A1.05x0625
     regrid: CONSERVE
-    sample: offset_30min_nointerp
+    sample: offset_30min_nointerp_noextrap
     variable: TS
   U10M:
-    collection: MERRA2.A1.05x0625.nc4
+    collection: MERRA2.A1.05x0625
     regrid: CONSERVE
-    sample: offset_30min_nointerp
+    sample: offset_30min_nointerp_noextrap
     variable: U10M
   USTAR:
-    collection: MERRA2.A1.05x0625.nc4
+    collection: MERRA2.A1.05x0625
     regrid: CONSERVE
-    sample: offset_30min_nointerp
+    sample: offset_30min_nointerp_noextrap
     variable: USTAR
   V10M:
-    collection: MERRA2.A1.05x0625.nc4
+    collection: MERRA2.A1.05x0625
     regrid: CONSERVE
-    sample: offset_30min_nointerp
+    sample: offset_30min_nointerp_noextrap
     variable: V10M
   Z0:
-    collection: MERRA2.A1.05x0625.nc4
+    collection: MERRA2.A1.05x0625
     regrid: CONSERVE
-    sample: offset_30min_nointerp
+    sample: offset_30min_nointerp_noextrap
     variable: Z0M
 
-  #-------------------------------------------------------------------
-  # Fields from MERRA2.A3cld.05x0625.nc4:
-  #-------------------------------------------------------------------
+  #===================================================================
+  # Fields from MERRA2.A3cld.05x0625:
+  #===================================================================
+
   CLDF:
-    collection: MERRA2.A3cld.05x0625.nc4
+    collection: MERRA2.A3cld.05x0625
     regrid: CONSERVE
-    sample: offset_1hr30min_nointerp
+    sample: offset_1hr30min_nointerp_noextrap
     variable: CLOUD
   OPTDEP:
-    collection: MERRA2.A3cld.05x0625.nc4
+    collection: MERRA2.A3cld.05x0625
     regrid: CONSERVE
-    sample: offset_1hr30min_nointerp
+    sample: offset_1hr30min_nointerp_noextrap
     variable: OPTDEPTH
   QI:
-    collection: MERRA2.A3cld.05x0625.nc4
+    collection: MERRA2.A3cld.05x0625
     regrid: CONSERVE
-    sample: offset_1hr30min_nointerp
+    sample: offset_1hr30min_nointerp_noextrap
     variable: QI
   QL:
-    collection: MERRA2.A3cld.05x0625.nc4
+    collection: MERRA2.A3cld.05x0625
     regrid: CONSERVE
-    sample: offset_1hr30min_nointerp
+    sample: offset_1hr30min_nointerp_noextrap
     variable: QL
   TAUCLI:
-    collection: MERRA2.A3cld.05x0625.nc4
+    collection: MERRA2.A3cld.05x0625
     regrid: CONSERVE
-    sample: offset_1hr30min_nointerp
+    sample: offset_1hr30min_nointerp_noextrap
     variable: TAUCLI
   TAUCLW:
-    collection: MERRA2.A3cld.05x0625.nc4
+    collection: MERRA2.A3cld.05x0625
     regrid: CONSERVE
-    sample: offset_1hr30min_nointerp
+    sample: offset_1hr30min_nointerp_noextrap
     variable: TAUCLW
 
-  #-------------------------------------------------------------------
-  # Fields from MERRA2.A3mstC.05x0625.nc4:
-  #-------------------------------------------------------------------
+  #===================================================================
+  # Fields from MERRA2.A3mstC.05x0625:
+  #===================================================================
+
   REEVAPCN:
-    collection: MERRA2.A3mstC.05x0625.nc4
+    collection: MERRA2.A3mstC.05x0625
     regrid: CONSERVE
-    sample: offset_1hr30min_nointerp
+    sample: offset_1hr30min_nointerp_noextrap
     variable: REEVAPCN
   REEVAPLS:
-    collection: MERRA2.A3mstC.05x0625.nc4
+    collection: MERRA2.A3mstC.05x0625
     regrid: CONSERVE
-    sample: offset_1hr30min_nointerp
+    sample: offset_1hr30min_nointerp_noextrap
     variable: REEVAPLS
   DQRCU:
-    collection: MERRA2.A3mstC.05x0625.nc4
+    collection: MERRA2.A3mstC.05x0625
     regrid: CONSERVE
-    sample: offset_1hr30min_nointerp
+    sample: offset_1hr30min_nointerp_noextrap
     variable: DQRCU
   DQRLSAN:
-    collection: MERRA2.A3mstC.05x0625.nc4
+    collection: MERRA2.A3mstC.05x0625
     regrid: CONSERVE
-    sample: offset_1hr30min_nointerp
+    sample: offset_1hr30min_nointerp_noextrap
     variable: DQRLSAN
 
-  #-------------------------------------------------------------------
-  # Fields from MERRA2.A3mstE.05x0625.nc4:
-  #-------------------------------------------------------------------
+  #===================================================================
+  # Fields from MERRA2.A3mstE.05x0625:
+  #===================================================================
+
   CMFMC:
-    collection: MERRA2.A3mstE.05x0625.nc4
+    collection: MERRA2.A3mstE.05x0625
     regrid: CONSERVE
-    sample: offset_1hr30min_nointerp
+    sample: offset_1hr30min_nointerp_noextrap
     variable: CMFMC
   PFICU:
-    collection: MERRA2.A3mstE.05x0625.nc4
+    collection: MERRA2.A3mstE.05x0625
     regrid: CONSERVE
-    sample: offset_1hr30min_nointerp
+    sample: offset_1hr30min_nointerp_noextrap
     variable: PFICU
   PFILSAN:
-    collection: MERRA2.A3mstE.05x0625.nc4
+    collection: MERRA2.A3mstE.05x0625
     regrid: CONSERVE
-    sample: offset_1hr30min_nointerp
+    sample: offset_1hr30min_nointerp_noextrap
     variable: PFILSAN
   PFLCU:
-    collection: MERRA2.A3mstE.05x0625.nc4
+    collection: MERRA2.A3mstE.05x0625
     regrid: CONSERVE
-    sample: offset_1hr30min_nointerp
+    sample: offset_1hr30min_nointerp_noextrap
     variable: PFLCU
   PFLLSAN:
-    collection: MERRA2.A3mstE.05x0625.nc4
+    collection: MERRA2.A3mstE.05x0625
     regrid: CONSERVE
-    sample: offset_1hr30min_nointerp
+    sample: offset_1hr30min_nointerp_noextrap
     variable: PFLLSAN
 
-  #-------------------------------------------------------------------
-  # Fields from MERRA2.20150101.CN.05x0625.nc4:
-  #-------------------------------------------------------------------
+  #===================================================================
+  # Fields from MERRA2.20150101.CN.05x0625:
+  #===================================================================
+
   FRLAKE:
-    collection: MERRA2.20150101.CN.05x0625.nc4
+    collection: MERRA2.20150101.CN.05x0625
     regrid: CONSERVE
     sample: constant
     variable: FRLAKE
   FRLAND:
-    collection: MERRA2.20150101.CN.05x0625.nc4
+    collection: MERRA2.20150101.CN.05x0625
     regrid: CONSERVE
     sample: constant
     variable: FRLAND
   FRLANDIC:
-    collection: MERRA2.20150101.CN.05x0625.nc4
+    collection: MERRA2.20150101.CN.05x0625
     regrid: CONSERVE
     sample: constant
     variable: FRLANDIC
   FROCEAN:
-    collection: MERRA2.20150101.CN.05x0625.nc4
+    collection: MERRA2.20150101.CN.05x0625
     regrid: CONSERVE
     sample: constant
     variable: FROCEAN
   OCEAN_MASK:
-    collection: MERRA2.20150101.CN.05x0625.nc4
+    collection: MERRA2.20150101.CN.05x0625
     regrid: CONSERVE
     sample: constant
     variable: FROCEAN
   PHIS:
-    collection: MERRA2.20150101.CN.05x0625.nc4
+    collection: MERRA2.20150101.CN.05x0625
     regrid: CONSERVE
     sample: constant
     variable: PHIS
 
-  #-------------------------------------------------------------------
+  #===================================================================
   # Fields from Olson land map
-  #-------------------------------------------------------------------
+  #===================================================================
+
   OLSON00:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;0
     sample: constant
     variable: OLSON
   OLSON01:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;1
     sample: constant
     variable: OLSON
   OLSON02:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;2
     sample: constant
     variable: OLSON
   OLSON03:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;3
     sample: constant
     variable: OLSON
   OLSON04:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;4
     sample: constant
     variable: OLSON
   OLSON05:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;5
     sample: constant
     variable: OLSON
   OLSON06:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;6
     sample: constant
     variable: OLSON
   OLSON07:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;7
     sample: constant
     variable: OLSON
   OLSON08:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;8
     sample: constant
     variable: OLSON
   OLSON09:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;9
     sample: constant
     variable: OLSON
   OLSON10:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;10
     sample: constant
     variable: OLSON
   OLSON11:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;11
     sample: constant
     variable: OLSON
   OLSON12:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;12
     sample: constant
     variable: OLSON
   OLSON13:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;13
     sample: constant
     variable: OLSON
   OLSON14:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;14
     sample: constant
     variable: OLSON
   OLSON15:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;15
     sample: constant
     variable: OLSON
   OLSON16:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;16
     sample: constant
     variable: OLSON
   OLSON17:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;17
     sample: constant
     variable: OLSON
   OLSON18:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;18
     sample: constant
     variable: OLSON
   OLSON19:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;19
     sample: constant
     variable: OLSON
   OLSON20:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;20
     sample: constant
     variable: OLSON
   OLSON21:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;21
     sample: constant
     variable: OLSON
   OLSON22:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;22
     sample: constant
     variable: OLSON
   OLSON23:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;23
     sample: constant
     variable: OLSON
   OLSON24:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;24
     sample: constant
     variable: OLSON
   OLSON25:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;25
     sample: constant
     variable: OLSON
   OLSON26:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;26
     sample: constant
     variable: OLSON
   OLSON27:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;27
     sample: constant
     variable: OLSON
   OLSON28:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;28
     sample: constant
     variable: OLSON
   OLSON29:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;29
     sample: constant
     variable: OLSON
   OLSON30:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;30
     sample: constant
     variable: OLSON
   OLSON31:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;31
     sample: constant
     variable: OLSON
   OLSON32:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;32
     sample: constant
     variable: OLSON
   OLSON33:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;33
     sample: constant
     variable: OLSON
   OLSON34:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;34
     sample: constant
     variable: OLSON
   OLSON35:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;35
     sample: constant
     variable: OLSON
   OLSON36:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;36
     sample: constant
     variable: OLSON
   OLSON37:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;37
     sample: constant
     variable: OLSON
   OLSON38:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;38
     sample: constant
     variable: OLSON
   OLSON39:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;39
     sample: constant
     variable: OLSON
   OLSON40:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;40
     sample: constant
     variable: OLSON
   OLSON41:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;41
     sample: constant
     variable: OLSON
   OLSON42:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;42
     sample: constant
     variable: OLSON
   OLSON43:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;43
     sample: constant
     variable: OLSON
   OLSON44:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;44
     sample: constant
     variable: OLSON
   OLSON45:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;45
     sample: constant
     variable: OLSON
   OLSON46:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;46
     sample: constant
     variable: OLSON
   OLSON47:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;47
     sample: constant
     variable: OLSON
   OLSON48:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;48
     sample: constant
     variable: OLSON
   OLSON49:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;49
     sample: constant
     variable: OLSON
   OLSON50:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;50
     sample: constant
     variable: OLSON
   OLSON51:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;51
     sample: constant
     variable: OLSON
   OLSON52:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;52
     sample: constant
     variable: OLSON
   OLSON53:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;53
     sample: constant
     variable: OLSON
   OLSON54:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;54
     sample: constant
     variable: OLSON
   OLSON55:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;55
     sample: constant
     variable: OLSON
   OLSON56:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;56
     sample: constant
     variable: OLSON
   OLSON57:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;57
     sample: constant
     variable: OLSON
   OLSON58:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;58
     sample: constant
     variable: OLSON
   OLSON59:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;59
     sample: constant
     variable: OLSON
   OLSON60:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;60
     sample: constant
     variable: OLSON
   OLSON61:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;61
     sample: constant
     variable: OLSON
   OLSON62:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;62
     sample: constant
     variable: OLSON
   OLSON63:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;63
     sample: constant
     variable: OLSON
   OLSON64:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;64
     sample: constant
     variable: OLSON
   OLSON65:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;65
     sample: constant
     variable: OLSON
   OLSON66:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;66
     sample: constant
     variable: OLSON
   OLSON67:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;67
     sample: constant
     variable: OLSON
   OLSON68:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;68
     sample: constant
     variable: OLSON
   OLSON69:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;69
     sample: constant
     variable: OLSON
   OLSON70:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;70
     sample: constant
     variable: OLSON
   OLSON71:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;71
     sample: constant
     variable: OLSON
   OLSON72:
-    collection: Olson_2001_Land_Map.025x025.generic.nc
+    collection: Olson_2001_Land_Map.025x025.generic
     regrid: FRACTION;72
     sample: constant
     variable: OLSON
 
-  #-------------------------------------------------------------------
-  # Fields from Condensed_Yuan_proc_MODIS_XLAI.025x025.%y4.nc:
-  #-------------------------------------------------------------------
+  #===================================================================
+  # Fields from Condensed_Yuan_proc_MODIS_XLAI.025x02:
+  #===================================================================
+
   XLAIMULTI:
-    collection: Condensed_Yuan_proc_MODIS_XLAI.025x025.%y4.nc
+    collection: Condensed_Yuan_proc_MODIS_XLAI.025x025
     regrid: CONSERVE
-    sample: daily_interp
+    sample: daily_interp_noextrap
     variable: XLAIMULTI
 
-  #-------------------------------------------------------------------
-  # Fields from EDGAR_v42_SF6_IPCC_2.generic.01x01.nc:
-  #-------------------------------------------------------------------
+  #===================================================================
+  # Fields from EDGAR_v42_SF6_IPCC_2.generic.01x01:
+  #===================================================================
+
   EDGAR_SF6:
-    collection: EDGAR_v42_SF6_IPCC_2.generic.01x01.nc
+    collection: EDGAR_v42_SF6_IPCC_2.generic.01x01
     regrid: CONSERVE
-    sample: annual_nointerp
+    sample: annual_nointerp_extrap
     variable: emi_sf6
 
-  #-------------------------------------------------------------------
-  # Fields from EDGAR_v43.CO.***.0.1x0.1.nc:
-  #-------------------------------------------------------------------
+  #===================================================================
+  # Fields from EDGAR_v43.CO.***.0.1x0.1:
+  #===================================================================
+
   EDGAR_CO_25_ENG:
-    collection: EDGAR_v43.CO.ENG.0.1x0.1.nc
+    collection: EDGAR_v43.CO.ENG.0.1x0.1
     regrid: CONSERVE
-    sample: annual_nointerp
+    sample: annual_nointerp_extrap
     variable: emi_co
   EDGAR_CO_25_FFF:
-    collection: EDGAR_v43.CO.FFF.0.1x0.1.nc
+    collection: EDGAR_v43.CO.FFF.0.1x0.1
     regrid: CONSERVE
-    sample: annual_nointerp
+    sample: annual_nointerp_extrap
     variable: emi_co
   EDGAR_CO_25_IND:
-    collection: EDGAR_v43.CO.IND.0.1x0.1.nc
+    collection: EDGAR_v43.CO.IND.0.1x0.1
     regrid: CONSERVE
-    sample: annual_nointerp
+    sample: annual_nointerp_extrap
     variable: emi_co
   EDGAR_CO_25_POW:
-    collection: EDGAR_v43.CO.POW.0.1x0.1.nc
+    collection: EDGAR_v43.CO.POW.0.1x0.1
     regrid: CONSERVE
-    sample: annual_nointerp
+    sample: annual_nointerp_extrap
     variable: emi_co
   EDGAR_CO_25_PPA:
-    collection: EDGAR_v43.CO.PPA.0.1x0.1.nc
+    collection: EDGAR_v43.CO.PPA.0.1x0.1
     regrid: CONSERVE
-    sample: annual_nointerp
+    sample: annual_nointerp_extrap
     variable: emi_co
   EDGAR_CO_25_RCO:
-    collection: EDGAR_v43.CO.RCO.0.1x0.1.nc
+    collection: EDGAR_v43.CO.RCO.0.1x0.1
     regrid: CONSERVE
-    sample: annual_nointerp
+    sample: annual_nointerp_extrap
     variable: emi_co
   EDGAR_CO_25_SWD:
-    collection: EDGAR_v43.CO.SWD.0.1x0.1.nc
+    collection: EDGAR_v43.CO.SWD.0.1x0.1
     regrid: CONSERVE
-    sample: annual_nointerp
+    sample: annual_nointerp_extrap
     variable: emi_co
   EDGAR_CO_25_TNG:
-    collection: EDGAR_v43.CO.TNG.0.1x0.1.nc
+    collection: EDGAR_v43.CO.TNG.0.1x0.1
     regrid: CONSERVE
-    sample: annual_nointerp
+    sample: annual_nointerp_extrap
     variable: emi_co
   EDGAR_CO_25_TRO:
-    collection: EDGAR_v43.CO.TRO.0.1x0.1.nc
+    collection: EDGAR_v43.CO.TRO.0.1x0.1
     regrid: CONSERVE
-    sample: annual_nointerp
+    sample: annual_nointerp_extrap
     variable: emi_co
 
-  #-------------------------------------------------------------------
-  # Fields from CEDS_CO_0.1x0.1_%y4.nc:
-  #-------------------------------------------------------------------
+  #===================================================================
+  # Fields from CEDS_CO_0.1x0.1_%y4:
+  #===================================================================
+
   CEDS_CO_25_AGR:
-    collection: CEDS_CO_0.1x0.1_%y4.nc
+    collection: CEDS_CO_0.1x0.1
     regrid: CONSERVE
-    sample: monthly_nointerp
+    sample: monthly_nointerp_extrap
     variable: CO_agr
   CEDS_CO_25_ENE:
-    collection: CEDS_CO_0.1x0.1_%y4.nc
+    collection: CEDS_CO_0.1x0.1
     regrid: CONSERVE
-    sample: monthly_nointerp
+    sample: monthly_nointerp_extrap
     variable: CO_ene
   CEDS_CO_25_IND:
-    collection: CEDS_CO_0.1x0.1_%y4.nc
+    collection: CEDS_CO_0.1x0.1
     regrid: CONSERVE
-    sample: monthly_nointerp
+    sample: monthly_nointerp_extrap
     variable: CO_ind
   CEDS_CO_25_RCO:
-    collection: CEDS_CO_0.1x0.1_%y4.nc
+    collection: CEDS_CO_0.1x0.1
     regrid: CONSERVE
-    sample: monthly_nointerp
+    sample: monthly_nointerp_extrap
     variable: CO_rco
   CEDS_CO_25_SHP:
-    collection: CEDS_CO_0.1x0.1_%y4.nc
+    collection: CEDS_CO_0.1x0.1
     regrid: CONSERVE
-    sample: monthly_nointerp
+    sample: monthly_nointerp_extrap
     variable: CO_shp
   CEDS_CO_25_SLV:
-    collection: CEDS_CO_0.1x0.1_%y4.nc
+    collection: CEDS_CO_0.1x0.1
     regrid: CONSERVE
-    sample: monthly_nointerp
+    sample: monthly_nointerp_extrap
     variable: CO_slv
   CEDS_CO_25_TRA:
-    collection: CEDS_CO_0.1x0.1_%y4.nc
+    collection: CEDS_CO_0.1x0.1
     regrid: CONSERVE
-    sample: monthly_nointerp
+    sample: monthly_nointerp_extrap
     variable: CO_tra
   CEDS_CO_25_WST:
-    collection: CEDS_CO_0.1x0.1_%y4.nc
+    collection: CEDS_CO_0.1x0.1
     regrid: CONSERVE
-    sample: monthly_nointerp
+    sample: monthly_nointerp_extrap
     variable: CO_wst
 
-  #-------------------------------------------------------------------
-  # Fields from Rn222_Emis_Zhang_Liu_et_al_05x05_mass.nc:
-  #-------------------------------------------------------------------
+  #===================================================================
+  # Fields from Rn222_Emis_Zhang_Liu_et_al_05x05_mass:
+  #===================================================================
+
   ZHANG_Rn222_EMIS:
-    collection: Rn222_Emis_Zhang_Liu_et_al_05x05_mass.nc
+    collection: Rn222_Emis_Zhang_Liu_et_al_05x05_mass
     regrid: CONSERVE
-    sample: monthly_nointerp
+    sample: monthly_nointerp_extrap
     variable: rnemis
 
-  #-------------------------------------------------------------------
-  # Fields from timezones_vohra_2017_0.1x0.1.nc:
-  #-------------------------------------------------------------------
+  #===================================================================
+  # Fields from timezones_vohra_2017_0.1x0.1:
+  #===================================================================
+
   TIMEZONES:
-    collection: timezones_vohra_2017_0.1x0.1.nc
+    collection: timezones_vohra_2017_0.1x0.1
     regrid: VOTE
-    sample: monthly_nointerp
+    sample: monthly_nointerp_extrap
     variable: UTC_OFFSET
 
-  #-------------------------------------------------------------------
-  # Fields from AnnualScalar.geos.1x1.nc:
-  #-------------------------------------------------------------------
+  #===================================================================
+  # Fields from AnnualScalar.geos.1x1:
+  #===================================================================
+
   LIQFUEL_2008_2010:
-    collection: AnnualScalar.geos.1x1.nc
+    collection: AnnualScalar.geos.1x1
     regrid: CONSERVE
-    sample: annual_nointerp
+    sample: annual_nointerp_extrap
     variable: COscalar
   LIQFUEL_THISYR:
-    collection: AnnualScalar.geos.1x1.nc
+    collection: AnnualScalar.geos.1x1
     regrid: CONSERVE
-    sample: annual_nointerp
+    sample: annual_nointerp_extrap
     variable: COscalar
 
-  #-------------------------------------------------------------------
-  # Fields from EDGAR_v43.Seasonal.1x1.nc:
-  #-------------------------------------------------------------------
+  #===================================================================
+  # Fields from EDGAR_v43.Seasonal.1x1:
+  #===================================================================
+
   AGR:
-    collection: EDGAR_v43.Seasonal.1x1.nc
+    collection: EDGAR_v43.Seasonal.1x1
     regrid: CONSERVE
-    sample: annual_nointerp
+    sample: annual_nointerp_extrap
     variable: AGR
   AWB:
-    collection: EDGAR_v43.Seasonal.1x1.nc
+    collection: EDGAR_v43.Seasonal.1x1
     regrid: CONSERVE
-    sample: monthly_nointerp
+    sample: monthly_nointerp_extrap
     variable: AW
   ENG:
-    collection: EDGAR_v43.Seasonal.1x1.nc
+    collection: EDGAR_v43.Seasonal.1x1
     regrid: CONSERVE
-    sample: monthly_nointerp
+    sample: monthly_nointerp_extrap
     variable: ENG
   FFF:
-    collection: EDGAR_v43.Seasonal.1x1.nc
+    collection: EDGAR_v43.Seasonal.1x1
     regrid: CONSERVE
-    sample: monthly_nointerp
+    sample: monthly_nointerp_extrap
     variable: FFF
   IND:
-    collection: EDGAR_v43.Seasonal.1x1.nc
+    collection: EDGAR_v43.Seasonal.1x1
     regrid: CONSERVE
-    sample: monthly_nointerp
+    sample: monthly_nointerp_extrap
     variable: IND
   POW:
-    collection: EDGAR_v43.Seasonal.1x1.nc
+    collection: EDGAR_v43.Seasonal.1x1
     regrid: CONSERVE
-    sample: monthly_nointerp
+    sample: monthly_nointerp_extrap
     variable: POW
   PPA:
-    collection: EDGAR_v43.Seasonal.1x1.nc
+    collection: EDGAR_v43.Seasonal.1x1
     regrid: CONSERVE
-    sample: monthly_nointerp
+    sample: monthly_nointerp_extrap
     variable: PPA
   RCO:
-    collection: EDGAR_v43.Seasonal.1x1.nc
+    collection: EDGAR_v43.Seasonal.1x1
     regrid: CONSERVE
-    sample: monthly_nointerp
+    sample: monthly_nointerp_extrap
     variable: RCO
   SOL:
-    collection: EDGAR_v43.Seasonal.1x1.nc
+    collection: EDGAR_v43.Seasonal.1x1
     regrid: CONSERVE
-    sample: monthly_nointerp
+    sample: monthly_nointerp_extrap
     variable: SOL
   SWD:
-    collection: EDGAR_v43.Seasonal.1x1.nc
+    collection: EDGAR_v43.Seasonal.1x1
     regrid: CONSERVE
-    sample: monthly_nointerp
+    sample: monthly_nointerp_extrap
     variable: SWD
   TNG:
-    collection: EDGAR_v43.Seasonal.1x1.nc
+    collection: EDGAR_v43.Seasonal.1x1
     regrid: CONSERVE
-    sample: monthly_nointerp
+    sample: monthly_nointerp_extrap
     variable: TNG
   TRO:
-    collection: EDGAR_v43.Seasonal.1x1.nc
+    collection: EDGAR_v43.Seasonal.1x1
     regrid: CONSERVE
-    sample: monthly_nointerp
+    sample: monthly_nointerp_extrap
     variable: TRO
 
-  #-------------------------------------------------------------------
+  #===================================================================
   # Fields from /dev/null (empty arrays created without file read)
-  #-------------------------------------------------------------------
+  #===================================================================
+
   CONV_DEPTH:
     collection: /dev/null
     variable: CONV_DEPTH
