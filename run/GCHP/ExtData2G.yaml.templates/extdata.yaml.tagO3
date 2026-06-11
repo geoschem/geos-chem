@@ -75,63 +75,27 @@ Collections:
     template: ./HcoDir/TIMEZONES/v2024-02/timezones_vohra_2017_0.1x0.1.nc
 
   #===================================================================
-  # SF6 emissions collections
+  # Prod/loss collections
   #===================================================================
 
-  EDGAR_v42_SF6_IPCC_2.generic.01x01:
-    template: ./HcoDir/SF6/v2019-01/EDGAR_v42_SF6_IPCC_2.generic.01x01.nc
+  GEOSChem.ProdLoss:
+    valid_range: "2010-01-01/2019-12-01T00:00"
+    template: ./HcoDir/GCClassic_Output/14.0.0/%y4/GEOSChem.ProdLoss.%y4%m201_0000z.nc4
 
   #===================================================================
-  # Anthropogenic CO 25-day and 50-day tracers collections
+  # Iodide collections
   #===================================================================
 
-  #-------------------------------------------------------------------
-  # EDGARv43
-  #-------------------------------------------------------------------
-
-  EDGAR_v43.CO.ENG.0.1x0.1:
-    template: ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.ENG.0.1x0.1.nc
-  EDGAR_v43.CO.FFF.0.1x0.1:
-    template: ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.FFF.0.1x0.1.nc
-  EDGAR_v43.CO.IND.0.1x0.1:
-     template: ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.IND.0.1x0.1.nc
-  EDGAR_v43.CO.POW.0.1x0.1:
-    template: ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.POW.0.1x0.1.nc
-  EDGAR_v43.CO.PPA.0.1x0.1:
-    template: ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.PPA.0.1x0.1.nc
-  EDGAR_v43.CO.RCO.0.1x0.1:
-    template: ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.RCO.0.1x0.1.nc
-  EDGAR_v43.CO.SWD.0.1x0.1:
-    template: ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.SWD.0.1x0.1.nc
-  EDGAR_v43.CO.TNG.0.1x0.1:
-    template: ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.TNG.0.1x0.1.nc
-  EDGAR_v43.CO.TRO.0.1x0.1:
-    template: ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.TRO.0.1x0.1.nc
-  EDGAR_v43.Seasonal.1x1:
-    template: ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc
-
-  #-------------------------------------------------------------------
-  # CEDS
-  #-------------------------------------------------------------------
-
-  CEDS_CO_0.1x0.1:
-    # All data in valid_range must be locally available. Edit or download as needed.
-    valid_range: "1980-01-01/2019-12-01T00:00"
-    template: ./HcoDir/CEDS/v2024-06/%y4/CEDS_CO_0.1x0.1_%y4.nc
-
-  #-------------------------------------------------------------------
-  # HTAP
-  #-------------------------------------------------------------------
-
-  AnnualScalar.geos.1x1:
-    template: ./HcoDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
+  Oi_prj_predicted_iodide_0.125x0.125_No_Skagerrak_Just_Ensemble:
+    valid_range: "1970-01-01/1970-12-01T00:00"
+    template: ./HcoDir/OCEAN_O3_DRYDEP/v2020-02/Oi_prj_predicted_iodide_0.125x0.125_No_Skagerrak_Just_Ensemble.nc
 
   #===================================================================
-  # Rn222 emissions collections
+  # Salinity collections
   #===================================================================
 
-  Rn222_Emis_Zhang_Liu_et_al_05x05_mass:
-    template: ./HcoDir/ZHANG_Rn222/v2021-11/Rn222_Emis_Zhang_Liu_et_al_05x05_mass.nc
+  WOA_2013_salinity:
+    template: ./HcoDir/OCEAN_O3_DRYDEP/v2020-02/WOA_2013_salinity.nc
 
 ######################################################################
 ######################################################################
@@ -209,7 +173,7 @@ Samplings:
     time_interpolation: False
     extrapolation: clim
 
-  annual_nointerp_extrap:
+  annual_nointerp:
     update_frequency: P1Y
     update_reference_time: '0'
     time_interpolation: False
@@ -654,6 +618,16 @@ Exports:
     variable: PHIS
 
   #===================================================================
+  # Fields from timezones_vohra_2017_0.1x0.1:
+  #===================================================================
+
+  TIMEZONES:
+     collection: timezones_vohra_2017_0.1x0.1
+     regrid: VOTE
+     sample: monthly_nointerp_extrap
+     variable: UTC_OFFSET
+
+  #===================================================================
   # Fields from Olson land map
   #===================================================================
 
@@ -1024,7 +998,7 @@ Exports:
     variable: OLSON
 
   #===================================================================
-  # Fields from Condensed_Yuan_proc_MODIS_XLAI.025x02:
+  # Fields from Condensed_Yuan_proc_MODIS_XLAI.025x025:
   #===================================================================
 
   XLAIMULTI:
@@ -1034,209 +1008,39 @@ Exports:
     variable: XLAIMULTI
 
   #===================================================================
-  # Fields from EDGAR_v42_SF6_IPCC_2.generic.01x01:
+  # Fields from ProdLoss
   #===================================================================
 
-  EDGAR_SF6:
-    collection: EDGAR_v42_SF6_IPCC_2.generic.01x01
+  O3_LOSS:
+    collection: GEOSChem.ProdLoss
     regrid: CONSERVE
-    sample: annual_nointerp_extrap
-    variable: emi_sf6
+    sample: monthly_nointerp_extrap
+    variable: Loss_Ox
+  O3_PROD:
+    collection: GEOSChem.ProdLoss
+    regrid: CONSERVE
+    sample: monthly_nointerp_extrap
+    variable: Prod_Ox
 
   #===================================================================
-  # Fields from EDGAR_v43.CO.***.0.1x0.1:
+  # Fields for iodide
   #===================================================================
 
-  EDGAR_CO_25_ENG:
-    collection: EDGAR_v43.CO.ENG.0.1x0.1
+  surf_iodide:
+    collection: Oi_prj_predicted_iodide_0.125x0.125_No_Skagerrak_Just_Ensemble
     regrid: CONSERVE
-    sample: annual_nointerp_extrap
-    variable: emi_co
-  EDGAR_CO_25_FFF:
-    collection: EDGAR_v43.CO.FFF.0.1x0.1
-    regrid: CONSERVE
-    sample: annual_nointerp_extrap
-    variable: emi_co
-  EDGAR_CO_25_IND:
-    collection: EDGAR_v43.CO.IND.0.1x0.1
-    regrid: CONSERVE
-    sample: annual_nointerp_extrap
-    variable: emi_co
-  EDGAR_CO_25_POW:
-    collection: EDGAR_v43.CO.POW.0.1x0.1
-    regrid: CONSERVE
-    sample: annual_nointerp_extrap
-    variable: emi_co
-  EDGAR_CO_25_PPA:
-    collection: EDGAR_v43.CO.PPA.0.1x0.1
-    regrid: CONSERVE
-    sample: annual_nointerp_extrap
-    variable: emi_co
-  EDGAR_CO_25_RCO:
-    collection: EDGAR_v43.CO.RCO.0.1x0.1
-    regrid: CONSERVE
-    sample: annual_nointerp_extrap
-    variable: emi_co
-  EDGAR_CO_25_SWD:
-    collection: EDGAR_v43.CO.SWD.0.1x0.1
-    regrid: CONSERVE
-    sample: annual_nointerp_extrap
-    variable: emi_co
-  EDGAR_CO_25_TNG:
-    collection: EDGAR_v43.CO.TNG.0.1x0.1
-    regrid: CONSERVE
-    sample: annual_nointerp_extrap
-    variable: emi_co
-  EDGAR_CO_25_TRO:
-    collection: EDGAR_v43.CO.TRO.0.1x0.1
-    regrid: CONSERVE
-    sample: annual_nointerp_extrap
-    variable: emi_co
+    sample: monthly_nointerp_extrap
+    variable: Ensemble_Monthly_mean
 
   #===================================================================
-  # Fields from CEDS_CO_0.1x0.1_%y4:
+  # Fields for salinity
   #===================================================================
 
-  CEDS_CO_25_AGR:
-    collection: CEDS_CO_0.1x0.1
+  surf_salinity:
+    collection: WOA_2013_salinity
     regrid: CONSERVE
-    sample: monthly_nointerp_extrap
-    variable: CO_agr
-  CEDS_CO_25_ENE:
-    collection: CEDS_CO_0.1x0.1
-    regrid: CONSERVE
-    sample: monthly_nointerp_extrap
-    variable: CO_ene
-  CEDS_CO_25_IND:
-    collection: CEDS_CO_0.1x0.1
-    regrid: CONSERVE
-    sample: monthly_nointerp_extrap
-    variable: CO_ind
-  CEDS_CO_25_RCO:
-    collection: CEDS_CO_0.1x0.1
-    regrid: CONSERVE
-    sample: monthly_nointerp_extrap
-    variable: CO_rco
-  CEDS_CO_25_SHP:
-    collection: CEDS_CO_0.1x0.1
-    regrid: CONSERVE
-    sample: monthly_nointerp_extrap
-    variable: CO_shp
-  CEDS_CO_25_SLV:
-    collection: CEDS_CO_0.1x0.1
-    regrid: CONSERVE
-    sample: monthly_nointerp_extrap
-    variable: CO_slv
-  CEDS_CO_25_TRA:
-    collection: CEDS_CO_0.1x0.1
-    regrid: CONSERVE
-    sample: monthly_nointerp_extrap
-    variable: CO_tra
-  CEDS_CO_25_WST:
-    collection: CEDS_CO_0.1x0.1
-    regrid: CONSERVE
-    sample: monthly_nointerp_extrap
-    variable: CO_wst
-
-  #===================================================================
-  # Fields from Rn222_Emis_Zhang_Liu_et_al_05x05_mass:
-  #===================================================================
-
-  ZHANG_Rn222_EMIS:
-    collection: Rn222_Emis_Zhang_Liu_et_al_05x05_mass
-    regrid: CONSERVE
-    sample: monthly_nointerp_extrap
-    variable: rnemis
-
-  #===================================================================
-  # Fields from timezones_vohra_2017_0.1x0.1:
-  #===================================================================
-
-  TIMEZONES:
-    collection: timezones_vohra_2017_0.1x0.1
-    regrid: VOTE
-    sample: monthly_nointerp_extrap
-    variable: UTC_OFFSET
-
-  #===================================================================
-  # Fields from AnnualScalar.geos.1x1:
-  #===================================================================
-
-  LIQFUEL_2008_2010:
-    collection: AnnualScalar.geos.1x1
-    regrid: CONSERVE
-    sample: annual_nointerp_extrap
-    variable: COscalar
-  LIQFUEL_THISYR:
-    collection: AnnualScalar.geos.1x1
-    regrid: CONSERVE
-    sample: annual_nointerp_extrap
-    variable: COscalar
-
-  #===================================================================
-  # Fields from EDGAR_v43.Seasonal.1x1:
-  #===================================================================
-
-  AGR:
-    collection: EDGAR_v43.Seasonal.1x1
-    regrid: CONSERVE
-    sample: annual_nointerp_extrap
-    variable: AGR
-  AWB:
-    collection: EDGAR_v43.Seasonal.1x1
-    regrid: CONSERVE
-    sample: monthly_nointerp_extrap
-    variable: AW
-  ENG:
-    collection: EDGAR_v43.Seasonal.1x1
-    regrid: CONSERVE
-    sample: monthly_nointerp_extrap
-    variable: ENG
-  FFF:
-    collection: EDGAR_v43.Seasonal.1x1
-    regrid: CONSERVE
-    sample: monthly_nointerp_extrap
-    variable: FFF
-  IND:
-    collection: EDGAR_v43.Seasonal.1x1
-    regrid: CONSERVE
-    sample: monthly_nointerp_extrap
-    variable: IND
-  POW:
-    collection: EDGAR_v43.Seasonal.1x1
-    regrid: CONSERVE
-    sample: monthly_nointerp_extrap
-    variable: POW
-  PPA:
-    collection: EDGAR_v43.Seasonal.1x1
-    regrid: CONSERVE
-    sample: monthly_nointerp_extrap
-    variable: PPA
-  RCO:
-    collection: EDGAR_v43.Seasonal.1x1
-    regrid: CONSERVE
-    sample: monthly_nointerp_extrap
-    variable: RCO
-  SOL:
-    collection: EDGAR_v43.Seasonal.1x1
-    regrid: CONSERVE
-    sample: monthly_nointerp_extrap
-    variable: SOL
-  SWD:
-    collection: EDGAR_v43.Seasonal.1x1
-    regrid: CONSERVE
-    sample: monthly_nointerp_extrap
-    variable: SWD
-  TNG:
-    collection: EDGAR_v43.Seasonal.1x1
-    regrid: CONSERVE
-    sample: monthly_nointerp_extrap
-    variable: TNG
-  TRO:
-    collection: EDGAR_v43.Seasonal.1x1
-    regrid: CONSERVE
-    sample: monthly_nointerp_extrap
-    variable: TRO
+    sample: constant
+    variable: s_mn
 
   #===================================================================
   # Fields from /dev/null (empty arrays created without file read)
@@ -1248,3 +1052,6 @@ Exports:
   FLASH_DENS:
     collection: /dev/null
     variable: FLASH_DENS
+
+
+
