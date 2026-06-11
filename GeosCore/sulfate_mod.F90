@@ -2588,10 +2588,20 @@ CONTAINS
     Spc                  => State_Chm%Species
     H2O2s                => State_Chm%H2O2AfterChem
     SO2s                 => State_Chm%SO2AfterChem
-    State_Chm%isCloud    =  0.0_fp
+!    State_Chm%isCloud    =  0.0_fp
 !    State_Chm%pHcloud    =  0.0_fp
-    State_Chm%pHcloud    =  4.5_fp
-    State_Chm%QLxpHcloud =  0.0_fp
+!    State_Chm%pHcloud    =  4.5_fp
+!    State_Chm%QLxpHcloud =  0.0_fp
+    ! Only reset isCloud, pHcloud, and QLxpHcloud if sulfate_mod
+    ! owns cloud chemistry (Do_SulfateMod_Cld=.TRUE. i.e. offline run).
+    ! If Do_SulfateMod_Cld=.FALSE., KPP/SET_SO2 is responsible for
+    ! setting isCloud -- does not overwrite it here.
+    IF ( State_Chm%Do_SulfateMod_Cld ) THEN
+       State_Chm%isCloud    =  0.0_fp
+!       State_Chm%pHcloud    =  0.0_fp
+       State_Chm%pHcloud    =  4.5_fp
+       State_Chm%QLxpHcloud =  0.0_fp
+    ENDIF
 #ifdef LUO_WETDEP
     State_Chm%pHrain     =  5.6_fp
     State_Chm%QQpHrain   =  0.0_fp
