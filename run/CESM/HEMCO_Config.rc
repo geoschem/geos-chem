@@ -214,8 +214,12 @@ VerboseOnCores:              root       # Accepted values: root all
     --> CO to SOAP             :       0.013
     --> GFED_subgrid_coag      :       false
 #see the note near scale factor 281 for the source of this emis factor
-# For CESM: (1) use bc_a4 and pom_a4 instead of BCPO, BCPI, OCPO, and OCPI in GFAS, and
-# (2) add scaling for bc_a4 and pom_a4
+# WARNING: Changes applied to GFED species for CESM were copied to the GFAS implementation.
+# However, they have not been tested or validated. These changes include:
+# (1) Use bc_a4 and pom_a4 instead of BCPO, BCPI, OCPO, and OCPI
+# (2) Add scaling for bc_a4 and pom_a4
+# These updates were added in GEOS-Chem 14.8.0 and should be checked when updating
+# CESM to this version (L. Lundgren, 6/17/26)
 112     GFAS                   : on    ACET/ACR/ACTA/ALD2/ALK4/bc_a4/pom_a4/BENZ/C2H2/C2H4/C2H6/C3H8/C4H6/CH2O/CO/DMS/EOH/FURA/GLYX/HCOOH/ISOP/MEK/MGLY/MOH/MTPA/MVK/NAP/NH3/NO/OCPI/OCPO/pFe/PHEN/POG1/POG2/PRPE/RCHO/SO2/SOAP/STYR/TOLU/XYLE
     --> Vertical Profile Species:      CO
     --> Scaling_bc_a4          :       1.0
