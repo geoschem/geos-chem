@@ -23,6 +23,16 @@ NUM_CORES_PER_NODE=${RUNDIR_CORES_PER_NODE}
 # NOTE: If using mass flux inputs then grid resolution must be evenly divisible
 # by input mass flux resolution, or vice versa. Acceptable resolutions for GEOS-IT
 # when using mass fluxes are therefore in set [10,30,90,180,360,540,720,etc]
+#
+# ATTN: As of GCHP 14.8.0, the default grid resolution is now C90, approximately 
+# equal to 1x1 degrees. C90 is the recommended minimum resolution for most scientific 
+# applications, as representation of transport processes begins to degrade below 
+# this threshold. Switching from C24 to C90 will likely result in increased 
+# computational cost and longer run times; think carefully about your specific
+# requirements before submitting new jobs. For a more detailed explanantion, see the
+# GCHP Horizontal Grids section of the GCHP ReadTheDocs.
+# 
+# C24 and C48 are still available and are recommended primarily for test runs. 
 
 CS_RES=${RUNDIR_CS_RES}
 
