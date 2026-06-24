@@ -26,14 +26,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated `run/shared/download_data.py` and `run/shared/setupForRestarts.sh` to read APM restart file paths
 - Selected RODAS3.1 as the default integration method for the fullchem mechanism; Regenerated fullchem solver files with KPP 3.4.0
 - Updated the minimum version of KPP needed to build the fullchem mechanism from 3.2.0 to 3.4.0
-- Changed C-preprocessor switch MODEL_ to MODEL_EXTERNAL, and ESMF_ to USE_ESMF
+- Changed C-preprocessor switch `MODEL_` to `MODEL_EXTERNAL`, and `ESMF_` to `USE_ESMF`
 - Changed the order of DO loops in `GeosCore/tomas_mod.F90` from `I-J-L` to `L-J-I` and added `!$OMP COLLAPSE( 3 )` statements
+- Updated run directory configuration files for GFAS (extension number 112)
+- Changed time cycle for GFAS data in the `gc_4x5_merra2_carbon_CH4_straddle_00z` from `EFY` to `C` to avoid runtime error
 
 ### Fixed
 - Fixed incorrect variable names and removed unused variables in `NcdfUtil/ncdf_mod.F90`
 - Fixed incorrect Arrhenius "A" coefficient (1.97d-12 --> 1.97d-11) in C3H8 + OH = A3O2 rxn
 - Fixed GCHP transport tracers extdata.yaml to include valid_range for CEDS
 - Fixed OpenMP parallelization error in `GeosCore/tomas_mod.F90`
+- Fixed typos (extra `:` characters) in `run/shared/kpp_standalone_interface.yml`
 
 ### Removed
 - Removed obsolete code in dust_mod.F90
