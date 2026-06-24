@@ -166,7 +166,7 @@ MODULE UCX_MOD
   INTEGER ::             id_HCl,      id_HNO2,   id_HNO3,  id_N
   INTEGER :: id_HNO4,    id_HOBr,     id_HOCl,   id_N2O,   id_N2O5
   INTEGER :: id_NIT,     id_NO,       id_NO2,    id_NO3,   id_O3
-  INTEGER :: id_OClO,    id_PAN,      id_SO2,   id_SO4
+  INTEGER :: id_OClO,    id_PAN,      id_SO2,    id_SO4,   id_BCPO 
 
 CONTAINS
 !
@@ -802,19 +802,17 @@ CONTAINS
     LOGICAL                :: NATCOL
 
     ! Specific to each class
-    REAL(fp)               :: RWET(2),CONST_V(2)
-    REAL(fp)               :: RHO(2),RATIO_R(2),REFF(2)
-    REAL(fp)               :: VTS(State_Grid%NZ,2)
+    REAL(fp)               :: RWET(3),CONST_V(3)
+    REAL(fp)               :: RHO(3),RATIO_R(3),REFF(3)
+    REAL(fp)               :: VTS(State_Grid%NZ,3)
 
     ! Used for old Seinfeld & Pandis slip factor calc
     REAL(fp)               :: sp_Lambda, sp_Num
 
-    ! Parameters
-    REAL(fp), PARAMETER    :: BCDEN = 1000.e+0_fp ! density (kg/m3)
-
     ! Indexing
-    INTEGER, PARAMETER     :: IBC  = 1
+    INTEGER, PARAMETER     :: IBCPI  = 1
     INTEGER, PARAMETER     :: ILIQ = 2
+    INTEGER, PARAMETER     :: IBCPO = 3
     INTEGER, PARAMETER     :: NSETTLE = 2
     INTEGER                :: IAERO
     LOGICAL                :: RUNCALC
@@ -864,7 +862,7 @@ CONTAINS
     ! Initialize pointers
     Spc       => State_Chm%Species  ! Chemical species vector
     STATE_PSC => State_Chm%STATE_PSC   ! PSC type (Kirner et al. 2011, GMD)
-    WERADIUS  => State_Chm%WetAeroRadi ! Aerosol Radius [cm]
+    WERADIUS  => State_Chm%WetAeroRadi ! Wet Aerosol Radius [cm]
 
     ! Return if gravitational settling disabled
     IF (.not. LGRAVSTRAT) RETURN
@@ -924,18 +922,23 @@ CONTAINS
           IF (RUNCALC) THEN
              ! Need to translate for BC radii
              IF ( State_Met%InChemGrid(I,J,L) ) THEN
-                RWET(IBC) = WERADIUS(I,J,L,2)*1.e-2_fp
+                RWET(IBCPI) = WERADIUS(I,J,L,2+NDUST)*1.e-2_fp
              ELSE
                 ! Use defaults, assume dry (!)
 #ifdef FASTJX
-                RWET(IBC) = RAA(State_Chm%Phot%IND999,29) * 1.0e-6_fp
+                RWET(IBCPI) = RAA(State_Chm%Phot%IND999,29) * 1.0e-6_fp
 #else
-                RWET(IBC) = RAA(29) * 1.0e-6_fp
+                RWET(IBCPI) = RAA(29) * 1.0e-6_fp
 #endif
              ENDIF
 
-             ! Taken from aerosol_mod (MSDENS(2))
-             RHO(IBC) = BCDEN
+             ! Now use the density of BCPI from the species database.
+             ! See: https://github.com/geoschem/geos-chem/issues/2169
+             RHO(IBCPI) = State_Chm%SpcData(id_BCPI)%Info%Density
+             RHO(IBCPO) = State_Chm%SpcData(id_BCPO)%Info%Density 
+
+             ! Above chem grid, treat BCPO as BCPI.
+             RWET(IBCPO) = RAA(29) * 1.0e-6_fp
 
              ! Get aerosol properties
              RWET(ILIQ) = State_Chm%RAD_AER(I,J,L,I_SLA)*1.e-2_fp
@@ -963,7 +966,7 @@ CONTAINS
              VISC = 1.458e-6_fp * (Temp)**(1.5e+0_fp) &
                     / ( Temp + 110.4e+0_fp )
 
-             DO IAERO=1,2
+             DO IAERO=1,3
                 IF (RWET(IAERO).le.TINY(0e+0_fp)) THEN
                    VTS(L,IAERO) = 0e+0_fp
                 ELSE
@@ -1026,7 +1029,7 @@ CONTAINS
        L    = State_Grid%NZ
        DELZ = State_Met%BXHEIGHT(I,J,L)
 
-       DO IAERO=1,2
+       DO IAERO=1,3
           CONST_V(IAERO) = 1.e+0_fp / (1.e+0_fp + DTCHEM * VTS(L,IAERO) / DELZ)
        ENDDO
 
@@ -1065,7 +1068,8 @@ CONTAINS
              Spc(IDTCURRENT)%Conc(I,J,L) = PHASEMASS(3,2)
           ENDIF
        ENDDO
-       Spc(id_BCPI)%Conc(I,J,L) = Spc(id_BCPI)%Conc(I,J,L) * CONST_V(IBC)
+       Spc(id_BCPI)%Conc(I,J,L) = Spc(id_BCPI)%Conc(I,J,L) * CONST_V(IBCPI)
+       Spc(id_BCPO)%Conc(I,J,L) = Spc(id_BCPO)%Conc(I,J,L) * CONST_V(IBCPO)
 
        DO L = State_Grid%NZ-1,1,-1
           IF ( State_Met%InTroposphere(I,J,L+1) ) CYCLE
@@ -1110,10 +1114,15 @@ CONTAINS
              ENDIF
           ENDDO
           Spc(id_BCPI)%Conc(I,J,L) = 1.e+0_fp/(1.e+0_fp+DTCHEM &
-                               * VTS(L,IBC) / DELZ) &
+                               * VTS(L,IBCPI) / DELZ) &
                                * ( Spc(id_BCPI)%Conc(I,J,L) &
-                                   + DTCHEM * VTS(L+1,IBC) / DELZ1 &
+                                   + DTCHEM * VTS(L+1,IBCPI) / DELZ1 &
                                    * Spc(id_BCPI)%Conc(I,J,L+1) )
+          Spc(id_BCPO)%Conc(I,J,L) = 1.e+0_fp/(1.e+0_fp+DTCHEM &
+                               * VTS(L,IBCPO) / DELZ) &
+                               * ( Spc(id_BCPO)%Conc(I,J,L) &
+                                   + DTCHEM * VTS(L+1,IBCPO) / DELZ1 &
+                                   * Spc(id_BCPO)%Conc(I,J,L+1) )
        ENDDO
 
        ! Now perform trapezoidal scheme for particulates
@@ -3122,7 +3131,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: cacl_sla_gamma
+! !IROUTINE: calc_sla_gamma
 !
 ! !DESCRIPTION: Subroutine CALC\_SLA\_GAMMA calculates 11 different sticking
 !  coefficients on the surface of local stratospheric liquid aerosols,
@@ -4303,6 +4312,7 @@ CONTAINS
     id_O3    = Ind_('O3'        )
     id_SO2   = Ind_('SO2'       )
     id_SO4   = Ind_('SO4'       )
+    id_BCPO  = Ind_('BCPO'      )
 
     ! Print info
     IF ( Input_Opt%Verbose ) THEN
