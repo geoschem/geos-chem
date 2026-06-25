@@ -756,7 +756,6 @@ else
 fi
 
 # Set default grid resolution
-# Modified as of 14.8.0 to default to C90 in all cases
 RUNDIR_VARS+="RUNDIR_CS_RES='90'\n"
 
 
