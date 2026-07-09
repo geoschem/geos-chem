@@ -2746,15 +2746,19 @@ CONTAINS
              ENDIF
 
 #ifdef JACOBIAN
-             ! Do special handling if this is a Jacobian tracer             
+             ! Do special handling if this is a Jacobian tracer and not found in restart file
              IF ( ThisSpc%Is_JacobianTracer ) THEN
-                primarySpcName = ThisSpc%Name(1:LEN(trim(ThisSpc%Name))-8)
-                primarySpcId = IND_(trim(primarySpcName))
-                State_Chm%Species(IND)%Conc = State_Chm%Species(primarySpcId)%Conc
-                IF ( MAPL_am_I_Root()) THEN
-                   WRITE(*,*) '   INFO: using the initial concentration of ' &
-                        // trim(primarySpcName) //' for the Jacobian tracer ' &
-                        // trim(ThisSpc%Name)
+                IF ( RC  /= ESMF_SUCCESS         .OR.     &
+                     RST == MAPL_RestartBootstrap  .OR.     &
+                     RST == MAPL_RestartSkipInitial  ) THEN
+                   primarySpcName = ThisSpc%Name(1:LEN(trim(ThisSpc%Name))-8)
+                   primarySpcId = IND_(trim(primarySpcName))
+                   State_Chm%Species(IND)%Conc = State_Chm%Species(primarySpcId)%Conc
+                   IF ( MAPL_am_I_Root()) THEN
+                      WRITE(*,*) '   INFO: using the initial concentration of ' &
+                           // trim(primarySpcName) //' for the Jacobian tracer ' &
+                           // trim(ThisSpc%Name)
+                   ENDIF
                 ENDIF
              ENDIF
 #endif
