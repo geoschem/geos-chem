@@ -17,6 +17,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added GCHP utility script extractPerformance.sh to scrape allPEs.log for timing summary in GCHP run directories
 - Added GCHP build scripts to GCHP runScriptSamples for Harvard
 - Added several additional run, build, and utility scripts to GCHP runScriptSamples for Harvard and AWS pcluster
+- Added `.gitattributes`, `CITATION.cff`, `GOVERNANCE.md`, `SECURITY.md` for GitHub
+- Added `CLAUDE.md`, which gives guidance to Claude Code AI
+- Added `.release/changeVersionNumbers.sh` to change version numbers in relevant files in this repository
 
 ### Changed
 - Renamed `State_Chm%Isorrop*` fields to `State_Chm%Ate*` (aerosol thermodynamical equilibrium), as ISORROPIA is no longer used
