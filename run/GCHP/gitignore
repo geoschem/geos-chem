@@ -17,6 +17,7 @@ fort.11
 gchp
 setEnvironment
 *.out
-RunScriptSamples
+runScriptSamples
+unused_config_for_reference
 README
 build

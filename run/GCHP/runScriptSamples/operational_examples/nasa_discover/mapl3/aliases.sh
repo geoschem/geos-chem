@@ -1,5 +1,5 @@
 #!/bin/bash
-41;330;0c
+
 alias compile='source gchp.env; cd build; make -j; cp bin/gchp ..; cd ..'
 alias run='./cleanRunDir.sh; sbatch gchp.run.mapl3'
 

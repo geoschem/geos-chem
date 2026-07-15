@@ -15,7 +15,7 @@
 
 source gchp.env
 cd build
-cmake ../CodeDir -DRUNDIR=.. -DMODEL_CTMENV=y -DMAPL3=y
+cmake ../CodeDir -DRUNDIR=.. -DMAPL3=y
 make -j
 make install
 
