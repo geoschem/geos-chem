@@ -25,7 +25,10 @@ MODULE GCHP_HistoryExports_Mod
   USE TaggedDiagList_Mod
   USE ErrCode_Mod
   USE Precision_Mod
-#ifndef MAPL3
+#ifdef MAPL3
+  USE mapl3
+  USE MAPL_ErrorHandlingMod, ONLY : MAPL_Assert, MAPL_Verify
+#else
   USE MAPL_Mod
 #endif
 
