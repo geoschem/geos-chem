@@ -716,14 +716,14 @@ CONTAINS
        IF ( current%rank == 3 ) THEN
           IF ( current%vloc == VLocationCenter ) THEN
 #ifdef MAPL3
-             CALL MAPL_GridCompAddSpec(gridcomp=GC, &
-                  short_name=TRIM(current%name), &
-                  standard_name== TRIM(current%long_name), &
-                  units=TRIM(current%units), &
-                  dims='xyz', &
-                  vstagger=VERTICAL_STAGGER_CENTER, &
-                  state_intent=ESMF_STATEINTENT_EXPORT, &
-                  typekind=ESMF_TYPEKIND_R4, &
+             CALL MAPL_GridCompAddSpec(gridcomp=GC,        &
+                  short_name    = TRIM(current%name),      &
+                  standard_name = TRIM(current%long_name), &
+                  units         = TRIM(current%units),     &
+                  dims          = 'xyz',                   &
+                  vstagger      = VERTICAL_STAGGER_CENTER, &
+                  state_intent  = ESMF_STATEINTENT_EXPORT, &
+                  typekind      = ESMF_TYPEKIND_R4,        &
                   _RC )
 #else
              CALL MAPL_AddExportSpec(GC,                                     &
@@ -740,14 +740,14 @@ CONTAINS
           ENDIF
          ELSEIF ( current%vloc == VLocationEdge ) THEN
 #ifdef MAPL3
-            CALL MAPL_GridCompAddSpec(gridcomp=GC, &
-                 short_name=TRIM(current%name), &
-                 standard_name== TRIM(current%long_name), &
-                 units=TRIM(current%units), &
-                 dims='xyz', &
-                 vstagger=VERTICAL_STAGGER_EDGE, &
-                 state_intent=ESMF_STATEINTENT_EXPORT, &
-                 typekind=ESMF_TYPEKIND_R4, &
+            CALL MAPL_GridCompAddSpec(gridcomp=GC,        &
+                 short_name    = TRIM(current%name),      &
+                 standard_name = TRIM(current%long_name), &
+                 units         = TRIM(current%units),     &
+                 dims          = 'xyz',                   &
+                 vstagger      = VERTICAL_STAGGER_EDGE,   &
+                 state_intent  = ESMF_STATEINTENT_EXPORT, &
+                 typekind      = ESMF_TYPEKIND_R4,        &
                  _RC )
 #else
             CALL MAPL_AddExportSpec(GC,                                     &
@@ -766,14 +766,14 @@ CONTAINS
          ENDIF
        ELSEIF ( current%rank == 2 ) THEN
 #ifdef MAPL3
-          CALL MAPL_GridCompAddSpec(gridcomp=GC, &
-               short_name=TRIM(current%name), &
-               standard_name== TRIM(current%long_name), &
-               units=TRIM(current%units), &
-               dims='xy', &
-               vstagger=VERTICAL_STAGGER_NONE, &
-               state_intent=ESMF_STATEINTENT_EXPORT, &
-               typekind=ESMF_TYPEKIND_R4, &
+          CALL MAPL_GridCompAddSpec(gridcomp=GC,        &
+               short_name    = TRIM(current%name),      &
+               standard_name = TRIM(current%long_name), &
+               units         = TRIM(current%units),     &
+               dims          = 'xy',                    &
+               vstagger      = VERTICAL_STAGGER_NONE,   &
+               state_intent  = ESMF_STATEINTENT_EXPORT, &
+               typekind      = ESMF_TYPEKIND_R4,        &
                _RC )
 #else
           CALL MAPL_AddExportSpec(GC,                                     &
