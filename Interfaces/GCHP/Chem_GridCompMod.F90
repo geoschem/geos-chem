@@ -3,6 +3,9 @@
 #else
 #include "MAPL_Generic.h"
 #endif
+
+! ewl: block out the entire file for now. Will create a new one for MAPL3.
+#ifndef MAPL3
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
@@ -4260,4 +4263,6 @@ CONTAINS
 END MODULE GEOSCHEMchem_GridCompMod
 #else
 END MODULE Chem_GridCompMod
+#endif
+
 #endif
