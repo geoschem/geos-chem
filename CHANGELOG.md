@@ -37,6 +37,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed GCHP transport tracers extdata.yaml to include valid_range for CEDS
 - Fixed OpenMP parallelization error in `GeosCore/tomas_mod.F90`
 - Fixed typos (extra `:` characters) in `run/shared/kpp_standalone_interface.yml`
+- Fixed missing entries for `SpeciesConcVV_` in the GCHP `HISTORY.rc.fullchem` template file 
 
 ### Removed
 - Removed obsolete code in dust_mod.F90
