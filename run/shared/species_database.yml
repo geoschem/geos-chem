@@ -3964,6 +3964,7 @@ PH2SO4:
   FullName: SO4 from gas-phase chemistry
   Is_Gas: true
   MW_g: 96.06
+  KPP_AbsTol: 1.0e+25
 PHAN:
   DD_F0: 1.0
   DD_Hstar: 3.6
@@ -4020,6 +4021,16 @@ PHMSAQ:
   KPP_AbsTol: 1.0e25
 PHMSMP:
   FullName: Dummy species to track production of multiphase HMS
+  Is_Gas: true
+  MW_g: 111.10
+  KPP_AbsTol: 1.0e25
+LHMSAQ:
+  FullName: Dummy species to track loss of HMS in cloud chemistry
+  Is_Gas: true
+  MW_g: 111.10
+  KPP_AbsTol: 1.0e25
+LHMSMP:
+  FullName: Dummy species to track loss of multiphase HMS
   Is_Gas: true
   MW_g: 111.10
   KPP_AbsTol: 1.0e25
@@ -4445,6 +4456,7 @@ PSO4AQ:
   FullName: Prod SO4 from cloud chemistry
   Is_Gas: true
   MW_g: 96.06
+  KPP_AbsTol: 1.0e+25
 PSO4MP:
   FullName: Dummy species to track production of multiphase sulfate
   Is_Gas: true

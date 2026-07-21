@@ -4,11 +4,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 # Mechanism history
 ## [Unreleased] - TBD
-- Added PSO4MP to track multi-phase production of SO4 in aerosol per Travis et al., 2025
-- Added PHMSMP and PHMSAQ to differentiate HMS production from cloud and aerosol chemistry per Travis et al., 2025
-
-## [Unreleased] - TBD
-### Fixed
+### Added
+- Added PSO4MP and LSO4MP to track multi-phase production of SO4 in aerosol per Travis et al., 2025
+- Added PHMSMP, LHMSMP, PHMSAQ, LHMSAQ to differentiate HMS production/loss from cloud and aerosol chemistry per Travis et al. (2025)
 - Added PSO4AQ as a product to the SO2 + H2O2 rxn
 - Added PSO4AQ as a product to the SO2 + O3 rxn
 - Added PSO4AQ as a product to the SO2 {+O2} rxn
