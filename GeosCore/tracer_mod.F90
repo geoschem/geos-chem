@@ -256,7 +256,7 @@ CONTAINS
           DO I = 1, State_Grid%NX
 
              ! Set mask to zero outside of latitude zone
-             IF ( State_Grid%YMid(I,J) < SpcInfo%Src_LatMin .and. &
+             IF ( State_Grid%YMid(I,J) < SpcInfo%Src_LatMin .or. &
                   State_Grid%YMid(I,J) > SpcInfo%Src_LatMax ) THEN
                 Mask(I,J,:) = 0.0_fp
              ENDIF
@@ -389,12 +389,11 @@ CONTAINS
           DO L = 1, State_Grid%NZ
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
-             IF ( Mask(I,J,L) > 0 ) THEN
-                Local_Tally = Local_Tally &
-                   + ( SpcInfo%Src_Value - State_Chm%Species(N)%Conc(I,J,L) ) &
-                   * ( State_Met%AIRNUMDEN(I,J,L) / AVO )                     &
-                   *  State_Met%AIRVOL(I,J,L)
-             ENDIF
+             ! Integrate over the entire domain instead only over source regions
+             Local_Tally = Local_Tally &
+                + ( SpcInfo%Src_Value - State_Chm%Species(N)%Conc(I,J,L) ) &
+                * ( State_Met%AIRNUMDEN(I,J,L) / AVO )                     &
+                *  State_Met%AIRVOL(I,J,L)
           ENDDO
           ENDDO
           ENDDO

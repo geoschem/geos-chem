@@ -3455,7 +3455,7 @@ nh_PROP: &nhproperties
   Src_Lats: [30.0, 50.0]
   Src_Units: ppbv
   Src_Value: 100
-  Src_Vert: all
+  Src_Vert: surface
 nh_5:
   << : *nhproperties
   FullName: Northern Hemisphere 5 day tracer
