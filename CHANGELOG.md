@@ -38,6 +38,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed OpenMP parallelization error in `GeosCore/tomas_mod.F90`
 - Fixed typos (extra `:` characters) in `run/shared/kpp_standalone_interface.yml`
 - Fixed bug in creating GCHP run directories using raw GEOS-IT C180 meteorology
+- Fixed bugs in Jacobian tracers simulation
 
 ### Removed
 - Removed obsolete code in dust_mod.F90
