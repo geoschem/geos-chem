@@ -24,7 +24,7 @@ MODULE inquireMod
 #ifdef MAPL_ESMF
   USE ESMF
 #ifdef MAPL3
-  USE mapl_ErrorHandlingMod, only: MAPL_Verify
+  USE MAPL, ONLY : MAPL_Verify
 #else
   USE MAPL_Mod
 #endif

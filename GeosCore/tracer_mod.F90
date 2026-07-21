@@ -77,11 +77,10 @@ CONTAINS
 #ifdef MAPL_ESMF
     USE ESMF
 #ifdef MAPL3
-    USE MAPL_ErrorHandlingMod, ONLY : MAPL_Verify
-    USE MAPL_CommsMod, only: MAPL_CommsAllReduceSum
+    USE MAPL, ONLY : MAPL_Verify, MAPL_CommsAllReduceSum
 #else
     USE MAPL
-    USE MAPL_CommsMod, only: MAPL_CommsAllReduceSum
+    USE MAPL_CommsMod, ONLY : MAPL_CommsAllReduceSum
 #endif
 #endif
 !

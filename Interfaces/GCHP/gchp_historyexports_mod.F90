@@ -26,8 +26,8 @@ MODULE GCHP_HistoryExports_Mod
   USE ErrCode_Mod
   USE Precision_Mod
 #ifdef MAPL3
-  USE mapl3
-  USE MAPL_ErrorHandlingMod, ONLY : MAPL_Assert, MAPL_Verify
+  USE MAPL, ONLY : MAPL_Assert, MAPL_Verify
+  USE MAPL, ONLY : MAPL_GridCompAddSpec, MAPL_StateGetPointer
 #else
   USE MAPL_Mod
 #endif
@@ -654,10 +654,6 @@ CONTAINS
 !
     USE ESMF, ONLY : ESMF_GridComp
     USE Registry_Params_Mod
-#ifdef MAPL3
-    USE mapl3g_generic, ONLY : MAPL_GridCompAddSpec
-#endif
-
 !
 ! !INPUT PARAMETERS:
 !
@@ -717,13 +713,13 @@ CONTAINS
           IF ( current%vloc == VLocationCenter ) THEN
 #ifdef MAPL3
              CALL MAPL_GridCompAddSpec(gridcomp=GC,        &
-                  short_name    = TRIM(current%name),      &
-                  standard_name = TRIM(current%long_name), &
-                  units         = TRIM(current%units),     &
-                  dims          = 'xyz',                   &
-                  vstagger      = VERTICAL_STAGGER_CENTER, &
-                  state_intent  = ESMF_STATEINTENT_EXPORT, &
-                  typekind      = ESMF_TYPEKIND_R4,        &
+                  short_name       = TRIM(current%name),      &
+                  standard_name    = TRIM(current%long_name), &
+                  units            = TRIM(current%units),     &
+                  dims             = 'xyz',                   &
+                  vertical_stagger = MAPL_VERTICAL_STAGGER_CENTER, &
+                  state_intent     = ESMF_STATEINTENT_EXPORT, &
+                  typekind         = ESMF_TYPEKIND_R4,        &
                   _RC )
 #else
              CALL MAPL_AddExportSpec(GC,                                     &
@@ -741,13 +737,13 @@ CONTAINS
          ELSEIF ( current%vloc == VLocationEdge ) THEN
 #ifdef MAPL3
             CALL MAPL_GridCompAddSpec(gridcomp=GC,        &
-                 short_name    = TRIM(current%name),      &
-                 standard_name = TRIM(current%long_name), &
-                 units         = TRIM(current%units),     &
-                 dims          = 'xyz',                   &
-                 vstagger      = VERTICAL_STAGGER_EDGE,   &
-                 state_intent  = ESMF_STATEINTENT_EXPORT, &
-                 typekind      = ESMF_TYPEKIND_R4,        &
+                 short_name       = TRIM(current%name),      &
+                 standard_name    = TRIM(current%long_name), &
+                 units            = TRIM(current%units),     &
+                 dims             = 'xyz',                   &
+                 vertical_stagger = MAPL_VERTICAL_STAGGER_EDGE,   &
+                 state_intent     = ESMF_STATEINTENT_EXPORT, &
+                 typekind         = ESMF_TYPEKIND_R4,        &
                  _RC )
 #else
             CALL MAPL_AddExportSpec(GC,                                     &
@@ -767,13 +763,13 @@ CONTAINS
        ELSEIF ( current%rank == 2 ) THEN
 #ifdef MAPL3
           CALL MAPL_GridCompAddSpec(gridcomp=GC,        &
-               short_name    = TRIM(current%name),      &
-               standard_name = TRIM(current%long_name), &
-               units         = TRIM(current%units),     &
-               dims          = 'xy',                    &
-               vstagger      = VERTICAL_STAGGER_NONE,   &
-               state_intent  = ESMF_STATEINTENT_EXPORT, &
-               typekind      = ESMF_TYPEKIND_R4,        &
+               short_name       = TRIM(current%name),      &
+               standard_name    = TRIM(current%long_name), &
+               units            = TRIM(current%units),     &
+               dims             = 'xy',                    &
+               vertical_stagger = VERTICAL_STAGGER_NONE,   &
+               state_intent     = ESMF_STATEINTENT_EXPORT, &
+               typekind         = ESMF_TYPEKIND_R4,        &
                _RC )
 #else
           CALL MAPL_AddExportSpec(GC,                                     &
@@ -1021,14 +1017,11 @@ CONTAINS
 !
 ! !USES:
 !
-    USE ESMF,             ONLY : ESMF_State
-#ifdef MAPL3
-    USE mapl3g_State_API, ONLY : MAPL_StateGetPointer
-#endif
-    USE Registry_Mod,     ONLY : Registry_Lookup
-    USE State_Chm_Mod,    ONLY : ChmState
-    USE State_Diag_Mod,   ONLY : DgnState
-    USE State_Met_Mod,    ONLY : MetState
+    USE ESMF,           ONLY : ESMF_State
+    USE Registry_Mod,   ONLY : Registry_Lookup
+    USE State_Chm_Mod,  ONLY : ChmState
+    USE State_Diag_Mod, ONLY : DgnState
+    USE State_Met_Mod,  ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !

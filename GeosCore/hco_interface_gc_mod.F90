@@ -3280,7 +3280,7 @@ CONTAINS
     USE Time_Mod,        ONLY : Get_Year, Get_Month, Get_Day, GET_DAY_OF_YEAR
     USE Time_Mod,        ONLY : GET_HOUR, GET_MINUTE, GET_SECOND
 #if defined( ADJOINT )
-    USE MAPL_CommsMod,   ONLY : MAPL_AM_I_ROOT
+    USE MAPL,            ONLY : MAPL_am_I_Root
 #endif
 !
 ! !INPUT/OUTPUT PARAMETERS:

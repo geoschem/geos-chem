@@ -26,8 +26,7 @@ MODULE ERROR_MOD
   USE Precision_Mod
 #ifdef MAPL_ESMF
 #ifdef MAPL3
-  USE mapl_ErrorHandlingMod, ONLY : MAPL_Assert
-  USE mapl3g_generic,        ONLY : MAPL_GridCompGet 
+  USE MAPL, ONLY : MAPL_Assert, MAPL_GridCompGet
 #else
   USE pFlogger
 #endif

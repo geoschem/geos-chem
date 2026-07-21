@@ -122,46 +122,21 @@ if(MODEL_GCHP)
     $<$<BOOL:${MAPL3}>:MAPL3>
   )
 
-# Old MAPL3
-#  target_link_libraries(GEOSChemBuildProperties INTERFACE
-#    $<LINK_ONLY:MAPL.base>
-#    $<LINK_ONLY:FVdycoreCubed_GridComp>
-#    $<LINK_ONLY:HCOI_MAPL_ESMF>
-#    $<$<BOOL:${OMP}>:OpenMP::OpenMP_Fortran>
-#    MPI::MPI_C MPI::MPI_Fortran
-#    $<LINK_ONLY:mapl3g>
-#    $<LINK_ONLY:MAPL.generic3g>
-#    $<LINK_ONLY:MAPL.state>
-#  )
-#  target_include_directories(GEOSChemBuildProperties INTERFACE
-#    $<TARGET_PROPERTY:MAPL.mapl3g,INTERFACE_INCLUDE_DIRECTORIES>
-#    $<TARGET_PROPERTY:MAPL.generic3g,INTERFACE_INCLUDE_DIRECTORIES>
-#    $<TARGET_PROPERTY:MAPL.state,INTERFACE_INCLUDE_DIRECTORIES>
-#    $<TARGET_PROPERTY:MAPL.base,INTERFACE_INCLUDE_DIRECTORIES>
-#    $<TARGET_PROPERTY:FVdycoreCubed_GridComp,INTERFACE_INCLUDE_DIRECTORIES>
-#    $<TARGET_PROPERTY:HCOI_MAPL_ESMF,INTERFACE_INCLUDE_DIRECTORIES>
-#    ${CMAKE_Fortran_MODULE_DIRECTORY}
-#  )
-# New MAPL3
   target_link_libraries(GEOSChemBuildProperties INTERFACE
     $<LINK_ONLY:FVdycoreCubed_GridComp>
     $<LINK_ONLY:HCOI_MAPL_ESMF>
     $<$<BOOL:${OMP}>:OpenMP::OpenMP_Fortran>
     MPI::MPI_C MPI::MPI_Fortran
-    $<LINK_ONLY:MAPL.base3g>
-    $<LINK_ONLY:MAPL.generic3g>
-    $<LINK_ONLY:MAPL.state>
+    $<LINK_ONLY:MAPL>
   )
   target_include_directories(GEOSChemBuildProperties INTERFACE
-    $<TARGET_PROPERTY:MAPL.base3g,INTERFACE_INCLUDE_DIRECTORIES>
-    $<TARGET_PROPERTY:MAPL.generic3g,INTERFACE_INCLUDE_DIRECTORIES>
-    $<TARGET_PROPERTY:MAPL.state,INTERFACE_INCLUDE_DIRECTORIES>
+    $<TARGET_PROPERTY:MAPL,INTERFACE_INCLUDE_DIRECTORIES>
     $<TARGET_PROPERTY:FVdycoreCubed_GridComp,INTERFACE_INCLUDE_DIRECTORIES>
     $<TARGET_PROPERTY:HCOI_MAPL_ESMF,INTERFACE_INCLUDE_DIRECTORIES>
     ${CMAKE_Fortran_MODULE_DIRECTORY}
   )
 
-# Turn off acg for now
+# Turn off acg for now. Note: syntax may have changed... no 3g?
   #mapl_acg(GEOSchem_GridComp GEOSchem_StateSpecs.rc
   #  IMPORT_SPECS EXPORT_SPECS INTERNAL_SPECS
   #  GET_POINTERS DECLARE_POINTERS
