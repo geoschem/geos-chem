@@ -2736,7 +2736,7 @@ CONTAINS
                   VALUE=RST, RC=STATUS )
 
              ! Set spc conc to background value if rst skipped or var not there
-             IF ( ( RC  /= ESMF_SUCCESS         .OR.     &
+             IF ( RC  /= ESMF_SUCCESS           .OR.     &
                   RST == MAPL_RestartBootstrap  .OR.     &
                   RST == MAPL_RestartSkipInitial  ) THEN
 
