@@ -333,6 +333,38 @@
          PACID = 1.d-2
       ENDIF
 
+! Input tracer masses can go slightly negative due to advection numerics
+! in the host model. Clamp to zero here so downstream fractional-power
+! (cube root) calculations never see a negative base (avoids SIGFPE).
+      IF(MMSA.LT.0.D0)THEN
+         WRITE(6,*) "MMSA < 0, set it to 0",II,JJ,LL,MMSA
+         MMSA = 0.D0
+      ENDIF
+      IF(MNIT.LT.0.D0)THEN
+         WRITE(6,*) "MNIT < 0, set it to 0",II,JJ,LL,MNIT
+         MNIT = 0.D0
+      ENDIF
+      IF(MNH4.LT.0.D0)THEN
+         WRITE(6,*) "MNH4 < 0, set it to 0",II,JJ,LL,MNH4
+         MNH4 = 0.D0
+      ENDIF
+      IF(MBCS.LT.0.D0)THEN
+         WRITE(6,*) "MBCS < 0, set it to 0",II,JJ,LL,MBCS
+         MBCS = 0.D0
+      ENDIF
+      IF(MOCS.LT.0.D0)THEN
+         WRITE(6,*) "MOCS < 0, set it to 0",II,JJ,LL,MOCS
+         MOCS = 0.D0
+      ENDIF
+      IF(MDSTS.LT.0.D0)THEN
+         WRITE(6,*) "MDSTS < 0, set it to 0",II,JJ,LL,MDSTS
+         MDSTS = 0.D0
+      ENDIF
+      IF(MSALTS.LT.0.D0)THEN
+         WRITE(6,*) "MSALTS < 0, set it to 0",II,JJ,LL,MSALTS
+         MSALTS = 0.D0
+      ENDIF
+
       TEMPOUT1=1.d-30
 
       XN0 = 1.d-6*PRESS/(1.3807d-23*TK)   !#/cm3
@@ -491,11 +523,21 @@
       MSP(3) = MDSTS*(1.+(MMSA+MNIT+MNH4)/MSULFT) ! SP mass on dust
      &        +MDSTLV*(1.+SOAT/TOTMP)  
       MSP(4) = MBCS*(1.+(MMSA+MNIT+MNH4)/MSULFT) ! SP mass on BC
-     &        +MBCLV*(1.+SOAT/TOTMP)  
+     &        +MBCLV*(1.+SOAT/TOTMP)
       MSP(5) = MOCS*(1.+(MMSA+MNIT+MNH4)/MSULFT) ! SP mass on OC
-     &        +MOCLV*(1.+SOAT/TOTMP)  
+     &        +MOCLV*(1.+SOAT/TOTMP)
 !     &        +MCORE(5)*2.*SOAT/TOTMP
      &        +MCORE(5)*2.1*SOAT/TOTMP
+
+! MSP(N) can come out non-positive (e.g. from residual negative noise in
+! SOAT/MBCLV/MOCLV/etc.), which then feeds a 0/0 (FRACSOA below) or a
+! negative base into a fractional power (RRATIO/RRATIOWET) further down.
+! Floor it here, mirroring the existing MCORE floor above.
+      DO N=1,NTYP
+         IF(MSP(N).LE.0.) THEN
+           MSP(N)=1.d-21
+         ENDIF
+      ENDDO
 
       XRATIO  = (MSO4B+MBCS+MOCS)/MSULFT
       PM25(1) = (MSO4B + MBCS+MOCS)*1.d9
@@ -519,7 +561,9 @@
          GFGAS = 1.
       ELSE
 ! MSULFLV included in MSO4
-         GFGAS=(MSP(1)/MSO4)**(1./3.) 
+! Guard against a negative ratio (from residual numerical noise in MSP)
+! reaching this fractional power, which would otherwise produce a NaN.
+         GFGAS=MAX(MSP(1)/MSO4,1.D0)**(1./3.)
       ENDIF
 
 ! for max sat
@@ -564,7 +608,9 @@
       GF3 = YGF(IRH,3)  ! growth factor of SOA component 
       FRACSOA = MSOA/MSP(1)
       GFWATERVOL = (1.-FRACSOA)*GF2**3.0 + FRACSOA*GF3**3.0
-      GFWATER = GFWATERVOL**(1./3.)
+! Guard against FRACSOA falling outside [0,1] (from residual numerical
+! noise in MSOA/MSP) driving GFWATERVOL negative -- avoids a NaN below.
+      GFWATER = MAX(GFWATERVOL,1.D0)**(1./3.)
 !
 ! Total growth factor
       GFTOT = GFGAS*GFWATER
@@ -641,9 +687,12 @@
       DENWET2 = DENSALTWET
 
 ! Wetsize of coated BCOC -- rough calculation for now
+! RRATIO(WET) is a size ratio and is physically always >=1; guard the
+! argument of the cube root against residual negative noise in MSP,
+! which would otherwise generate a NaN here (and a SIGFPE downstream).
       IF(MCORE(4).GT.0.D0)THEN
-         RRATIO = (1. + MSP(4)/MCORE(4))**(1./3.)
-         RRATIOWET=(1.+MSP(4)*GFWATER**3./MCORE(4))**(1./3.)
+         RRATIO = MAX(1. + MSP(4)/MCORE(4),1.D0)**(1./3.)
+         RRATIOWET=MAX(1.+MSP(4)*GFWATER**3./MCORE(4),1.D0)**(1./3.)
       ELSE
          RRATIO=1.D0
          RRATIOWET=1.D0
@@ -652,9 +701,9 @@
       RRATIOWETBC = RRATIOWET
 
       IF(MCORE(5).GT.0.D0)THEN
-         RRATIO = (1. + MSP(5)/MCORE(5))**(1./3.)
+         RRATIO = MAX(1. + MSP(5)/MCORE(5),1.D0)**(1./3.)
 !bug         RRATIOWET=(1.+MOCS*(GFGAS*GFWATER)**3./MCORE(5))**(1./3.)
-         RRATIOWET=(1.+MSP(5)*GFWATER**3./MCORE(5))**(1./3.)
+         RRATIOWET=MAX(1.+MSP(5)*GFWATER**3./MCORE(5),1.D0)**(1./3.)
       ELSE
          RRATIO=1.D0
          RRATIOWET=1.D0
@@ -1117,6 +1166,11 @@
       IF(YCS(ITYPE).GT.1.D-5) THEN
        VRATIO = RRATIOWETBC**3.
        IF(IFCOAT.EQ.0.) VRATIO = 1.
+! Final backstop: VRATIO must be finite and >0 before it is used as a
+! divisor below. MAX()-based guards upstream cannot be trusted to catch
+! NaN (Fortran MAX/MIN with a NaN operand is processor-dependent), so
+! check explicitly here (VRATIO.NE.VRATIO is true only when VRATIO is NaN).
+       IF(VRATIO.NE.VRATIO .OR. VRATIO.LE.0.D0) VRATIO = 1.D0
 !-----------------------------------------------------------------------------
 !BMY KLUDGE:  Add this here to avoid floating point exception! (bmy, 6/28/19)
        zfv_sp = zfv
@@ -1159,6 +1213,8 @@
        VRATIO = RRATIOWETOC**3.
 
        IF(IFCOAT.EQ.0.) VRATIO = 1.
+! Final backstop: see comment on the analogous BC block above.
+       IF(VRATIO.NE.VRATIO .OR. VRATIO.LE.0.D0) VRATIO = 1.D0
 !-----------------------------------------------------------------------------
 !BMY KLUDGE: Add this here to avoid floating point exception! (bmy, 6/28/19)
        zfv_sp = zfv
