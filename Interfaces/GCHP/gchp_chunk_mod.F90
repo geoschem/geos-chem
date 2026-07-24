@@ -946,8 +946,8 @@ CONTAINS
     CALL SET_DRY_SURFACE_PRESSURE( State_Grid, State_Met, 2 )
 
     ! Initialize surface pressures to match the post-advection pressures
-    State_Met%PSC2_WET = State_Met%PS1_WET
-    State_Met%PSC2_DRY = State_Met%PS1_DRY
+    State_Met%PSC2_WET = State_Met%PS2_WET
+    State_Met%PSC2_DRY = State_Met%PS2_DRY
     CALL SET_FLOATING_PRESSURES( State_Grid, State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
