@@ -41,6 +41,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed bugs in Jacobian tracers simulation
 - Fixed missing entries in `SpeciesConc`, `CloudConvFlux`, `WetLossConv`, and `WetLossLS` collections in the GCHP `HISTORY.rc.fullchem` template file
 - Fixed minor issues causing APM simulation failure when debug flags turned on
+- Fixed incorrect treatment of `e90_s/n` and `nh_5/50` tracer in TransportTracer simulation
 
 ### Removed
 - Removed obsolete code in dust_mod.F90
