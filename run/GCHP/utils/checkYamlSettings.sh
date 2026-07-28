@@ -26,6 +26,8 @@ set -euo pipefail
 # This setting determines whether to check for files on disk within a provided valid range
 # for a given collection. This can be slow, especially for daily collections like MERRA2, 
 # so it is disabled by default. 
+# This is useful because valid_range currently fails if any files in valid range are missing,
+# regardless if they are within simulation date range or not. 
 CHECK_VALID_RANGE=false
 
 # Lightweight check to determine if the provided simulation date is within the valid_range 
@@ -43,7 +45,7 @@ SIM_START_DATE=20190701
 SIM_END_DATE=20190801
 
 # Path to your YAML file relative to this script
-YAML=extdata.yaml          
+YAML=extdata.yaml        
 
 ##########################################################
 # Derived config
@@ -51,6 +53,19 @@ YAML=extdata.yaml
 
 SIM_START_ISO="${SIM_START_DATE:0:4}-${SIM_START_DATE:4:2}-${SIM_START_DATE:6:2}"
 SIM_END_ISO="${SIM_END_DATE:0:4}-${SIM_END_DATE:4:2}-${SIM_END_DATE:6:2}"
+
+##########################################################
+# Early failure checks
+##########################################################
+if [[ ! -f ${YAML} ]]; then
+   echo "Could not find configuration file: ${YAML}!  Exiting ..."
+   exit 1
+fi
+
+if (( $(awk '/^[[:space:]][[:space:]][^[:space:]]+:[[:space:]]*(#.*)?$/' "${YAML}" | wc -l) == 0 )); then
+   echo "ERROR: no collections parsed from ${YAML} — check indentation/format" >&2
+   exit 1
+fi
 
 #------------------------
 # Config info
@@ -70,65 +85,6 @@ else
     echo "INFO: Skipping collections with provided valid_range"
 fi
 
-
-########################################
-# AWK: parse collections
-# Outputs: collection_name<TAB>start<TAB>end<TAB>template
-########################################
-
-AWK_PARSE_COLLECTIONS=$(cat << 'EOF'
-# 2-space-indented collection name, e.g.
-#   "  MERRA2.20150101.CN.05x0625.nc4:"
-/^[[:space:]][[:space:]][^[:space:]]+:[[:space:]]*$/ {
-    current_name = $1
-    sub(/:$/, "", current_name)
-    start_date = ""
-    end_date   = ""
-    saw_valid  = 0
-}
-
-# 4-space-indented valid_range, e.g.
-#   "    valid_range: "2009-01-01/2024-12-31T00:00""
-/^[[:space:]][[:space:]][[:space:]][[:space:]]valid_range:[[:space:]]*/ {
-    line = $0
-    sub(/^[[:space:]][[:space:]][[:space:]][[:space:]]valid_range:[[:space:]]*/, "", line)
-
-    # strip surrounding quotes if present
-    gsub(/^"[[:space:]]*|"[[:space:]]*$/, "", line)
-    gsub(/^'[[:space:]]*|'[[:space:]]*$/, "", line)
-
-    # split "start/end"
-    n = split(line, a, "/")
-    if (n >= 1) start_date = a[1]
-    if (n >= 2) {
-        end_date = a[2]
-        sub(/T.*/, "", end_date)   # drop time if present
-    }
-    saw_valid = 1
-}
-
-# 4-space-indented template, e.g.
-#   "    template: ./MetDir/%y4/%m2/...."
-/^[[:space:]][[:space:]][[:space:]][[:space:]]template:[[:space:]]*/ {
-    line = $0
-    sub(/^[[:space:]][[:space:]][[:space:]][[:space:]]template:[[:space:]]*/, "", line)
-
-    # strip surrounding quotes if present
-    gsub(/^"[[:space:]]*|"[[:space:]]*$/, "", line)
-    gsub(/^'[[:space:]]*|'[[:space:]]*$/, "", line)
-
-    # If there was no valid_range, start_date/end_date remain ""
-    if (!saw_valid) {
-        start_date = ""
-        end_date   = ""
-    }
-
-    # Always output 4 fields: name<TAB>start<TAB>end<TAB>template
-    print current_name "\t" start_date "\t" end_date "\t" line
-}
-EOF
-)
-
 ########################################
 # AWK: parse Exports -> collection_name<TAB>freq
 ########################################
@@ -141,7 +97,7 @@ function emit() {
 }
 
 # 2-space-indented collection name -> flush previous, start new
-/^[[:space:]][[:space:]][^[:space:]]+:[[:space:]]*$/ {
+/^[[:space:]][[:space:]][^[:space:]]+:[[:space:]]*(#.*)?$/ {
     emit()
     current_name = $1
     sub(/:$/, "", current_name)
@@ -158,7 +114,10 @@ function emit() {
     gsub(/^'[[:space:]]*|'[[:space:]]*$/, "", line)
 
     n = split(line, a, "/")
-    if (n >= 1) start_date = a[1]
+    if (n >= 1) {
+        start_date = a[1]
+        sub(/T.*/, "", start_date)
+    }
     if (n >= 2) {
         end_date = a[2]
         sub(/T.*/, "", end_date)
@@ -186,7 +145,7 @@ function emit() {
 }
 
 # 2-space-indented collection name -> flush previous, start new
-/^[[:space:]][[:space:]][^[:space:]]+:[[:space:]]*$/ {
+/^[[:space:]][[:space:]][^[:space:]]+:[[:space:]]*(#.*)?$/ {
     emit()
     current_name = $1
     sub(/:$/, "", current_name)
@@ -308,10 +267,8 @@ check_range_with_freq() {
 
         monthly)
             local d
-            d=$(date -d "$(date -d "$d_start" +%Y-%m-01)" +%F)
-            if [[ "$d" < "$d_start" ]]; then
-                d=$(date -d "$d +1 month" +%F)
-            fi
+            d=$(date -d "$d_start" +%Y-%m-01)
+            
             while [[ "$d" < "$d_end" || "$d" == "$d_end" ]]; do
                 local y4 m2 d2 path
                 y4=$(date -d "$d" +%Y)
