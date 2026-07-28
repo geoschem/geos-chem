@@ -28,6 +28,8 @@ MODULE GCHP_HistoryExports_Mod
 #ifdef MAPL3
   USE MAPL, ONLY : MAPL_Assert, MAPL_Verify
   USE MAPL, ONLY : MAPL_GridCompAddSpec, MAPL_StateGetPointer
+  USE MAPL, ONLY : MAPL_VERTICAL_STAGGER_CENTER, MAPL_VERTICAL_STAGGER_EDGE
+  USE MAPL, ONLY : MAPL_VERTICAL_STAGGER_NONE
 #else
   USE MAPL_Mod
 #endif
@@ -653,6 +655,7 @@ CONTAINS
 ! !USES:
 !
     USE ESMF, ONLY : ESMF_GridComp
+    USE ESMF, ONLY : ESMF_STATEINTENT_EXPORT, ESMF_TYPEKIND_R4
     USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
@@ -762,14 +765,14 @@ CONTAINS
          ENDIF
        ELSEIF ( current%rank == 2 ) THEN
 #ifdef MAPL3
-          CALL MAPL_GridCompAddSpec(gridcomp=GC,        &
-               short_name       = TRIM(current%name),      &
-               standard_name    = TRIM(current%long_name), &
-               units            = TRIM(current%units),     &
-               dims             = 'xy',                    &
-               vertical_stagger = VERTICAL_STAGGER_NONE,   &
-               state_intent     = ESMF_STATEINTENT_EXPORT, &
-               typekind         = ESMF_TYPEKIND_R4,        &
+          CALL MAPL_GridCompAddSpec(gridcomp=GC,              &
+               short_name       = TRIM(current%name),         &
+               standard_name    = TRIM(current%long_name),    &
+               units            = TRIM(current%units),        &
+               dims             = 'xy',                       &
+               vertical_stagger = MAPL_VERTICAL_STAGGER_NONE, &
+               state_intent     = ESMF_STATEINTENT_EXPORT,    &
+               typekind         = ESMF_TYPEKIND_R4,           &
                _RC )
 #else
           CALL MAPL_AddExportSpec(GC,                                     &

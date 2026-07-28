@@ -7581,7 +7581,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
- FUNCTION GET_ISOPNO3( I, J, L, Input_Opt, State_Chm, State_Met ) &
+ FUNCTION GET_ISOPNO3( II, J, L, Input_Opt, State_Chm, State_Met ) &
       RESULT( ISOPNO3 )
 !
 ! !USES:
@@ -7594,7 +7594,7 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-   INTEGER,        INTENT(IN) :: I           ! Longitude index
+   INTEGER,        INTENT(IN) :: II           ! Longitude index
    INTEGER,        INTENT(IN) :: J           ! Latitude index
    INTEGER,        INTENT(IN) :: L           ! Altitude index
    TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
@@ -7628,14 +7628,17 @@ CONTAINS
       !--------------------
 
       ! Test if we are in the chemistry grid
-      IF ( State_Met%InChemGrid(I,J,L) ) THEN
+      ! ewl: kludge for mapl3: replace I with II. Otherwise get a build error:
+      ! error #6405: The same named entity from different modules and/or
+      ! program units cannot be referenced. [I]
+      IF ( State_Met%InChemGrid(II,J,L) ) THEN
 
          ! Get ISOPNO3 (ISOP list to NO3) from State_Chm%Species%Conc
          ! [kg ISOPNO3] and convert to [kg C ISOP]
          ISOP_MW_kg     = State_Chm%SpcData(id_ISOP)%Info%MW_g * 1.e-3_fp
          LISOPNO3_MW_kg = State_Chm%SpcData(id_LISOPNO3)%Info%MW_g * 1.e-3_fp
 
-         ISOPNO3 = State_Chm%Species(id_LISOPNO3)%Conc(I,J,L) &
+         ISOPNO3 = State_Chm%Species(id_LISOPNO3)%Conc(II,J,L) &
                    * ( AVO / LISOPNO3_MW_kg ) &
                    / ( AVO / ISOP_MW_kg     )
 

@@ -20,7 +20,11 @@ MODULE GCHP_Chunk_Mod
 !
 ! !USES:
 !
+#ifdef MAPL3
+  USE MAPL
+#else
   USE MAPL_MOD
+#endif
   USE ESMF
   USE ErrCode_Mod
   USE Precision_Mod
@@ -183,6 +187,8 @@ CONTAINS
     ! GCHP_CHUNK_INIT begins here
     !=======================================================================
 
+! ewl: MAPL3 part not yet adapted
+#ifndef MAPL3
     ! Error trap
     Iam = 'GCHP_CHUNK_INIT (gchp_chunk_mod.F90)'
 
@@ -576,6 +582,8 @@ CONTAINS
 !    _ASSERT(RC==GC_SUCCESS, 'Error calling Tend_Init')
 !#endif
 
+#endif ! not MAPL3
+
     ! Return success
     RC = GC_Success
 
@@ -648,7 +656,6 @@ CONTAINS
     USE ErrCode_Mod
     USE Error_Mod
     USE HCO_Error_Mod
-    USE MAPL_MemUtilsMod
     USE Pressure_Mod,       ONLY : Accept_External_Pedge
     USE State_Chm_Mod,      ONLY : IND_
     USE Time_Mod,           ONLY : Accept_External_Date_Time
@@ -674,7 +681,9 @@ CONTAINS
     USE HCO_Interface_GC_Mod,   ONLY : HCOI_GC_WriteDiagn
 #endif
     USE Species_Mod,   ONLY : Species
-
+#ifndef MAPL3
+    USE MAPL_MemUtilsMod ! ewl: have not yet looked for MAPL3 equivalent
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -722,7 +731,9 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
     TYPE(ESMF_STATE)               :: INTSTATE
+#ifndef MAPL3
     TYPE(MAPL_MetaComp), POINTER   :: STATE
+#endif
     TYPE(ESMF_VM)                  :: VM            ! ESMF VM object
     TYPE(ESMF_Field)               :: IntField
     REAL*8                         :: DT
@@ -787,6 +798,9 @@ CONTAINS
     !=======================================================================
     ! GCHP_CHUNK_RUN begins here
     !=======================================================================
+
+! ewl: mapl3 not yet adapted
+#ifndef MAPL3
 
     ! Error trap
     Iam = 'GCHP_CHUNK_RUN (gchp_chunk_mod.F90)'
@@ -1711,6 +1725,8 @@ CONTAINS
 
     ! First call is done
     FIRST = .FALSE.
+
+#endif ! not MAPL3
 
     ! Return success
     RC = GC_SUCCESS
