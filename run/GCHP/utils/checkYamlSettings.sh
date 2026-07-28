@@ -9,8 +9,12 @@ set -euo pipefail
 # SUMMARY: [freq] collection_path: X / Y files missing (start_date to end)
 #
 # [freq] is the frequency files are expected in the provided folder, parsed from 
-# the smallest date token (eg %d2) in the template file path. 
-# note this is NOT the same as the sampling frequency as defined in yaml samplings. 
+# the smallest date token (%y4/%m2/%d2) in the template file path. 
+# Note: this is NOT the same as the sampling frequency as defined in yaml samplings. 
+#
+# Note: %h2 tokens are not parsed as no default collections use hourly file frequency; 
+# hourly input data is bundled into daily-or-greater files. Testing hourly files
+# will not work with this script.
 # 
 # collection_path is the path where files are expected to be found, derived from 
 # the collection template in the extdata.yaml.
