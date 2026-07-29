@@ -136,11 +136,10 @@ if(MODEL_GCHP)
     ${CMAKE_Fortran_MODULE_DIRECTORY}
   )
 
-# Turn off acg for now. Note: syntax may have changed... no 3g?
+  # Temporarily turn off MAPL automatic code generator (acg)
   #mapl_acg(GEOSchem_GridComp GEOSchem_StateSpecs.rc
   #  IMPORT_SPECS EXPORT_SPECS INTERNAL_SPECS
   #  GET_POINTERS DECLARE_POINTERS
-  #  3g
   #)
 
   set(GEOSChem_Fortran_FLAGS_Intel
