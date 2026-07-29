@@ -56,4 +56,4 @@ rm -fv fort.*
 # Give instruction to reset start date if using GCHP
 #---------------------------------------------------------------------------
 start_str=$(cat cap_restart.yaml)
-echo "Next run start: ${start_str:10:23}"
+echo "Next run start: ${start_str:10:19}"

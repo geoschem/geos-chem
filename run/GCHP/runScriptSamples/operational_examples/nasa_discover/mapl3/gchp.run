@@ -7,11 +7,9 @@
 #SBATCH --job-name=gchp.run
 #SBATCH --constraint=mil
 #SBATCH --account=s1043
-##SBATCH --exclusive
 #SBATCH --qos=debug
-##SBATCH --qos=chmdev
-#SBATCH -o run.log
-#SBATCH -e run.log
+##SBATCH -o gchp.%j.log
+##SBATCH -e gchp.%j.log
 
 # If a subsequent command fails, treat it as fatal (don't continue)
 set -e
@@ -33,13 +31,18 @@ source gchp.env
 module list     
 
 # Define log name to include simulation start date
-start_str=$(cat cap_restart.yaml)
-# ewl: temporary for testing simpler log name
-#log=gchp.${start_str:10:24}z.log
-log=run.log
+cap_str=$(cat cap_restart.yaml)
+start_str=${cap_str:10:16}
+log=gchp.${start_str}z.log
+# Other log options
+#log=gchp.${SLURM_JOB_ID}.log
+#log=gchp.${start_str}z.${SLURM_JOB_ID}.log
 
-# Clean up if last run crashed
-rm -f Restarts/gcchem*
+# Get grid resolution
+N=$(awk '/^[[:space:]]*im_world:/ {print $2}' gchp.yaml)
+
+# Clean up restarts if last run crashed
+rm -f ./Restarts/gcchem*
 
 # Update config files, set restart symlink, and do sanity checks
 # ewl: comment this out for mapl3
@@ -50,51 +53,45 @@ rm -f Restarts/gcchem*
 #source checkRunSettings.sh >> ${log}
 
 # Run GCHP and evenly distribute tasks across nodes
-# ewl: mapl3
 coreCount=$(( SLURM_JOB_NUM_NODES * SLURM_NTASKS_PER_NODE ))
 planeCount=$(( coreCount / SLURM_JOB_NUM_NODES ))
 if [[ $(( coreCount % SLURM_JOB_NUM_NODES )) > 0 ]]; then
     planeCount=$(( planeCount + 1 ))
 fi
-# ewl: mapl2
-#NX=$( grep NX GCHP.rc | awk '{print $2}' )
-#NY=$( grep NY GCHP.rc | awk '{print $2}' )
-#coreCount=$(( ${NX} * ${NY} ))
-#planeCount=$(( ${coreCount} / ${SLURM_NNODES} ))
-#if [[ $(( ${coreCount} % ${SLURM_NNODES} )) > 0 ]]; then
-#        ${planeCount}=$(( ${planeCount} + 1 ))
-#fi
 
 # Turn off exit if command fails to allow script to finish if GCHP exits early
 set +e
 
-mpirun -np ${coreCount} ./gchp cap.yaml > ${log}
+# Run GCHP
+mpirun -np ${coreCount} ./gchp cap.yaml > "${log}"
 
-# If new start time in cap_restart is okay, rename restart file
-# and update restart symlink
-new_start_str=$(cap cap_restart.yaml)
-if [[ "${new_start_str}" = "${start_str}" || "${new_start_str}" = "" ]]; then
-   echo "ERROR: GCHP failed to run to completion. Check the log file for more information."
-   exit 1
-else
-    # ewl: not yet used in mapl3 rundir
-    #N=$(grep "CS_RES=" setCommonRunSettings.sh | cut -c 8- | xargs )    
-    mv Restarts/gcchem_internal_checkpoint Restarts/GEOSChem.Restart.${new_start_str:0:13}z.c${N}.nc4
-    source setRestartLink.sh
-fi
-
-# Rename mid-run checkpoint files, if any. Discard file if time corresponds
-# to run start time since duplicate with initial restart file.
+# Rename mid-run checkpoint files, if any, unless time in filename corresponds
+# to run start time (duplicate with initial restart file)
 chkpnts=$(ls Restarts)
 for chkpnt in ${chkpnts}
 do
     if [[ "$chkpnt" == *"gcchem_internal_checkpoint."* ]]; then
        chkpnt_time=${chkpnt:27:13}
-       if [[ "${chkpnt_time}" = "${start_str:0:13}" ]]; then
-          rm ./Restarts/${chkpnt}
-       else
+       if [[ "${chkpnt_time}" != "${start_str:0:13}" ]]; then
           new_chkpnt=./Restarts/GEOSChem.Restart.${chkpnt_time}z.c${N}.nc4
           mv ./Restarts/${chkpnt} ${new_chkpnt}
        fi
     fi
 done
+
+# If new start time in cap_restart is okay, rename end restart file
+# and update restart symlink
+new_cap_str=$(cat cap_restart.yaml)
+new_start_str=${new_cap_str:10:16}
+if [[ "${new_start_str}" = "${start_str}" || "${new_start_str}" = "" ]]; then
+   echo "ERROR: GCHP failed to run to completion. Check the log file for more information."
+   exit 1
+else
+    [ -e ./Restarts/gcchem_internal_checkpoint ] && \
+	mv ./Restarts/gcchem_internal_checkpoint \
+	   Restarts/GEOSChem.Restart.${new_start_str:0:13}z.c${N}.nc4
+    #source setRestartLink.sh
+fi
+
+# Remove any remaining checkpoints that are not renamed
+rm -f ./Restarts/gcchem*
