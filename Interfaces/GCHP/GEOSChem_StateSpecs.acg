@@ -1,5 +1,5 @@
 schema_version: 2.0.0
-component: GCHPctmEnv
+component: GEOSChem
 
 category: IMPORT
 #-------------------------------------------------------------------------
@@ -7,87 +7,87 @@ category: IMPORT
 #-------------------------------------------------------------------------
  PLE        | Pa         | R8       | xyz  | E    | pressure_level_edges
  DryPLE     | Pa         | R8       | xyz  | E    | dry_pressure_level_edges
- AREA       | m2         | R8       | xy   |      | Grid_horizontal_area
-# DynHeating | K day-1    | R4       | xyz  | C    | dynamical_heating
- FRLAKE     | 1	         | R4       | xy   |      | 
- FRLAND     | 1	         | R4       | xy   |      | 
- FRLANDIC   | 1	         | R4       | xy   |      | 
- FROCEAN    | 1	         | R4       | xy   |      | 
- PHIS       | 1	         | R4       | xy   |      | 
- ALBD       | 1	         | R4       | xy   |      | surface_albedo_for_visible_diffuse
- CLDFRC     | 1	         | R4       | xy   |      | 
- EFLUX      | 1	         | R4       | xy   |      | 
- EVAP       | 1	         | R4       | xy   |      | 
- FRSEAICE   | 1	         | R4       | xy   |      | 
- FRSNO      | 1	         | R4       | xy   |      | 
- GRN        | 1	         | R4       | xy   |      | 
- GWETROOT   | 1	         | R4       | xy   |      | 
- GWETTOP    | 1	         | R4       | xy   |      | 
- HFLUX      | 1	         | R4       | xy   |      | 
- LAI        | 1	         | R4       | xy   |      | 
- QV2M       | 1	         | R4       | xy   |      | 
- PARDF      | 1	         | R4       | xy   |      | 
- PARDR      | 1	         | R4       | xy   |      | 
- PBLH       | 1	         | R4       | xy   |      | 
- SEAICE00   | 1	         | R4       | xy   |      | 
- SEAICE10   | 1	         | R4       | xy   |      | 
- SEAICE20   | 1	         | R4       | xy   |      | 
- SEAICE30   | 1	         | R4       | xy   |      | 
- SEAICE40   | 1	         | R4       | xy   |      | 
- SEAICE50   | 1	         | R4       | xy   |      | 
- SEAICE60   | 1	         | R4       | xy   |      | 
- SEAICE70   | 1	         | R4       | xy   |      | 
- SEAICE80   | 1	         | R4       | xy   |      | 
- SEAICE90   | 1	         | R4       | xy   |      | 
- SLP        | 1	         | R4       | xy   |      | 
- SNODP      | 1	         | R4       | xy   |      | 
- SNOMAS     | 1	         | R4       | xy   |      | 
- RADSWG     | 1	         | R4       | xy   |      | 
- TO3        | 1	         | R4       | xy   |      | 
- TROPP      | 1	         | R4       | xy   |      | 
- TSKIN      | 1	         | R4       | xy   |      | 
- TS         | 1	         | R4       | xy   |      | 
- U10M       | 1	         | R4       | xy   |      | 
- USTAR      | 1	         | R4       | xy   |      | 
- V10M       | 1	         | R4       | xy   |      | 
- Z0         | 1	         | R4       | xy   |      | 
+ AREA       | m2         | R8       | xy   | N    | Grid_horizontal_area
+ DynHeating | K day-1    | R4       | xyz  | C    | dynamical_heating
+ FRLAKE     | 1	         | R4       | xy   | N    | fraction_lake
+ FRLAND     | 1	         | R4       | xy   | N    | fraction_land
+ FRLANDIC   | 1	         | R4       | xy   | N    | fraction_land_ice
+ FROCEAN    | 1	         | R4       | xy   | N    | fraction_ocean
+ PHIS       | 1	         | R4       | xy   | N    | placeholder
+ ALBD       | 1	         | R4       | xy   | N    | surface_albedo_for_visible_diffuse
+ CLDFRC     | 1	         | R4       | xy   | N    | placeholder
+ EFLUX      | 1	         | R4       | xy   | N    | placeholder
+ EVAP       | 1	         | R4       | xy   | N    | placeholder
+ FRSEAICE   | 1	         | R4       | xy   | N    | placeholder
+ FRSNO      | 1	         | R4       | xy   | N    | placeholder
+ GRN        | 1	         | R4       | xy   | N    | placeholder
+ GWETROOT   | 1	         | R4       | xy   | N    | placeholder
+ GWETTOP    | 1	         | R4       | xy   | N    | placeholder
+ HFLUX      | 1	         | R4       | xy   | N    | placeholder
+ LAI        | 1	         | R4       | xy   | N    | placeholder
+ QV2M       | 1	         | R4       | xy   | N    | placeholder
+ PARDF      | 1	         | R4       | xy   | N    | placeholder
+ PARDR      | 1	         | R4       | xy   | N    | placeholder
+ PBLH       | 1	         | R4       | xy   | N    | placeholder
+ SEAICE00   | 1	         | R4       | xy   | N    | placeholder
+ SEAICE10   | 1	         | R4       | xy   | N    | placeholder
+ SEAICE20   | 1	         | R4       | xy   | N    | placeholder
+ SEAICE30   | 1	         | R4       | xy   | N    | placeholder
+ SEAICE40   | 1	         | R4       | xy   | N    | placeholder
+ SEAICE50   | 1	         | R4       | xy   | N    | placeholder
+ SEAICE60   | 1	         | R4       | xy   | N    | placeholder
+ SEAICE70   | 1	         | R4       | xy   | N    | placeholder
+ SEAICE80   | 1	         | R4       | xy   | N    | placeholder
+ SEAICE90   | 1	         | R4       | xy   | N    | placeholder
+ SLP        | 1	         | R4       | xy   | N    | placeholder
+ SNODP      | 1	         | R4       | xy   | N    | placeholder
+ SNOMAS     | 1	         | R4       | xy   | N    | placeholder
+ RADSWG     | 1	         | R4       | xy   | N    | placeholder
+ TO3        | 1	         | R4       | xy   | N    | placeholder
+ TROPP      | 1	         | R4       | xy   | N    | placeholder
+ TSKIN      | 1	         | R4       | xy   | N    | placeholder
+ TS         | 1	         | R4       | xy   | N    | placeholder
+ U10M       | 1	         | R4       | xy   | N    | placeholder
+ USTAR      | 1	         | R4       | xy   | N    | placeholder
+ V10M       | 1	         | R4       | xy   | N    | placeholder
+ Z0         | 1	         | R4       | xy   | N    | placeholder
  PS1        | 1	         | R4       | xy   | E    | pressure_at_surface_before_advection 
  PS2        | 1	         | R4       | xy   | E    | pressure_at_surface_after_advection
- OPTDEP     | 1	         | R4       | xyz  | C    | 
- CLDF       | 1	         | R4       | xyz  | C    | 
- QI         | 1	         | R4       | xyz  | C    | 
- QL         | 1	         | R4       | xyz  | C    | 
- TAUCLI     | 1	         | R4       | xyz  | C    | 
- TAUCLW     | 1	         | R4       | xyz  | C    | 
- CMFMC      | 1	         | R4       | xyz  | E    | 
- DTRAIN     | 1	         | R4       | xyz  | C    | 
- OMEGA      | 1	         | R4       | xyz  | C    | 
- RH         | 1	         | R4       | xyz  | C    | 
- UA         | 1	         | R4       | xyz  | C    | eastward_wind_on_A-Grid
- VA         | 1	         | R4       | xyz  | C    | northward_wind_on_A-Grid
+ OPTDEP     | 1	         | R4       | xyz  | C    | placeholder
+ CLDF       | 1	         | R4       | xyz  | C    | placeholder
+ QI         | 1	         | R4       | xyz  | C    | placeholder
+ QL         | 1	         | R4       | xyz  | C    | placeholder
+ TAUCLI     | 1	         | R4       | xyz  | C    | placeholder
+ TAUCLW     | 1	         | R4       | xyz  | C    | placeholder
+ CMFMC      | 1	         | R4       | xyz  | E    | placeholder
+ DTRAIN     | 1	         | R4       | xyz  | C    | placeholder
+ OMEGA      | 1	         | R4       | xyz  | C    | placeholder
+ RH         | 1	         | R4       | xyz  | C    | placeholder
+ UA         | 1	         | R4       | xyz  | C    | placeholdereastward_wind_on_A-Grid
+ VA         | 1	         | R4       | xyz  | C    | placeholdernorthward_wind_on_A-Grid
  MFXC       | Pa m+2 s-1 | R4       | xyz  | C    | pressure_weighted_eastward_mass_flux
  MFYC       | Pa m+2 s-1 | R4       | xyz  | C    | pressure_weighted_northward_mass_flux
  CXC        | 1          | R4       | xyz  | C    | eastward_accumulated_courant_number
  CYC        | 1          | R4       | xyz  | C    | northward_accumulated_courant_number
- DQRCU      | 1	         | R4       | xyz  | C    | 
- DQRLSAN    | 1	         | R4       | xyz  | C    | 
- REEVAPCN   | 1	         | R4       | xyz  | C    | 
- REEVAPLS   | 1	         | R4       | xyz  | C    | 
- PFICU      | 1	         | R4       | xyz  | E    | 
- PFILSAN    | 1	         | R4       | xyz  | E    | 
- PFLCU      | 1	         | R4       | xyz  | E    | 
- PFLLSAN    | 1	         | R4       | xyz  | E    | 
- SPHU1      | 1	         | R4       | xyz  | C    | 
+ DQRCU      | 1	         | R4       | xyz  | C    | placeholder
+ DQRLSAN    | 1	         | R4       | xyz  | C    | placeholder
+ REEVAPCN   | 1	         | R4       | xyz  | C    | placeholder
+ REEVAPLS   | 1	         | R4       | xyz  | C    | placeholder
+ PFICU      | 1	         | R4       | xyz  | E    | placeholder
+ PFILSAN    | 1	         | R4       | xyz  | E    | placeholder
+ PFLCU      | 1	         | R4       | xyz  | E    | placeholder
+ PFLLSAN    | 1	         | R4       | xyz  | E    | placeholder
+ SPHU1      | 1	         | R4       | xyz  | C    | placeholder
  TMPU1      | 1	         | R4       | xyz  | C    | specific_humidity_before_advection
  SPHU2      | 1	         | R4       | xyz  | C    | specific_humidity_after_advection
- TMPU2      | 1	         | R4       | xyz  | C    | 
- FLASH_DENS | 1          | R4       | xy   |      | lightning_flash_density
- CONV_DEPTH | 1          | R4       | xy   |      | convective_cloud_depth
- XLAIMULTI  | cm2_cm-2   | R4       | xyz  | E    | LAI_by_type 
- PRECCON    | 1  	 | R4       | xy   |      | surface convective precipitation flux
- PRECLSC    | 1  	 | R4       | xy   |      | surface large-scale precipitation flux
- PRECANV    | 1  	 | R4       | xy   |      | surface anvil precipitation flux
- PRECTOT    | 1  	 | R4       | xy   |      | surface total precipitation flux
+ TMPU2      | 1	         | R4       | xyz  | C    | placeholder
+ FLASH_DENS | 1          | R4       | xy   | N    | lightning_flash_density
+ CONV_DEPTH | 1          | R4       | xy   | N    | convective_cloud_depth
+ XLAIMULTI  | cm2 cm-2   | R4       | xyz  | E    | LAI_by_type
+ PRECCON    | 1  	 | R4       | xy   | N    | surface_convective_precipitation_flux
+ PRECLSC    | 1  	 | R4       | xy   | N    | surface_large-scale precipitation_flux
+ PRECANV    | 1  	 | R4       | xy   | N    | surface_anvil_precipitation_flux
+ PRECTOT    | 1  	 | R4       | xy   | N    | surface_total_precipitation_flux
 
 category: EXPORT
 #----------------------------------------------------------------------
@@ -99,32 +99,32 @@ category: INTERNAL
 #----------------------------------------------------------------------
  SHORT_NAME       | UNITS       | TYPEKIND | DIMS | VLOC | LONG_NAME
 #----------------------------------------------------------------------
- AeroH2O_SNA      | g m-3       | R4       | xyz  | C    | sulfur-nitrogen-amoonia_water_content
- DryDepNitrogen   | cm-2 s-1    | R8       | xy   |      | dry_deposited_nitrogen
- WetDepNitrogen   | cm-2 s-1    | R8       | xy   |      | wet_deposited_nitrogen
+ AeroH2O_SNA      | g m-3       | R4       | xyz  | C    | sulfur-nitrogen-ammonia_water_content
+ DryDepNitrogen   | cm-2 s-1    | R8       | xy   | N    | dry_deposited_nitrogen
+ WetDepNitrogen   | cm-2 s-1    | R8       | xy   | N    | wet_deposited_nitrogen
  H2O2AfterChem    | v v-1       | R8       | xyz  | C    | soluble_fraction_H2O2
  SO2AfterChem     | v v-1       | R8       | xyz  | C    | soluble_fraction_SO2
  KPPHvalue        | 1           | R8       | xyz  | C    | HSAVE_for_KPP
  ORVCSESQ         | kg          | R8       | xyz  | C    | sesquiterpenes_mass
- JOH              | 1           | R8       | xy   |      | surface_j-values_for_reaction_O3+hv->O2+O
- JNO2             | 1           | R8       | xy   |      | surface_j-values_for_reaction_NO2+hv->NO+O
+ JOH              | 1           | R8       | xy   | N    | surface_j-values_for_reaction_O3+hv->O2+O
+ JNO2             | 1           | R8       | xy   | N    | surface_j-values_for_reaction_NO2+hv->NO+O
  DELP_DRY         | hPa         | R8       | xyz  | C    | delta_dry_pressure_across_box
-# TSTRAT_ADJ       | K           | R8       | xyz  | C    | stratospheric_T_adjustment
- AREA             | m2          | R8       | xy   |      | grid_horizontal_area
+ AREA             | m2          | R8       | xy   | N    | grid_horizontal_area
  BXHEIGHT         | m           | R8       | xyz  | C    | grid_box_height_wrt_dry_air
- TropLev          | 1           | R8       | xy   |      | level_where_the_tropopause_occurs
- GCCTROPP         | Pa          | R4       | xy   |      | tropopause_pressure_used_in_GEOS-Chem
+ TropLev          | 1           | R8       | xy   | N    | level_where_the_tropopause_occurs
+ GCCTROPP         | Pa          | R4       | xy   | N    | tropopause_pressure_used_in_GEOS-Chem
  STATE_PSC        | 1           | R4       | xyz  | C    | polar_stratospheric_clouds
- ARCHV_DRY_TOTN   | cm-2s-1     | R4       | xy   |      | dry_deposited_nitrogen
- ARCHV_WET_TOTN   | cm-2s-1     | R4       | xy   |      | wet_deposited_nitrogen
- PFACTOR          | 1           | R4       | xy   |      | soilnox_pfactor_restart
- DRYPERIOD        | 1           | R4       | xy   |      | soilnox_dryperiod_restart
- GWET_PREV        | 1           | R4       | xy   |      | soilnox_gwet_prev_restart
- DEP_RESERVOIR    | kg m-3      | R4       | xy   |      | soilnox_dep_reservoir_restart
- T_DAVG           | 1           | R4       | xy   |      | megan_t_davg_restart
- T_PREVDAY        | 1           | R4       | xy   |      | megan_t_prevday_restart
- LAI_PREVDAY      | 1           | R4       | xy   |      | megan_lai_prevday_restart
- PARDR_DAVG       | W/m2        | R4       | xy   |      | megan_pardr_davg_restart
- PARDF_DAVG       | W/m2        | R4       | xy   |      | megan_pardf_davg_restart
- # NOTE: For the HEMCO fields there are default values in the old Chem_Registry.rc
+ ARCHV_DRY_TOTN   | cm-2s-1     | R4       | xy   | N    | dry_deposited_nitrogen
+ ARCHV_WET_TOTN   | cm-2s-1     | R4       | xy   | N    | wet_deposited_nitrogen
+ PFACTOR          | 1           | R4       | xy   | N    | soilnox_pfactor_restart
+ DRYPERIOD        | 1           | R4       | xy   | N    | soilnox_dryperiod_restart
+ GWET_PREV        | 1           | R4       | xy   | N    | soilnox_gwet_prev_restart
+ DEP_RESERVOIR    | kg m-3      | R4       | xy   | N    | soilnox_dep_reservoir_restart
+ T_DAVG           | 1           | R4       | xy   | N    | megan_t_davg_restart
+ T_PREVDAY        | 1           | R4       | xy   | N    | megan_t_prevday_restart
+ LAI_PREVDAY      | 1           | R4       | xy   | N    | megan_lai_prevday_restart
+ PARDR_DAVG       | W/m2        | R4       | xy   | N    | megan_pardr_davg_restart
+ PARDF_DAVG       | W/m2        | R4       | xy   | N    | megan_pardf_davg_restart
+#TSTRAT_ADJ       | K           | R8       | xyz  | C    | stratospheric_T_adjustment
+# NOTE: For the HEMCO fields there are default values in the old Chem_Registry.rc
  

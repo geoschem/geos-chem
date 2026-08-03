@@ -137,15 +137,6 @@ if (MODEL_GCHP)
     ${CMAKE_Fortran_MODULE_DIRECTORY}
   )
 
-  # Run automatic code generator to create header files for GEOS-Chem states
-  mapl_acg (GEOSchem_GridComp GEOSchem_StateSpecs.acg
-    IMPORT_SPECS
-    EXPORT_SPECS
-    INTERNAL_SPECS
-    GET_POINTERS
-    DECLARE_POINTERS
-  )
-
   set (GEOSChem_Fortran_FLAGS_Intel
       -cpp -w -auto -noalign "SHELL:-convert big_endian" "SHELL:-fp-model source"
       -mcmodel=medium -shared-intel -traceback -DLINUX_IFORT
