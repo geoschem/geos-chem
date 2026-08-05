@@ -946,6 +946,7 @@ CONTAINS
     CALL SET_DRY_SURFACE_PRESSURE( State_Grid, State_Met, 2 )
 
     ! Initialize surface pressures to match the post-advection pressures
+    ! and use them to set floating pressure in pressure module
     State_Met%PSC2_WET = State_Met%PS2_WET
     State_Met%PSC2_DRY = State_Met%PS2_DRY
     CALL SET_FLOATING_PRESSURES( State_Grid, State_Met, RC )
