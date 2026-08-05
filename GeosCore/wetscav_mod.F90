@@ -3284,10 +3284,14 @@ END FUNCTION WASHFRAC_DUSTBIN
     REAL(fp)               :: COND_WATER_CONTENT
 
     ! Arrays
-    ! DSpc is the accumulator array of rained-out
-    ! soluble species for a given (I,J) column
-    REAL(fp)               :: DSpc(State_Chm%nWetDep, &
-                                   State_Grid%NZ,State_Grid%NX,State_Grid%NY)
+    ! DSpc is the accumulator array of rained-out soluble species,
+    ! indexed (wetdep species, level, I, J).  It is allocated once on
+    ! the first call and kept for the whole run (it was formerly a
+    ! full-grid automatic array, re-allocated on the stack or heap on
+    ! every wetdep timestep, which required "ulimit -s unlimited" and
+    ! cost allocation + page-fault overhead each timestep).  Values
+    ! are re-initialized per column inside the parallel loop below.
+    REAL(fp), ALLOCATABLE, SAVE :: DSpc(:,:,:,:)
 
     ! Strings
     CHARACTER(LEN=255)     :: ErrMsg, ErrorMsg, ThisLoc
@@ -3304,6 +3308,17 @@ END FUNCTION WASHFRAC_DUSTBIN
     errPrint  = .TRUE.
     ErrorMsg  = ''
     ThisLoc   = ' -> at WetDep (in module GeosCore/wetscav_mod.F90)'
+
+    ! Allocate the wetdep accumulator array on the first call only
+    IF ( .not. ALLOCATED( DSpc ) ) THEN
+       ALLOCATE( DSpc( State_Chm%nWetDep, State_Grid%NZ,                     &
+                       State_Grid%NX,     State_Grid%NY  ), STAT=RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrorMsg = 'Could not allocate the DSpc array!'
+          CALL GC_Error( ErrorMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
 
     ! Is this a mercury simulation?
     IS_Hg = ITS_A_MERCURY_SIM

@@ -20,6 +20,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added calls to KPP `Initialize` routine from `INIT_FULLCHEM` and `INIT_MERCURY` to specify an absolute tolerance threshold for passive species
 
 ### Changed
+- Hoisted the species-invariant conversion factor (`g0_100 * State_Met%DELP_DRY`) out of the per-species loops in `GeosUtil/unitconv_mod.F90` routines `ConvertSpc_KgKgDry_to_Kgm2` and `ConvertSpc_Kgm2_to_KgKgDry` (bit-for-bit identical, ~2x faster conversions)
+- Precompute relative humidity and RH-bin index once per grid cell in `GeosCore/aerosol_mod.F90` routine `RDAER` instead of once per aerosol type per wavelength; skip non-chemistry grid boxes before the optics LUT interpolation (bit-for-bit identical)
+- Changed the `DSpc` accumulator in `GeosCore/wetscav_mod.F90` routine `WetDep` from a full-grid automatic array (re-allocated every timestep) to an allocate-once `ALLOCATABLE, SAVE` array
+- Use precomputed `INV_TEMP` (multiply) instead of dividing by `TEMP` in `GCARR_ac` and `GCARR_abc` in `KPP/fullchem/rateLawUtilFuncs.F90`. NOTE: this changes results in the last ULP and is therefore not bit-for-bit vs. prior versions
 - Renamed `State_Chm%Isorrop*` fields to `State_Chm%Ate*` (aerosol thermodynamical equilibrium), as ISORROPIA is no longer used
 - Updated routine `fullchem_SetStateHet` to accept `id_DSTbin{1..7}`, `id_pFe`, `id_SO2`, and `id_SO4` as arguments
 - Renamed `CRITRH` to `RH_35_PERCENT` and `CRITRH2` to `RH_50_PERCENT` in `KPP/fullchem/fullchem_RateLawFuncs.F90`
