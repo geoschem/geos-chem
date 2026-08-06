@@ -22,9 +22,12 @@ NUM_CORES_PER_NODE=${RUNDIR_CORES_PER_NODE}
 #
 # IMPORTANT NOTES:
 #
-# (1) C90 is the recommended minimum resolution for most scientific applications, 
-# as the representation of transport processes begins to degrade below this threshold. 
-# Lower resolutions of c24, c30, and c48 are recommended primarily for testing and 
+# (1) Users are encouraged to think carefully about their run's needs and 
+# available resources when choosing a grid resolution. Higher-resolution 
+# simulations provide a more faithful representation of transport. While most 
+# users should find C90 sufficient for their research needs, current 
+# GCHP applications commonly span within C48 to C360. Lower resolutions 
+# of C24, C30, and C48 are recommended primarily for testing and 
 # debugging purposes. See
 # https://gchp.readthedocs.io/en/latest/supplement/horizontal-grids.html
 # for more information about available grids.
