@@ -33,6 +33,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Changed time cycle for GFAS data in the `gc_4x5_merra2_carbon_CH4_straddle_00z` from `EFY` to `C` to avoid runtime error
 - Changed `#MINVERSION` to 3.5.0 in `Hg.kpp`, `fullchem.kpp` and `carbon.kpp` files
 - Gave all dummy species `KPP_AbsTol = 1.0e25` in `run/shared/species_database.yml` so that they would be not included in the Rosenbrock error norm
+- Updated Harvard Cannon environment files for GCHP & GCClassic to refer to new library location
 
 ### Fixed
 - Fixed incorrect variable names and removed unused variables in `NcdfUtil/ncdf_mod.F90`
