@@ -379,6 +379,8 @@ CONTAINS
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
+    USE Input_Opt_Mod,      ONLY : OptInput
+
 !
 ! !INPUT PARAMETERS:
 !
