@@ -1,0 +1,45 @@
+cap:
+  name: cap
+  restart: cap_restart.yaml
+
+  clock:
+    dt: PT10M
+    start: 1891-03-01T00:00:00
+    stop: 2999-03-02T21:00:00
+    segment_duration: PT1H # PT1H, P1D, etc.
+
+  root_name: GCHP
+  extdata_name: EXTDATA
+  history_name: HIST
+
+  run_extdata: true
+  run_history: false
+
+  mapl:
+    children:
+      GCHP:
+        dso: libGCHP_GridComp
+        config_file: gchp.yaml
+        setServices: gchp_setservices_
+      EXTDATA:
+        dso: libMAPL.extdata.dylib  # do we need the .dylib?
+        config_file: extdata.yaml
+      HIST:
+        dso: libMAPL.history.dylib  # do we need the .dylib?
+        config_file: history.yaml
+
+  checkpointing:
+    enabled: false
+    final: false
+    path: checkpoints
+    alarms: {} # Is this used?
+
+esmf:
+  logKindFlag: ESMF_LOGKIND_MULTI
+  defaultCalKind: ESMF_CALKIND_GREGORIAN
+  logAppendFlag: false
+  loglevel: ESMF_LOGLEVEL_DEBUG
+
+mapl:
+  model_petcount: 6
+  pflogger_cfg_file: logging.yaml

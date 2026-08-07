@@ -1,0 +1,58 @@
+---
+# Can this come from gchp.yaml?
+#RUN_DT: 600                         # default: 0
+
+AdvCore_Advection: 0                # default: 0
+DEBUG_ADV: false                    # default:
+ADV_CORE_REPORT_TRACER_MASS: false  # default:
+ADV_QSPLIT: 0                       # default:
+EXCLUDE_ADVECTION_TRACERS_LIST: []  # default:
+
+fix_mass: false                     # default:
+check_mass: false                   # default:
+ADIABATIC: true                     # default: false
+
+#AGCM.STREATCH_FACTOR               # default: 1.0
+#FIXED_LATS                         # default:
+#ADJUST_SPLITS                      # default: false
+#FV_OFF                             # default: false
+#FV3_CONFIG                         # default:
+#DEBUG_STATE                        # default: false
+#RUN_GTFV3                          # default: 0
+#PSDRY                              # default: MAPL_PSDRY from mapl constants)
+#COLDSTART                          # default: false
+#CASE_ID                            # default: 11
+
+geometry:
+  esmf_geom:
+    class: CubedSphere
+    im_world: 24
+    nx_face: 1
+    ny_face: 1
+  vertical_grid:
+    class: model
+    standard_name: air_pressure
+    units: hPa
+    num_levels: 72
+    field_edge: PLE
+    field_center: PE
+
+mapl:
+  misc:
+    checkpoint:
+      export: true
+      internal: true
+
+  geometry:
+    esmf_geom:
+      class: CubedSphere
+      im_world: 24
+      nx_face: 1
+      ny_face: 1
+    vertical_grid:
+      class: model
+      standard_name: air_pressure
+      units: hPa
+      num_levels: 72
+      field_edge: PLE
+      field_center: PE
