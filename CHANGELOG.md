@@ -27,6 +27,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added `State_Met` argument to routines `Init_Photolysis`, `Set_Clim_Profiles`, `GC_Init_Extra`, `Init_Pressure`, `Init_Mercury`, `Init_Sulfate`
 
 ### Changed
+- Updated the Hg0 soil emissions parametrization to improve the response of emissions to light availability 
 - Update termite CH4 emissions to the CAMS-GLOB-TERM_v1.1 product
 - Updated routine `SAFETY` (in `GeosCore/wetscav_mod.F90`) to reset small or negative values to zero
 - Moved coordinate variables for GC-Classic History netCDF files from `GeosUtil/grid_registry_mod.F90` to the `State_Grid` object
