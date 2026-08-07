@@ -3932,6 +3932,19 @@ CONTAINS
     Input_Opt%LARCTICRIV = v_bool
 
     !------------------------------------------------------------------------
+    ! Use larger Hg0 soil emissions (~1900 Mg yr-1 globally vs. ~950 Mg yr-1 in the default case)
+    !------------------------------------------------------------------------
+    key    = "Hg_simulation_options%chemistry%use_larger_Hg0_soil_emissions"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%LHighSoil = v_bool
+
+    !------------------------------------------------------------------------
     ! Tie Hg2(aq) reduction to UV-B radiation?
     !------------------------------------------------------------------------
     key    = "Hg_simulation_options%chemistry%tie_HgIIaq_reduction_to_UVB"
@@ -3985,6 +3998,7 @@ CONTAINS
        Input_Opt%LGTMM      = .FALSE.
        Input_Opt%LDYNOCEAN  = .FALSE.
        Input_Opt%LARCTICRIV = .FALSE.
+       Input_Opt%LHighSoil  = .FALSE.
        Input_Opt%LKRedUV    = .FALSE.
     ENDIF
 
@@ -3997,6 +4011,7 @@ CONTAINS
        WRITE( 6, 110 ) 'Use dynamic ocean Hg model? : ', Input_Opt%LDYNOCEAN
        WRITE( 6, 110 ) 'Preindustrial simulation?   : ', Input_Opt%LPREINDHG
        WRITE( 6, 110 ) 'Use Arctic river Hg ?       : ', Input_Opt%LARCTICRIV
+       WRITE( 6, 110 ) 'Increase Hg0 soil emissions? : ', Input_Opt%LHighSoil
        WRITE( 6, 110 ) 'Tie HgII(aq) red. to UV-B?  : ', Input_Opt%LKRedUV
        WRITE( 6, 110 ) 'Use GTMM ?                  : ', Input_Opt%LGTMM
        WRITE( 6, 120 ) '=> GTMM restart file        : ',                      &
