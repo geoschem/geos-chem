@@ -51,7 +51,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Removed
 - Removed obsolete code in dust_mod.F90
-- Removed unused subroutine I_Am_UnOPENed in inquireMod.F90
+- Removed unused subroutine `I_Am_UnOPENed` in inquireMod.F90
+- Removed duplicate Dynamical Heating entry in gchp fullchem ExtData.rc file.
 
 ## [14.7.1] - 2026-04-08
 ### Added
