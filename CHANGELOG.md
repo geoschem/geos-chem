@@ -5,6 +5,9 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Additional updates]
+### Changed
+- Changed State_Met%T and State_Met%SPHU in GCHP to be post-advection values rather than mid-point for consistency with State_Met%PEDGE
+
 ### Fixed
 - Fixed initializing surface pressure in GCHP per timestep by changing from pre-advection to post-advection met pressure
 
