@@ -34,6 +34,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Changed `#MINVERSION` to 3.5.0 in `Hg.kpp`, `fullchem.kpp` and `carbon.kpp` files
 - Gave all dummy species `KPP_AbsTol = 1.0e25` in `run/shared/species_database.yml` so that they would be not included in the Rosenbrock error norm
 - Updated Harvard Cannon environment files for GCHP & GCClassic to refer to new library location
+- Change State_Met%T and State_Met%SPHU in GCHP to be post-advection values rather than mid-point for consistency with State_Met%PEDGE
 
 ### Fixed
 - Fixed incorrect variable names and removed unused variables in `NcdfUtil/ncdf_mod.F90`
