@@ -318,7 +318,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Get fine dust concentrations [MND -> ng/m3]
     ! Get the MW_g from DSTbin1, all dust bins have the same MW
-    ! NOTE: 0.546 of DSTbin is considered fine dust
+    ! NOTE: 0.546 of DSTbin4 is considered fine dust
     !-----------------------------------------------------------------------
     DUST_PM25       = ( Spc(id_DSTbin1)%Conc(I,J,L) +                        &
                         Spc(id_DSTbin2)%Conc(I,J,L) +                        &
