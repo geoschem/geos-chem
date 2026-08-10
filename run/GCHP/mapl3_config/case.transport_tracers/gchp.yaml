@@ -10,15 +10,15 @@ mapl:
     GCHPctmEnv:
       dso: libGCHPctmEnv_GridComp
       config_file: gchpctmenv.yaml
-      setservice: gchpctmenv_setservices_
+      setservices: gchpctmenv_setservices_
     AdvCore:
       dso: libFVdycoreCubed_GridComp
       config_file: advcore.yaml
-      setservice: advcore_setservices_
+      setservices: advcore_setservices_
     GEOSChem:
       dso: libGEOSChem_GridComp
       config_file: geoschem.yaml
-      setservice: geoschem_setservices_
+      setservices: geoschem_setservices_
 
   connections:
     - src_name: PLE0

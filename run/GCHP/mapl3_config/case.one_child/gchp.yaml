@@ -18,4 +18,4 @@ mapl:
     GCHPctmEnv:
       dso: libGCHPctmEnv_GridComp
       config_file: gchpctmenv.yaml
-      setservice: gchpctmenv_setservices_
+      setservices: gchpctmenv_setservices_

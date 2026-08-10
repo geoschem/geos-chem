@@ -10,11 +10,11 @@ mapl:
     GCHPctmEnv:
       dso: libGCHPctmEnv_GridComp
       config_file: gchpctmenv.yaml
-      setservice: gchpctmenv_setservices_
+      setservices: gchpctmenv_setservices_
     AdvCore:
       dso: libFVdycoreCubed_GridComp
       config_file: advcore.yaml
-      setservice: advcore_setservices_
+      setservices: advcore_setservices_
 
   connections:
     - src_name: PLE0

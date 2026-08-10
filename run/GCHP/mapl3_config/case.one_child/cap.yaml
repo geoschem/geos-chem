@@ -27,7 +27,7 @@ cap:
       GCHP:
         dso: libGCHP_GridComp
         config_file: gchp.yaml
-        setservice: gchp_setservices_
+        setservices: gchp_setservices_
       EXTDATA:
         dso: libMAPL.extdata.dylib
         config_file: extdata.yaml
