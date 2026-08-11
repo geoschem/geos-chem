@@ -4,17 +4,17 @@ cap:
 
   clock:
     dt: PT10M
-    start: 2004-01-20T00:00:00
+    start: 1891-01-20T00:00:00
     stop: 2999-03-02T21:00:00
     segment_duration: PT1H
 
   root_name: GCHP
 
   extdata_name: EXTDATA
-  run_extdata: false
+  run_extdata: true
 
   history_name: HIST
-  run_history: false
+  run_history: true
 
   checkpointing:
     enabled: false
@@ -26,13 +26,13 @@ cap:
     children:
       GCHP:
         dso: libGCHP_GridComp
-        setservices: gchp_setservices_
         config_file: gchp.yaml
+        setservices: gchp_setservices_
       EXTDATA:
-        dso: libMAPL.extdata.dylib
+        dso: libMAPL.extdata
         config_file: extdata.yaml
       HIST:
-        dso: libMAPL.history.dylib
+        dso: libMAPL.history
         config_file: history.yaml
 
 esmf:

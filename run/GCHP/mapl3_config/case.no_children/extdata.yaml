@@ -263,7 +263,7 @@ Exports:
     regrid: CONSERVE
     sample: offset_1hr30min_nointerp_noextrap
     variable: RH
-  UA;VA:
+  UV:
     collection: MERRA2.A3dyn.05x0625
     regrid: CONSERVE
     sample: offset_1hr30min_nointerp_noextrap
