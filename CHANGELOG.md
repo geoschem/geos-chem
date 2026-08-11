@@ -48,6 +48,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed incorrect treatment of `e90_s/n` and `nh_5/50` tracer in TransportTracer simulation
 - Fixed bug where `KPP_AbsTol` and `KPP_RelTol` tags were not being read from `species_database.yml`
 - Fixed error where `State_Chm%phCloud` was always being reset to 4.5
+- Fixed floating surface pressures in GCHP to be post-advection rather than pre-advection
 
 ### Removed
 - Removed obsolete code in dust_mod.F90
