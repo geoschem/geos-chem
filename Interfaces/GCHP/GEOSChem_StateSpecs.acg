@@ -51,8 +51,8 @@ category: IMPORT
  USTAR      | 1	         | R4       | xy   | N    | placeholder
  V10M       | 1	         | R4       | xy   | N    | placeholder
  Z0         | 1	         | R4       | xy   | N    | placeholder
- PS1        | 1	         | R4       | xy   | E    | pressure_at_surface_before_advection 
- PS2        | 1	         | R4       | xy   | E    | pressure_at_surface_after_advection
+ PS1        | 1	         | R4       | xy   |      | pressure_at_surface_before_advection
+ PS2        | 1	         | R4       | xy   |      | pressure_at_surface_after_advection
  OPTDEP     | 1	         | R4       | xyz  | C    | placeholder
  CLDF       | 1	         | R4       | xyz  | C    | placeholder
  QI         | 1	         | R4       | xyz  | C    | placeholder
