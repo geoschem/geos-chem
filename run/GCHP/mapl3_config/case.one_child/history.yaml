@@ -1,6 +1,27 @@
 active_collections:
-#  - GCHPctmEnvLevEdge
-#  - GCHPctmEnvLevCenter
+  - GCHPctmEnv_inst_10m
+
+time_specs:
+  inst_10m: &inst_10m
+    frequency: PT10M
+    mode: instantaneous
+
+collections:
+  GCHPctmEnv_inst_10m:
+    template: "OutputDir/%c.%y4%m2%d2_%h2%n2z.nc4"
+    time_spec: *inst_10m
+    var_list:
+      SPHU0:           {source: GCHPctmEnv.SPHU0}
+      SPHU1:           {source: GCHPctmEnv.SPHU1}
+#      PLE0:            {source: GCHP.GCHPctmEnv.PLE0}
+#      PLE1:            {source: GCHP.GCHPctmEnv.PLE1}
+#      DryPLE0:         {source: GCHP.GCHPctmEnv.DryPLE0}
+#      DryPLE1:         {source: GCHP.GCHPctmEnv.DryPLE1}
+#      MFX:             {source: GCHP.GCHPctmEnv.MFX}
+#      MFY:             {source: GCHP.GCHPctmEnv.MFY}
+#      CX:              {source: GCHP.GCHPctmEnv.CX}
+#      CY:              {source: GCHP.GCHPctmEnv.CY}
+#      UpwardsMassFlux: {source: GCHP.GCHPctmEnv.UpwardsMassFlux}
 
 geoms:
   PE24x144-CF:
@@ -19,23 +40,3 @@ geoms:
     lon_range: [0.0, 80.0]
     lat_range: [-30.0, 10.0]
 
-time_specs:
-#  three_hour: &one_hour
-#    frequency: PT1H
-#  monthly: &monthy_output
-#    frequency: P1M
-#    mode: average
-#  instantaneous: &instantaneous_output
-#    mode: instantaneous
-
-collections:
-#  GCHPctmEnvLevEdge:
-#    time_spec: *instantaneous_output
-#    template: %c.%y4%m2%d2_%h2%n2z.nc4
-#    var_list:
-#  
-#  GCHPctmEnvLevCenter: 
-#    time_spec: *monthly_output
-#    template: %c.%y4%m2%d2_%h2%n2z.nc4
-#    var_list:
-#      UpwardsMassFlux: {expr: UpwardsMassFlux}

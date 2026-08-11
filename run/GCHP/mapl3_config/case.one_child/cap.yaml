@@ -14,7 +14,7 @@ cap:
   run_extdata: true
 
   history_name: HIST
-  run_history: false
+  run_history: true
 
   checkpointing:
     enabled: false
