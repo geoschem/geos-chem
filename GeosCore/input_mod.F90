@@ -3932,9 +3932,9 @@ CONTAINS
     Input_Opt%LARCTICRIV = v_bool
 
     !------------------------------------------------------------------------
-    ! Use larger Hg0 soil emissions (~1900 Mg yr-1 globally vs. ~950 Mg yr-1 in the default case)
+    ! Use larger Hg0 soil emissions (~1800 Mg yr-1 globally vs. ~900 Mg yr-1 in the default case)
     !------------------------------------------------------------------------
-    key    = "Hg_simulation_options%chemistry%use_larger_Hg0_soil_emissions"
+    key    = "Hg_simulation_options%sources%use_larger_Hg0_soil_emissions"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN

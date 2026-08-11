@@ -419,9 +419,9 @@ CONTAINS
 !  don’t get averaged over the whole land area
 ! 
 !  Here, two options for the parametrization that fit within observational uncertainty are provided:
-!  - the default option results in similar Hg0 soil emissions as previous versions of GEOS-Chem (~950 Mg yr-1)
+!  - the default option results in similar Hg0 soil emissions as previous versions of GEOS-Chem (~900 Mg yr-1)
 !  - the high option (LHighSoil = true) results in Hg0 soil emissions that are at the upper end of the reported 
-!  range in the uncertainty (~1900 Mg yr-1). This option is provided for testing purposes.
+!  range in the uncertainty (~1800 Mg yr-1). This option is provided for testing purposes.
 !
 !  Comments on soil Hg concentration:
 !  ----------------------------------
@@ -525,13 +525,13 @@ CONTAINS
        ! https://doi.org/10.1021/acs.est.3c07851, 2024.
        ! Observed constraints were used including soil emissions in extratropical grasslands and the ratio of emissions from
        ! Amazon forested and deforested areas. 
-       ! This parameter set results in global emissions total of approximately 950 Mg yr-1 of Hg0,
+       ! This parameter set results in global emissions total of approximately 900 Mg yr-1 of Hg0,
        ! which is similar to previous versions of GEOS-Chem
        SOIL_EMIS_FAC = 71e+0_fp ! prefactor, a
        EXP_SOIL = 2.5e+0_fp ! exponent for soil conc, b
        EXP_RAD = 0.76e+0_fp ! exponent for radiation, c 
     ELSE ! An additional LHighSoil parametrization option is provided
-       ! These parameters are used in the MCHgMAP simulations, to yield a higher total of soil emissions (~1900 Mg yr-1).
+       ! These parameters are used in the MCHgMAP simulations, to yield a higher total of soil emissions (~1800 Mg yr-1).
        ! This parametrization can be of use when additional emissions of Hg are required to balance the global budget
        ! (i.e., due to other emissions inventories employed, the global total emissions are low to sustain observed Hg levels)
        ! Note that this higher soil emissions total is coherent with upper estimates in the literature, e.g.: 
