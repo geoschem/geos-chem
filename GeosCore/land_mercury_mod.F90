@@ -372,19 +372,23 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE SOILEMIS( EHg0_dist, EHg0_so, State_Grid, State_Met )
+  SUBROUTINE SOILEMIS( EHg0_dist, EHg0_so, State_Grid, State_Met, Input_Opt )
 !
 ! !USES:
 !
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
+    USE Input_Opt_Mod,      ONLY : OptInput
+
 !
 ! !INPUT PARAMETERS:
 !
     REAL(fp), DIMENSION(:,:), INTENT(IN)  :: EHg0_dist
     TYPE(GrdState),           INTENT(IN)  :: State_Grid  ! Grid State object
     TYPE(MetState),           INTENT(IN)  :: State_Met   ! Met State object
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -392,11 +396,32 @@ CONTAINS
 !
 ! !REMARKS:
 !  Soil emissions are a function of solar radiation at ground level
-!  (accounting for attenuation by leaf canopy) and surface temperature.
-!  The radiation dependence from Zhang et al. (2000) is multiplied by the
-!  temperature dependence from Poissant and Casimir (1998).
-!  Finally, this emission factor is multiplied by the soil mercury
-!  concentration and scaled to meet the global emission total.
+!  (accounting for attenuation by leaf canopy) and soil mercury concentrations.
+!
+!  The parametrization is based on Khan et al. (ESPI, 2019):
+!  Emiss_soil = a * C^b * R_g^c
+!  where Emiss_soil are soil emissions (ng m–2 h–1), C is the concentration of Hg in soils (µg g–1), R_g is the solar
+!  radiation flux at the ground (W m–2), and a, b, and c are coefficients.
+!  As in Selin et al. (GBC, 2008), the solar radiation at ground (Rg) is determined by considering
+!  attenuation of the solar radiation flux (R_S) by shading from the overhead canopy
+!  parametrized by the leaf area index (LAI):
+!  R_g = R_s * exp(-0.5*LAI/cos(SZA))
+!  The 0.5 term assumes extinction from a random angular distribution of leaves and SZA is the solar
+!  zenith angle.
+!
+!  The coefficients a, b, and c were fit by optimizing agreement with available observational constraints,
+!  see the Section S1 from Feinberg et al. (EST, 2024): Deforestation as an Anthropogenic Driver of Mercury Pollution
+! 
+!  The new parametrization shows an improved response of soil emissions to day-night cycles and deforestation
+!  that is more consistent with observations. 
+!  An additional fix is made to calculate the soil emissions on a sub-grid cell basis (similar to dry deposition),
+!  which matters for grid cells that cover multiple land types so that the shading effects of forest (through LAI)
+!  don’t get averaged over the whole land area
+! 
+!  Here, two options for the parametrization that fit within observational uncertainty are provided:
+!  - the default option results in similar Hg0 soil emissions as previous versions of GEOS-Chem (~900 Mg yr-1)
+!  - the high option (LHighSoil = true) results in Hg0 soil emissions that are at the upper end of the reported 
+!  range in the uncertainty (~1800 Mg yr-1). This option is provided for testing purposes.
 !
 !  Comments on soil Hg concentration:
 !  ----------------------------------
@@ -412,6 +437,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  30 Aug 2010 - N. Eckley, B. Corbitt - Initial version
+!  5 Aug 2026 - A. Feinberg - Revised version based on Feinberg et al. (EST, 2024)
 !  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -425,13 +451,30 @@ CONTAINS
     REAL(fp)            :: AREA_M2, DRYSOIL_HG
     REAL(fp)            :: SUNCOSVALUE
     REAL(fp)            :: FRAC_SNOWFREE_LAND
-    REAL(fp)            :: SOIL_EMIS_FAC
+    REAL(fp)            :: SOIL_EMIS_FAC, EXP_SOIL, EXP_RAD
+
+    ! For values from Input_Opt
+    ! - parameter determining whether high estimate parametrization for soil emissions is used
+    LOGICAL              :: LHighSoil
+
+    ! AF - !VARIABLES FOR CALCULATING SOIL EMISSIONS ON SUB-GRID SCALE
+    ! Pointers to fields in State_Met
+    INTEGER,  POINTER :: IREG(:,:) ! Number of land types
+    INTEGER,  POINTER :: ILAND(:,:,:) ! index of land type 
+    INTEGER,  POINTER :: IUSE(:,:,:) ! permil of area covered
+    REAL(fp), POINTER :: XLAI(:,:,:) ! LAI for each sub-grid land type
+    INTEGER  :: LDT ! Loop counter
 !
 ! !DEFINED PARAMETERS:
 !
     ! Preindustrial global mean soil Hg concentration, ng Hg /g dry soil
     REAL(fp), PARAMETER  :: DRYSOIL_PREIND_HG = 45e+0_fp
 
+    ! Copy values from Input_Opt
+    LHighSoil   = Input_Opt%LHighSoil
+
+
+    ! A. Feinberg comment - a different factor is now used with the new parametrization
     ! Scaling factor for emissions, g soil /m2 /h
     ! (This parameter is beta in Eq 3 of Selin et al., GBC 2008.
     ! The value in paper is actually DRYSOIL_PREIND_HG * SOIL_EMIS_FAC
@@ -446,7 +489,7 @@ CONTAINS
     ! resolutions are encouraged to test and update these as needed (J
     ! Fisher 4/2016)
     !IF      ( TRIM(State_Grid%GridRes) == '4.0x5.0') THEN
-       SOIL_EMIS_FAC = 1.6e-2_fp * 0.9688e+0_fp
+    !    SOIL_EMIS_FAC = 1.6e-2_fp * 0.9688e+0_fp
     !ELSE IF ( TRIM(State_Grid%GridRes) == '2.0x2.5' ) THEN
     !   SOIL_EMIS_FAC=1.6e-2_fp
     !ELSE IF ( TRIM(State_Grid%GridRes) == '0.5x0.625' ) THEN
@@ -471,6 +514,38 @@ CONTAINS
     !   SOIL_EMIS_FAC = 2.4e-2_fp*.5742e+0_fp ! for sunlight function
     !ENDIF
 
+    ! A. Feinberg 05/2022 - implementing new soil emission scheme based
+    ! on formulation in Khan et al. (2019), 10.1039/c9em00341j
+    ! emis = a * conc^b * rad^c
+    ! where a, b, and c are tuned parameters
+
+    IF ( .NOT. LHighSoil ) THEN ! This is the default option
+       ! Parameters were fit in the publication: 
+       ! Feinberg, A. et al.: Deforestation as an anthropogenic driver of mercury pollution, Environ. Sci. Technol., 58, 3246–3257,
+       ! https://doi.org/10.1021/acs.est.3c07851, 2024.
+       ! Observed constraints were used including soil emissions in extratropical grasslands and the ratio of emissions from
+       ! Amazon forested and deforested areas. 
+       ! This parameter set results in global emissions total of approximately 900 Mg yr-1 of Hg0,
+       ! which is similar to previous versions of GEOS-Chem
+       SOIL_EMIS_FAC = 71e+0_fp ! prefactor, a
+       EXP_SOIL = 2.5e+0_fp ! exponent for soil conc, b
+       EXP_RAD = 0.76e+0_fp ! exponent for radiation, c 
+    ELSE ! An additional LHighSoil parametrization option is provided
+       ! These parameters are used in the MCHgMAP simulations, to yield a higher total of soil emissions (~1800 Mg yr-1).
+       ! This parametrization can be of use when additional emissions of Hg are required to balance the global budget
+       ! (i.e., due to other emissions inventories employed, the global total emissions are low to sustain observed Hg levels)
+       ! Note that this higher soil emissions total is coherent with upper estimates in the literature, e.g.: 
+       ! Zhou et al., JGR, 2025 https://doi.org/10.1029/2025JD045023
+       SOIL_EMIS_FAC = 220e+0_fp ! prefactor, a
+       EXP_SOIL = 4.51e+0_fp ! exponent for soil conc, b
+       EXP_RAD = 1.67e+0_fp ! exponent for radiation, c 
+    END IF
+
+    ! Initialize pointers
+    IREG    => State_Met%IREG
+    ILAND   => State_Met%ILAND
+    IUSE    => State_Met%IUSE
+    XLAI    => State_Met%XLAI
     !=================================================================
     ! SOILEMIS begins here!
     !=================================================================
@@ -493,34 +568,52 @@ CONTAINS
 
        IF ( IS_SNOWFREE_LAND ) THEN
 
-          ! attenuate solar radiation based on function of leaf area index
-          ! Jacob and Wofsy 1990 equations 8 & 9
-          TAUZ = State_Met%MODISLAI(I,J) * 0.5e+0_fp
+          ! Initialize soil emissions as zero
+          SOIL_EMIS = 0e+0_fp
+
+          ! Calculate parameters that are not dependent on Leaf area index:
 
           ! For very low and below-horizon solar zenith angles, use
           ! same attenuation as for SZA=85 degrees
           SUNCOSVALUE = MAX( State_Met%SUNCOS(I,J), 0.09e+0_fp )
 
-          ! fraction of light reaching the surface is
-          ! attenuated based on LAI
-          LIGHTFRAC = EXP( -TAUZ / SUNCOSVALUE )
-
-          ! Dry soil Hg concentration, ng Hg /g soil
-          DRYSOIL_HG = DRYSOIL_PREIND_HG * EHg0_dist(I,J)
-
-          ! Soil emissions, ng /m2 /h
-          SOIL_EMIS = EXP( 0.0011 * State_Met%SWGDN(I,J) * LIGHTFRAC ) * &
-                      DRYSOIL_HG * SOIL_EMIS_FAC
+          ! Dry soil Hg concentration, ug Hg /g soil
+          DRYSOIL_HG = DRYSOIL_PREIND_HG * EHg0_dist(I,J) / 1.0e+3_fp
 
           ! Grid box surface area [m2]
           AREA_M2   = State_Grid%Area_M2(I,J)
 
-          ! convert soilnat from ng /m2 /h -> kg /gridbox /s
-          EHg0_so(I,J) = SOIL_EMIS * AREA_M2 * 1e-12_fp / &
+          ! Calculate shading effects due to vegetation and soil emissions in subgrid areas: 
+          DO LDT = 1, IREG(I,J) !Loop over the # of Olson land types in this grid box (I,J)
+            ! If the land type is not represented in grid
+            ! box  (I,J), then skip to the next land type
+            IF ( IUSE(I,J,LDT) == 0 ) CYCLE
+
+            ! attenuate solar radiation based on function of leaf area index
+            ! Jacob and Wofsy 1990 equations 8 & 9
+            TAUZ = XLAI(I,J,LDT) * 0.5e+0_fp
+
+            ! fraction of light reaching the surface is
+            ! attenuated based on LAI
+            LIGHTFRAC = EXP( -TAUZ / SUNCOSVALUE )
+            ! Soil emissions, ng /m2 /h
+
+            ! updated to new formulation by A. Feinberg, based on Khan et al. (2019)
+            ! (improved diurnal cycle and response to LAI)
+            SOIL_EMIS = SOIL_EMIS + & ! sum soil emissions from all land types
+                        1.0e-3_fp * FLOAT(IUSE(I,J,LDT)) * & ! multiply by land fraction
+                        SOIL_EMIS_FAC * &
+                        (DRYSOIL_HG  ** EXP_SOIL) * &
+                        ((State_Met%SWGDN(I,J) * LIGHTFRAC ) ** EXP_RAD)  
+
+          ENDDO
+
+         ! convert soil emissions from ng /m2 /h -> kg /gridbox /s
+         EHg0_so(I,J) = SOIL_EMIS * AREA_M2 * 1e-12_fp / &
                          ( 60e+0_fp * 60e+0_fp )
 
-          ! Multiply by fractional land area
-          EHg0_so(I,J) = EHg0_so(I,J) * FRAC_SNOWFREE_LAND
+         ! Multiply by fractional land area
+         EHg0_so(I,J) = EHg0_so(I,J) * FRAC_SNOWFREE_LAND
 
        ENDIF
 

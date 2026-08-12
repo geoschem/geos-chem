@@ -349,6 +349,7 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: LGTMM
      CHARACTER(LEN=255)          :: GTMM_RST_FILE
      LOGICAL                     :: LARCTICRIV
+     LOGICAL                     :: LHighSoil 
      LOGICAL                     :: LKRedUV
 
      !----------------------------------------

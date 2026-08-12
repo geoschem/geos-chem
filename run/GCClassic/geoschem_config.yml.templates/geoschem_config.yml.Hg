@@ -136,6 +136,7 @@ Hg_simulation_options:
     use_dynamic_ocean_Hg: false
     use_preindustrial_Hg: false
     use_arctic_river_Hg: true
+    use_larger_Hg0_soil_emissions: false 
 
   chemistry:
     tie_HgIIaq_reduction_to_UVB: true
