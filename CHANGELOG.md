@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added `.gitattributes`, `CITATION.cff`, `GOVERNANCE.md`, `SECURITY.md` for GitHub
 - Added `CLAUDE.md`, which gives guidance to Claude Code AI
 - Added `.release/changeVersionNumbers.sh` to change version numbers in relevant files in this repository
+- Added AI disclosure section to `.github/PULL_REQUEST_TEMPLATE.md`
 
 ## [14.8.0] - 2026-09-11
 ### Added
