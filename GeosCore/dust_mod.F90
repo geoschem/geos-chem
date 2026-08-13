@@ -30,7 +30,6 @@ MODULE DUST_MOD
   PUBLIC  :: RDUST_ONLINE
   PUBLIC  :: GET_DUST_ALK
   PUBLIC  :: INIT_DUST
-  PUBLIC  :: CLEANUP_DUST
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -55,10 +54,6 @@ MODULE DUST_MOD
   INTEGER               :: id_DALbin3, id_DALbin4, id_DALbin5
   INTEGER               :: id_DALbin6, id_DALbin7, id_DUST01
   INTEGER               :: id_NK01
-
-  ! Arrays
-  REAL(fp), ALLOCATABLE :: FRAC_S(:)
-  REAL(fp), ALLOCATABLE :: SRCE_FUNC(:,:,:)
 
 #ifdef TOMAS
   ! To replicate the obsolete Input_Opt%IDDEP field
@@ -2076,9 +2071,6 @@ CONTAINS
     id_DUST01 = Ind_('DUST01')
     id_NK01   = Ind_('NK01'  )
 
-    !----------------------------------
-    ! Set up FRAC_S (only for Ginoux)
-    !----------------------------------
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     !% NOTE: LDEAD has not been set by HCOI_GC_INIT yet. This code needs %
     !% to be moved or modified accordingly (mps, 4/9/15)                 %
@@ -2105,44 +2097,6 @@ CONTAINS
     ENDIF
 #endif
 
-#if defined( ESMF_ ) || defined( TOMAS )
-    ! EXPERIMENTAL: For archiving the dust source for GCHP
-    !
-    ! Changed to use the ESMF_ flag and not EXTERNAL_GRID/EXTERNAL_FORCING, as
-    ! WRF-GC which uses these flags does not require SRCE_FUNC (hplin, 1/22/19)
-    ALLOCATE( SRCE_FUNC(State_Grid%NX,State_Grid%NY,3), STAT=AS )
-    IF ( AS /= 0 ) CALL ALLOC_ERR( 'SRCE_FUNC' )
-    SRCE_FUNC = 0.e+0_fp
-#endif
-
   END SUBROUTINE INIT_DUST
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: cleanup_dust
-!
-! !DESCRIPTION: Subroutine CLEANUP\_DUST deallocates all module arrays.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE CLEANUP_DUST
-!
-! !REVISION HISTORY:
-!  30 Mar 2004 - R. Yantosca - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-    !=================================================================
-    ! CLEANUP_DUST begins here!
-    !=================================================================
-    IF ( ALLOCATED( FRAC_S    ) ) DEALLOCATE( FRAC_S    )
-    IF ( ALLOCATED( SRCE_FUNC ) ) DEALLOCATE( SRCE_FUNC )
-
-  END SUBROUTINE CLEANUP_DUST
 !EOC
 END MODULE DUST_MOD

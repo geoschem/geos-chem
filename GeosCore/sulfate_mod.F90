@@ -2588,15 +2588,32 @@ CONTAINS
     Spc                  => State_Chm%Species
     H2O2s                => State_Chm%H2O2AfterChem
     SO2s                 => State_Chm%SO2AfterChem
-    State_Chm%isCloud    =  0.0_fp
-!    State_Chm%pHcloud    =  0.0_fp
-    State_Chm%pHcloud    =  4.5_fp
-    State_Chm%QLxpHcloud =  0.0_fp
+
+    ! CHEM_SO2 used to unconditionally reset State_Chm%isCloud to 0 and
+    ! State_Chm%pHcloud to 4.5 on every call, clobbering the values that
+    ! KPP/SET_SO2 computes for online (full-chem) runs, so isCloud and
+    ! pHcloud never varied in output. See geoschem/geos-chem PR #3328
+    ! and PR #3367.
+    !
+    ! Only reset isCloud, pHcloud, and QLxpHcloud if sulfate_mod
+    ! owns cloud chemistry (Do_SulfateMod_Cld=.TRUE. i.e. offline run).
+    ! If Do_SulfateMod_Cld=.FALSE., KPP/SET_SO2 is responsible for
+    ! setting isCloud -- does not overwrite it here.
+    !
+    ! If using Luo et al 2023 wetdep scheme, assume cloud pH = 5.6.
+    ! If using the default wetdep scheme, assume cloud pH = 4.5.
+    IF ( State_Chm%Do_SulfateMod_Cld ) THEN
+       State_Chm%isCloud    =  0.0_fp
+       State_Chm%QLxpHcloud =  0.0_fp
 #ifdef LUO_WETDEP
-    State_Chm%pHrain     =  5.6_fp
-    State_Chm%QQpHrain   =  0.0_fp
-    State_Chm%QQrain     =  0.0_fp
+       State_Chm%pHrain     =  5.6_fp
+       State_Chm%pHCloud    =  5.6_fp
+       State_Chm%QQpHrain   =  0.0_fp
+       State_Chm%QQrain     =  0.0_fp
+#else
+       State_Chm%pHcloud    =  4.5_fp
 #endif
+    ENDIF
 
     ! Set a flag for when to call the SeaSalt_Chem routine
     DO_SEASALT_CHEM =                                                        &
