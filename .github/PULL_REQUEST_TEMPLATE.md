@@ -18,3 +18,7 @@ If this is a science update, please provide a literature citation.
 ### Related Github Issue
 
 Please link to the corresponding Github issue(s) here. If fixing a bug, there should be an issue describing it with steps to reproduce.
+
+### AI disclosure
+
+Please disclose if AI tools (e.g. Claude, ChatGPT) were used in the preparation of this pull request.
