@@ -2685,7 +2685,7 @@ CONTAINS
     !$OMP PRIVATE( WCL, WCI )                           &
     !$OMP PRIVATE( SALB )                               &
     !$OMP PRIVATE( YYAOD,BEXTL13,YVIS,RHL1 )            &
-    !$OMP PRIVATE( YYAOD1 )                             &
+    !$OMP PRIVATE( YYAOD1, YYAOD3 )                      &
     !$OMP PRIVATE( YYAODT )                             &
     !$OMP PRIVATE( PSURF,TSURF,SCOS )                   &
     !$OMP PRIVATE( AIRD,P1D,PE1D,PDP,T1D,TE1D)          &
@@ -2997,6 +2997,8 @@ CONTAINS
        TFDL = 0.
        TFLA = 0.
        THRL = 0.
+       WCL  = 0.0d0
+       WCI  = 0.0d0
 
        ! Total
        !CALL APM_RADF(J,I,State_Grid%NZ,LEV,NBS,NBL,                    &
