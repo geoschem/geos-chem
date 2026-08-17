@@ -35,6 +35,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Gave all dummy species `KPP_AbsTol = 1.0e25` in `run/shared/species_database.yml` so that they would be not included in the Rosenbrock error norm
 - Updated Harvard Cannon environment files for GCHP & GCClassic to refer to new library location
 - Change State_Met%T and State_Met%SPHU in GCHP to be post-advection values rather than mid-point for consistency with State_Met%PEDGE
+- Changed `NK5` to `NK05` and `NK8` to `NK08` in `fullchem_mod.F90` to fix missing leading zero bug for TOMAS
+- Renamed GCHP history diagnostics for upwards mass flux to remove the `_R4` suffix
+- Updated utility script `run/shared/rtd_species_by_simulation.py` to read the `species_database.yml` for Hg simulations
 
 ### Fixed
 - Fixed incorrect variable names and removed unused variables in `NcdfUtil/ncdf_mod.F90`
@@ -50,6 +53,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed bug where `KPP_AbsTol` and `KPP_RelTol` tags were not being read from `species_database.yml`
 - Fixed error where `State_Chm%phCloud` was always being reset to 4.5
 - Fixed floating surface pressures in GCHP to be post-advection rather than pre-advection
+- Restored missing line `CH4_BBN:` to `run/shared/species_database.yml`
+- Fixed a bug preventing GC-Classic HISTORY collection subsetting with `LON_RANGE` and `LAT_RANGE` from working properly
 
 ### Removed
 - Removed obsolete code in dust_mod.F90
@@ -104,6 +109,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed incorrect dust species names in `run/GCClassic/HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.fullchem.onlineE` 
 - Fixed incorrect extension number for `InvDustL23M` entries in `run/GCHP/HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.fullchem`
 - Fixed incorrect `InvAFCID` diagnostic entries `HEMCO_Diagn.rc.fullchem` and `HISTORY.rc.fullchem` template files
+- Fixed the species database entry of `DMS` to use `Is_Gas: true`, as DMS is a gas-phase species and not an aerosol
 
 ### Removed
 - Removed `ARCTAS_SHIP`, `CORBETT_SHIP`, `ICOADS_SHIP` from `HEMCO_Config.rc` template files
@@ -111,9 +117,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Removed `GeosUtil/grid_registry_mod.F90`.
 - Removed `OHconcAfterChem` from GCClassic and GCHP `HISTORY.rc.carbon` templates, as OH is fixed during the simulation
 - Removed `State_Grid` argument from `Set_Prof_FJX` routine
-
-### Fixed
-- Fixed the species database entry of `DMS` to use `Is_Gas: true`, as DMS is a gas-phase species and not an aerosol
 
 ### Changed
 - Changed frequency of SpeciesConcVV and SpeciesConcMND diagnostic update to every chemistry timestep (previously dynamic timestep) to avoid value oscillation for certain species when dynamic timestep is less than chemistry timestep
