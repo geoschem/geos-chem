@@ -6,8 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased] - TBD
 ### Changed 
-- Updated default GCHP resolution in createRunDir.sh from c24 for GCHP and c30 for GEOS-IT to c90 in all cases.
-
+- Updated default GCHP resolution in createRunDir.sh from c24 for MERRA2/GEOS-FP and c30 for GEOS-IT to c90 in all cases.
 
 ## [14.7.1] - 2026-04-08
 ### Added
