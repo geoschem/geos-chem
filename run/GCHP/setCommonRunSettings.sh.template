@@ -26,10 +26,8 @@ NUM_CORES_PER_NODE=${RUNDIR_CORES_PER_NODE}
 # available resources when choosing a grid resolution. Higher-resolution 
 # simulations provide a more faithful representation of transport. While most 
 # users should find C90 sufficient for their research needs, current 
-# GCHP applications commonly span within C48 to C360. Lower resolutions 
-# of C24, C30, and C48 are recommended primarily for testing and 
-# debugging purposes. See
-# https://gchp.readthedocs.io/en/latest/supplement/horizontal-grids.html
+# GCHP applications commonly span within C48 to C360.
+# See https://gchp.readthedocs.io/en/latest/supplement/horizontal-grids.html
 # for more information about available grids.
 #
 # (2) Higher resolution results in increased computation cost and longer run times.
