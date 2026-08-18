@@ -760,11 +760,8 @@ else
 fi
 
 # Set default grid resolution
-if [[ "${met}" == "geosit" && "${adv_flux_src}" == "1hr_mass_flux" ]]; then
-    RUNDIR_VARS+="RUNDIR_CS_RES='30'\n"
-else
-    RUNDIR_VARS+="RUNDIR_CS_RES='24'\n"
-fi
+RUNDIR_VARS+="RUNDIR_CS_RES='90'\n"
+
 
 # Assign appropriate file paths and settings in HEMCO_Config.rc
 if [[ "${sim_extra_option}" == "benchmark" ]]; then
