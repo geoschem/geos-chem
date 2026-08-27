@@ -6,14 +6,21 @@ cap:
     dt: PT10M
     start: 1891-03-01T00:00:00
     stop: 2999-03-02T21:00:00
-    segment_duration: PT1H # PT1H, P1D, etc.
+    segment_duration: PT1H
 
   root_name: GCHP
-  extdata_name: EXTDATA
-  history_name: HIST
 
+  extdata_name: EXTDATA
   run_extdata: true
-  run_history: false
+
+  history_name: HIST
+  run_history: true
+
+  checkpointing:
+    enabled: false
+    final: false
+    path: checkpoints
+    alarms: {}
 
   mapl:
     children:
@@ -22,17 +29,11 @@ cap:
         config_file: gchp.yaml
         setservices: gchp_setservices_
       EXTDATA:
-        dso: libMAPL.extdata.dylib  # do we need the .dylib?
+        dso: libMAPL.extdata
         config_file: extdata.yaml
       HIST:
-        dso: libMAPL.history.dylib  # do we need the .dylib?
+        dso: libMAPL.history
         config_file: history.yaml
-
-  checkpointing:
-    enabled: false
-    final: false
-    path: checkpoints
-    alarms: {} # Is this used?
 
 esmf:
   logKindFlag: ESMF_LOGKIND_MULTI
@@ -43,3 +44,12 @@ esmf:
 mapl:
   model_petcount: 6
   pflogger_cfg_file: logging.yaml
+#
+#  servers:
+#    pfio:
+#       nodes: 1
+#    mit:
+#       nodes: 0
+
+
+
