@@ -424,12 +424,12 @@ CONTAINS
        ! If "time:calendar" is found, then throw an error for
        ! climatological calendars without leap years.
        IF ( RC == 0 ) THEN
-        SELECT CASE( TRIM( v_name ) )
+        SELECT CASE( TRIM( timeCalendar ) )
           CASE( '360_day', '365_day', '366_day', 'all_leap',                 &
                 'allleap', 'no_leap', 'noleap'                              )
              WRITE( 6, '(/,a)' ) REPEAT( '=', 79 )
              WRITE( 6, '(a  )' ) 'HEMCO does not support calendar type '  // &
-                                 TRIM( v_name )
+                                 TRIM( timeCalendar )
              WRITE( 6, '(/,a)' )  'HEMCO supports the following calendars:'
              WRITE( 6, '(a)'   )  ' - standard (i.e. mixed gregorian/julian)'
              WRITE( 6, '(a)'   )  ' - gregorian'
@@ -2167,9 +2167,9 @@ CONTAINS
           ncVar = 'lat_edges'
        ENDIF
        IF ( PRESENT(EDGE4) ) THEN
-          CALL NC_READ_VAR( fID, 'lon_edges', nEdge, ThisUnit, Edge4, RC )
+          CALL NC_READ_VAR( fID, TRIM(ncVar), nEdge, ThisUnit, Edge4, RC )
        ELSE
-          CALL NC_READ_VAR( fID, 'lon_edges', nEdge, ThisUnit, Edge8, RC )
+          CALL NC_READ_VAR( fID, TRIM(ncVar), nEdge, ThisUnit, Edge8, RC )
        ENDIF
        IF ( RC /= 0 ) RETURN
     ENDIF
@@ -2433,7 +2433,6 @@ CONTAINS
     INTEGER            :: a_type    ! netCDF attribute type
 
     ! Straings
-    CHARACTER(LEN=255) :: stdname
     CHARACTER(LEN=255) :: a_name    ! netCDF attribute name
     CHARACTER(LEN=255) :: a_val     ! netCDF attribute value
 
@@ -2512,7 +2511,7 @@ CONTAINS
 
        ! NOTE: for now, only hybrid sigma coordinates are supported!
        ! So exit with error if we get this far
-       WRITE(*,*) 'Invalid level standard name: ', TRIM(stdname),            &
+       WRITE(*,*) 'Invalid level standard name: ', TRIM(a_val),              &
             ' in ', TRIM(ncFile)
        RC = -999
        RETURN

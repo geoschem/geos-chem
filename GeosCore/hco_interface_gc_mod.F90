@@ -577,7 +577,7 @@ CONTAINS
     ! compared to a stand-alone version: in ESMF, the source file name
     ! is set to the container name since this is the identifying name
     ! used by ExtData.
-#ifdef ESMF_
+#ifdef USE_ESMF
     HcoState%Options%isESMF = .TRUE.
 #else
     HcoState%Options%isESMF = .FALSE.
@@ -968,7 +968,7 @@ CONTAINS
        ENDIF
     ENDIF
 
-#if !defined( ESMF_ ) && !defined( MODEL_WRF )
+#if !defined( USE_ESMF ) && !defined( MODEL_WRF )
     ! Check if HEMCO has already been called for this timestep
     IF ( ( Phase == 1 ) .and. ( GET_TAU() == PrevTAU ) .and. Input_Opt%amIRoot ) THEN
        Print*, 'HEMCO already called for this timestep. Returning.'
@@ -1700,7 +1700,7 @@ CONTAINS
     USE State_Met_Mod,  ONLY : MetState
     USE State_Chm_Mod,  ONLY : ChmState
     USE Drydep_Mod,     ONLY : DryCoeff
-#ifdef ESMF_
+#ifdef USE_ESMF
     USE HCOI_Esmf_Mod,  ONLY : HCO_SetExtState_ESMF
 #endif
 !
@@ -2814,7 +2814,7 @@ CONTAINS
        ExtState%PBL_MAX => HCO_PBL_MAX
     ENDIF
 
-#ifdef ESMF_
+#ifdef USE_ESMF
     !=======================================================================
     ! ESMF environment: add some additional variables to ExtState.
     ! These values must be defined here and not in the initialization
@@ -2874,7 +2874,7 @@ CONTAINS
     USE State_Chm_Mod,        ONLY : ChmState
     USE State_Grid_Mod,       ONLY : GrdState
     USE State_Met_Mod,        ONLY : MetState
-#ifdef ESMF_
+#ifdef USE_ESMF
     USE HCOI_ESMF_MOD,        ONLY : HCO_SetExtState_ESMF
 #endif
 #if defined( MODEL_CLASSIC )
@@ -3280,7 +3280,7 @@ CONTAINS
     USE Time_Mod,        ONLY : Get_Year, Get_Month, Get_Day, GET_DAY_OF_YEAR
     USE Time_Mod,        ONLY : GET_HOUR, GET_MINUTE, GET_SECOND
 #if defined( ADJOINT )
-    USE MAPL_CommsMod,   ONLY : MAPL_AM_I_ROOT
+    USE MAPL,            ONLY : MAPL_am_I_Root
 #endif
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -4140,7 +4140,7 @@ CONTAINS
 
     ENDIF
 
-#ifdef ESMF_
+#ifdef USE_ESMF
     !-----------------------------------------------------------------------
     ! Also check that HEMCO_RESTART is not set in ESMF
     !-----------------------------------------------------------------------

@@ -1,5 +1,10 @@
-#if defined( MODEL_GEOS ) || defined( MODEL_GCHP )
+! Might actually not need this (ewl)
+#ifdef MAPL_ESMF
+#ifdef MAPL3
+#include "MAPL.h"
+#else
 #include "MAPL_Generic.h"
+#endif
 #endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -69,9 +74,14 @@ CONTAINS
     USE Timers_Mod,       ONLY : Timer_End, Timer_Start
     USE UnitConv_Mod
 
-#if defined( MODEL_GEOS ) || defined( MODEL_GCHP )
+#ifdef MAPL_ESMF
     USE ESMF
+#ifdef MAPL3
+    USE MAPL, ONLY : MAPL_Verify, MAPL_CommsAllReduceSum
+#else
     USE MAPL
+    USE MAPL_CommsMod, ONLY : MAPL_CommsAllReduceSum
+#endif
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -119,7 +129,7 @@ CONTAINS
     ! Objects
     TYPE(Species), POINTER :: SpcInfo
 
-#if defined( MODEL_GEOS ) || defined( MODEL_GCHP )
+#ifdef MAPL_ESMF
     INTEGER       :: status
     TYPE(ESMF_VM) :: vm
 #endif
@@ -139,7 +149,7 @@ CONTAINS
     Total_Spc   = 0.0_fp
     Flux        = 0.0_fp
 
-#if defined( MODEL_GEOS ) || defined( MODEL_GCHP )
+#ifdef MAPL_ESMF
     call ESMF_VmGetCurrent(vm, rc=status)
     _VERIFY(status)
 #endif
@@ -375,7 +385,7 @@ CONTAINS
           ENDDO
           ENDDO
 
-#if defined( MODEL_GCHP ) || defined( MODEL_GEOS )
+#ifdef MAPL_ESMF
           ! Sum across all nodes
           call MAPL_CommsAllReduceSum(vm, sendbuf=Local_Tally, recvbuf=Total_Area, cnt=1, RC=status)
 #else
@@ -399,7 +409,7 @@ CONTAINS
           ENDDO
           ENDDO
 
-#if defined( MODEL_GCHP ) || defined( MODEL_GEOS )
+#ifdef MAPL_ESMF
           ! Sum across all nodes
           call MAPL_CommsAllReduceSum(vm, sendbuf=Local_Tally, recvbuf=Total_Spc, cnt=1, __RC__)
 #else

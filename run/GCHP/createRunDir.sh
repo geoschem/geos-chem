@@ -102,9 +102,11 @@ RUNDIR_VARS+="RUNDIR_DATA_ROOT=$GC_DATA_ROOT\n"
 #-----------------------------------------------------------------
 printf "${thinline}Choose simulation type:${thinline}"
 printf "   1. Full chemistry\n"
-printf "   2. TransportTracers\n"
+printf "   2. Transport tracers\n"
 printf "   3. Carbon\n"
 printf "   4. Tagged O3\n"
+printf "   5. ctmEnv (skips GEOS-Chem and advection)\n"
+printf "   6. GCHP using MAPL3\n"
 
 valid_sim=0
 while [ "${valid_sim}" -eq 0 ]; do
@@ -118,20 +120,55 @@ while [ "${valid_sim}" -eq 0 ]; do
 	sim_name=carbon
     elif [[ ${sim_num} = "4" ]]; then
 	sim_name=tagO3
+    elif [[ ${sim_num} = "5" ]]; then
+	sim_name=ctmEnv
+    elif [[ ${sim_num} = "6" ]]; then
+	sim_name=mapl3
     else
         valid_sim=0
 	printf "Invalid simulation option. Try again.\n"
     fi
 done
 
-RUNDIR_VARS+="RUNDIR_SIM_NAME=$sim_name\n"
+if [[ "x${sim_name}" == "xmapl3" ]]; then
+    RUNDIR_VARS+="RUNDIR_SIM_NAME=TransportTracers\n"
+else
+    RUNDIR_VARS+="RUNDIR_SIM_NAME=$sim_name\n"
+fi
 
 #-----------------------------------------------------------------
-# Ask user to specify full-chemistry simulation options
+# If using MAPL3, ask user what scenario they want to run
+#-----------------------------------------------------------------
+if [[ "x${sim_name}" == xmapl3 ]]; then
+    printf "${thinline}Choose test scenario:${thinline}"
+    printf "   1. GCHP with no children\n"
+    printf "   2. GCHP with one child (GCHPctmEnv)\n"
+    printf "   3. GCHP with two children (GCHPctmEnv and AdvCore)\n"
+    printf "   4. GCHP transport tracer simulation\n"
+
+    valid_response=0
+    while [ "${valid_response}" -eq 0 ]; do
+	read -p "${USER_PROMPT}" user_response
+	valid_response=1
+	if [[ ${user_response} = "1" ]]; then
+	    mapl3_scenario=no_children
+	elif [[ ${user_response} = "2" ]]; then
+	    mapl3_scenario=one_child
+	elif [[ ${user_response} = "3" ]]; then
+	    mapl3_scenario=two_children
+	elif [[ ${user_response} = "4" ]]; then
+	    mapl3_scenario=transport_tracers
+	else
+            valid_response=0
+	    printf "Invalid test scenario. Try again.\n"
+	fi
+    done
+fi
+
+#-----------------------------------------------------------------
+# Ask user to specify simulation-specific options
 #-----------------------------------------------------------------
 sim_extra_option=none
-
-# Ask user to specify full chemistry simulation options
 if [[ ${sim_name} = "fullchem" ]]; then
 
     printf "${thinline}Choose additional simulation option:${thinline}"
@@ -198,10 +235,6 @@ if [[ ${sim_name} = "fullchem" ]]; then
 	    printf "Invalid simulation option. Try again.\n"
 	fi
     done
-
-# Currently no transport tracer extra options
-elif [[ ${sim_name} = "TransportTracers" ]]; then
-    sim_extra_option=none
 
 # Ask user to specify carbon simulation options
 elif [[ "x${sim_name}" == "xcarbon" ]]; then
@@ -509,7 +542,7 @@ while [ "${valid_met}" -eq 0 ]; do
 	            elif [[ ${adv_flux_src} = "3hr_wind" ]]; then
 			RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.raw_3hr_c180_wind.txt)\n"
 		    fi
-		    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.raw_c180.txt)\n"
+		    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.nonadv_raw_c180.txt)\n"
 		fi
 
 	    else
@@ -522,7 +555,7 @@ while [ "${valid_met}" -eq 0 ]; do
 	            elif [[ ${adv_flux_src} = "3hr_wind" ]]; then
 			RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/advection_met/geosit.raw_3hr_c180_wind.txt)\n"
 		    fi
-		    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.raw_c180.txt)\n"
+		    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.nonadv_raw_c180.txt)\n"
 		fi
 
 	    fi
@@ -596,6 +629,9 @@ if [ -z "$1" ]; then
 	if [[ "x${adv_flux_src}" != "x" ]]; then
 	    rundir_name=${rundir_name}_using_${adv_flux_src}
 	fi
+	if [[ "x${sim_name}" == xmapl3 ]]; then
+	    rundir_name=${rundir_name}_${mapl3_scenario}
+	fi
 	printf "  -- Using default directory name ${rundir_name}\n"
     fi
 else
@@ -634,7 +670,7 @@ mkdir -p ${rundir}/Restarts
 cp ${gcdir}/run/shared/cleanRunDir.sh ${rundir}
 cp ./archiveRun.sh                    ${rundir}
 cp ./logging.yml                      ${rundir}
-cp ./README.md                        ${rundir}
+cp ./README                           ${rundir}
 cp ./setEnvironmentLink.sh            ${rundir}
 cp ./setRestartLink.sh                ${rundir}
 cp ./checkRunSettings.sh              ${rundir}
@@ -642,12 +678,18 @@ cp ./gitignore                        ${rundir}/.gitignore
 
 # Only copy extdata.yaml used in ExtData2G if using Transport Tracers
 # (extdata.yaml not yet available for other simulations)
-if [[ "x${sim_name}" == "xTransportTracers" ]]; then
+if [[ "x${sim_name}" == "xTransportTracers" || "x${sim_name}" == "xtagO3" ]]; then
     cp ./ExtData2G.yaml.templates/extdata.yaml.${sim_name} ${rundir}/extdata.yaml
+fi
+if [[ "x${sim_name}" == "xmapl3" ]]; then
+    cp ./ExtData2G.yaml.templates/extdata.yaml.TransportTracers ${rundir}/extdata.yaml
 fi
 
 # Copy file to auto-update common settings
 cp ./setCommonRunSettings.sh.template  ${rundir}/setCommonRunSettings.sh
+
+# Copy file to extract performance metrics, currently only timing info from allPEs.log
+cp ./extractPerformance.sh  ${rundir}/extractPerformance.sh
 
 # Copy metrics.py file to computing global OH
 if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xcarbon" ]]; then
@@ -668,6 +710,7 @@ chmod 744 ${rundir}/setEnvironmentLink.sh
 chmod 744 ${rundir}/setRestartLink.sh
 chmod 744 ${rundir}/setCommonRunSettings.sh
 chmod 744 ${rundir}/checkRunSettings.sh
+chmod 744 ${rundir}/extractPerformance.sh
 
 # Copy species database; append APM or TOMAS species if needed
 # Also copy APM input files to the run directory
@@ -711,6 +754,8 @@ elif [[ ${sim_name} = "carbon" ]]; then
     start_date='20190101'
     restart_dir='GC_14.7.0'
     restart_name="${sim_name}"
+elif [[ ${sim_name} = "ctmEnv" || "x${sim_name}" == xmapl3 ]]; then
+    start_date='20210101'
 fi
 for N in 24 30 48 90 180
 do
@@ -821,14 +866,8 @@ fi
 # Replace settings in config files with RUNDIR variables
 #--------------------------------------------------------------------
 
-# Define a subdirectory for rundir configuration files
-rundir_config_dirname=CreateRunDirLogs
-rundir_config=${rundir}/${rundir_config_dirname}
-mkdir -p ${rundir_config}
-
-# Save RUNDIR variables to a file in the rundirConfig folder
-rundir_config_logname=rundir_vars.txt
-rundir_config_log=${rundir}/${rundir_config_dirname}/${rundir_config_logname}
+# Save initial template RUNDIR variables to a file
+rundir_config_log=${rundir}/rundir_vars.txt
 echo -e "$RUNDIR_VARS" > ${rundir_config_log}
 
 # Initialize run directory
@@ -848,20 +887,90 @@ if [[ "x${sim_name}" == "xcarbon" ]]; then
     fi
 fi
 
-# Call setCommonRunSettings.sh so that all config files are consistent with its
-# default settings. Suppress informational prints.
-chmod +x setCommonRunSettings.sh
-./setCommonRunSettings.sh --silent
+#-----------------------------------------------------------------
+# If doing a ctmEnv simulation then simplify the run directory
+#-----------------------------------------------------------------
+if [[ "${sim_name}" == "ctmEnv" ]]; then
+    cp ${srcrundir}/setCommonRunSettings.sh.ctmEnv  ${rundir}/setCommonRunSettings.sh
+    rm ${rundir}/geoschem_config.yml
+    rm ${rundir}/HEMCO_Config.rc
+    rm ${rundir}/HEMCO_Diagn.rc
+    rm ${rundir}/species_database.yml
+    rm ${rundir}/checkRunSettings.sh
+    rm ${rundir}/ChemDir
+    rm ${rundir}/HcoDir
+    rm ${rundir}/setRestartLink.sh
+    rm ${rundir_config_log}
+    rm -rf ${rundir}/Restarts
+fi
+
+#-----------------------------------------------------------------
+# If doing a MAPL3 simulation then customize the run directory
+#-----------------------------------------------------------------
+if [[ "x${sim_name}" == xmapl3 ]]; then
+
+    # Copy in all the config files specific to MAPL3
+    cp ${srcrundir}/mapl3_config/case.${mapl3_scenario}/* ${rundir}
+
+    # Assume using discover for testing, so get scripts and env
+    printf "${thinline}Would you like to setup run scripts for the NASA discover cluster? (y/n)${thinline}"
+    valid_response=0
+    while [ "$valid_response" -eq 0 ]; do
+	read -p "${USER_PROMPT}" use_discover_scripts
+	if [[ ${use_discover_scripts} = "y" ]]; then
+	    cp ${srcrundir}/runScriptSamples/operational_examples/nasa_discover/mapl3/* ${rundir}
+	    valid_response=1
+	elif [[ ${use_discover_scripts} = "n" ]]; then
+	    valid_response=1
+	else
+	    printf "Invalid option. Try again.\n"
+	fi
+    done
+
+    # Move run directory files/symlinks not used to local archive for reference
+    refdir=${rundir}/unused_config_for_reference
+    mkdir ${refdir}
+    mv ${rundir}/CAP.rc                  ${refdir}
+    mv ${rundir}/cap_restart             ${refdir}
+    mv ${rundir}/ESMF.rc                 ${refdir}
+    mv ${rundir}/ExtData.rc              ${refdir}
+    mv ${rundir}/GCHP.rc                 ${refdir}
+    mv ${rundir}/HISTORY.rc              ${refdir}
+    mv ${rundir}/logging.yml             ${refdir}
+    mv ${rundir}/setCommonRunSettings.sh ${refdir}
+    mv ${rundir}/checkRunSettings.sh     ${refdir}
+    mv ${rundir}/extractPerformance.sh   ${refdir}
+    mv ${rundir_config_log}              ${refdir}
+    if [[ "${mapl3_scenario}" == "no_children" || "${mapl3_scenario}" == "one_children" ]]; then
+	mv ${rundir}/input.nml           ${refdir}
+    fi
+    if [[ "${mapl3_scenario}" != "transport_tracers" ]]; then
+	mv ${rundir}/geoschem_config.yml  ${refdir}
+	mv ${rundir}/HEMCO_Config.rc  	  ${refdir}
+	mv ${rundir}/HEMCO_Diagn.rc	  ${refdir}
+	mv ${rundir}/species_database.yml ${refdir}
+	mv ${rundir}/Restarts		  ${refdir}
+	mv ${rundir}/ChemDir		  ${refdir}
+	mv ${rundir}/HcoDir               ${refdir}
+	mv ${rundir}/setRestartLink.sh    ${refdir}
+    fi
+fi
 
 #--------------------------------------------------------------------
-# Navigate back to source code directory
+# Update files and navigate back to source code directory
 #--------------------------------------------------------------------
+# Call setCommonRunSettings.sh so that all config files are consistent with its
+# default settings. Suppress informational prints.
+if [[ "x${sim_name}" != xmapl3  ]]; then
+    chmod +x setCommonRunSettings.sh
+    ./setCommonRunSettings.sh --silent
+fi
 cd ${srcrundir}
 
 #----------------------------------------------------------------------
 # Archive repository version in run directory file rundir.version
 #----------------------------------------------------------------------
-version_log=${rundir}/${rundir_config_dirname}/rundir.version
+version_log=${rundir}/createRunDir.log
 echo "This run directory was created with ${srcrundir}/createRunDir.sh." > ${version_log}
 echo " " >> ${version_log}
 echo "GEOS-Chem repository version information:" >> ${version_log}
@@ -892,12 +1001,14 @@ while [ "$valid_response" -eq 0 ]; do
 	printf "\n\nChanges to the following run directory files are tracked by git:\n\n" >> ${version_log}
 	printf "\n"
 	git init
-	git add *.rc *.sh *.yml input.nml
-	if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xcarbon" ]]; then
-	    git add *.py
-	fi
+        # Add files to put under version control. Then specify existing links, dirs,
+	# and files to exclude in first commit. Exclude .gitignore to skip message to user.
+	git add .gitignore
+	git commit -m "Initial run directory .gitignore" >> ${version_log}
+	git add .
+	git commit -m "Add all files for version control" >> ${version_log}
 	printf " " >> ${version_log}
-	git commit -m "Initial run directory" >> ${version_log}
+
 	cd ${srcrundir}
 	valid_response=1
     elif [[ ${enable_git} = "n" ]]; then
@@ -908,20 +1019,25 @@ while [ "$valid_response" -eq 0 ]; do
 done
 
 printf "\n${thinline}Created ${rundir}\n"
-printf "\n  -- See ${rundir_config_dirname}/${rundir_config_logname} for summary of default run directory settings"
-printf "\n  -- This run directory is set up for simulation start date $start_date"
-printf "\n  -- Restart files for this date at different grid resolutions are in the"
-printf "\n     Restarts subdirectory"
-printf "\n  -- To update start time, edit configuration file cap_restart and"
-printf "\n     add or symlink file Restarts/GEOSChem.Restart.YYYYMMDD_HHmmz.cN.nc"
-printf "\n     where YYYYMMDD_HHmm is start date and time"
-printf "\n  -- Edit other commonly changed run settings in setCommonRunSettings.sh"
-printf "\n  -- See build/README for compilation instructions"
-printf "\n  -- Example run scripts are in the runScriptSamples subdirectory"
-printf "\n  -- For more information visit the GCHP user guide at"
-printf "\n     https://readthedocs.org/projects/gchp/\n\n"
-
-if [[ "x${sim_name}" == "xTransportTracers" ]]; then
+printf "\n  -- This run directory is set up for simulation start date ${start_date}"
+if [[ "${sim_name}" != "ctmEnv" && "x${sim_name}" != xmapl3  ]]; then
+#    printf "\n  -- See ${rundir_config_dirname}/${rundir_config_logname} for summary of default run directory settings"
+    printf "\n  -- Restart files for this date at different grid resolutions are in the"
+    printf "\n     Restarts subdirectory"
+    printf "\n  -- To update start time, edit configuration file cap_restart and"
+    printf "\n     add or symlink file Restarts/GEOSChem.Restart.YYYYMMDD_HHmmz.cN.nc"
+    printf "\n     where YYYYMMDD_HHmm is start date and time"
+fi
+if [[ "x${sim_name}" != xmapl3 ]]; then
+    printf "\n  -- Edit commonly changed run settings in setCommonRunSettings.sh"
+    printf "\n  -- See build/README for compilation instructions"
+    printf "\n  -- Example run scripts are in the runScriptSamples subdirectory"
+    printf "\n  -- For more information visit the GCHP user guide at"
+    printf "\n     https://readthedocs.org/projects/gchp/\n\n"
+else
+    printf "\n\n*** WARNING: You are using a dev version of GCHP that uses MAPL3. Good luck!\n"
+fi
+if [[ "x${sim_name}" == "xTransportTracers" || "x${sim_name}" == "xtagO3" ]]; then
     printf "\n\n*** NOTE: ExtData2G is now available as beta! ***\n"
     printf " - New configuration file extdata.yaml is located in your run directory\n"
     printf " - It is configured for use with MERRA2 meteorology at grid resolutions <= C180\n"
@@ -955,12 +1071,14 @@ fi
 #---------------------------------------------------------------------------
 # Add reminders to compile with CMake options for simulations that need them
 #---------------------------------------------------------------------------
-hdr="\n>>>> REMINDER: You must compile with options:"
-ftr="<<<<\n"
+hdr="\n\n>>>> REMINDER: You must compile with options:"
+ftr="<<<<\n\n"
 
 EXTRA_CMAKE_OPTIONS=""
 [[ "x${sim_name}" == "xcarbon" ]] && EXTRA_CMAKE_OPTIONS="-DMECH=carbon "
 [[ "x${sim_name}" == "xHg"     ]] && EXTRA_CMAKE_OPTIONS="-DMECH=Hg -DFASTJX=y "
+[[ "x${sim_name}" == "xctmEnv" ]] && EXTRA_CMAKE_OPTIONS="-DMODEL_CTMENV=y "
+[[ "x${sim_name}" == "xmapl3" ]] && EXTRA_CMAKE_OPTIONS="-DMAPL3=y "
 if [[ "x${sim_name}" == "xfullchem" ]]; then
     [[ "x${sim_extra_option}" == "xAPM"     ]] && EXTRA_CMAKE_OPTIONS="-DAPM=y "
     [[ "x${sim_extra_option}" == "xRRTMG"   ]] && EXTRA_CMAKE_OPTIONS="-DRRTMG=y "
@@ -973,7 +1091,11 @@ fi
 RUNDIR_VARS+="EXTRA_CMAKE_OPTIONS=${EXTRA_CMAKE_OPTIONS}"
 
 # Print a reminder to compile with extra CMake options, if necessary
-[[ "x${EXTRA_CMAKE_OPTIONS}" != "x" ]] && printf "${hdr} ${EXTRA_CMAKE_OPTIONS} ${ftr}"
+build_msg="${hdr} ${EXTRA_CMAKE_OPTIONS} ${ftr}"
+if [[ "x${EXTRA_CMAKE_OPTIONS}" != "x" ]]; then
+    printf "${build_msg}"
+    echo -e ${build_msg} >> ${rundir}/README
+fi
 
 #---------------------------------------------------------------------------
 # Create build directory README file
@@ -988,39 +1110,10 @@ printf "${msg}" > ${rundir}/build/README
 unset msg
 
 #-----------------------------------------------------------------
-# Add the version info to the top of the rundir configuration log
-#-----------------------------------------------------------------
-
-# Add a caveat that these rundir settings only go with this commit
-printf "\n\n IMPORTANT: ONLY USE THESE RUNDIR SETTINGS WITH THIS COMMIT!\n" >> ${version_log}
-
-# Add a "# " characters to the front of each line so we can use
-# it as a comment heading for ${rundir_config_logname}
-sed 's/^/# /' ${version_log} > tmp.txt
-mv tmp.txt ${version_log}
-
-# Add the version log to the top of the rundir config log
-cat ${version_log} ${rundir_config_log} > tmp.txt
-mv tmp.txt ${rundir_config_log}
-
-# Remove the version log
-rm -rf ${version_log}
-
-# Save the updated rundir_vars file to the git repo
-if [[ "x${enable_git}" == "xy" ]]; then
-    if [[ -f ${rundir_config_log} ]]; then
-	cd ${rundir}
-	git add ${rundir_config_log}
-	git commit -m "Update header of ${rundir_config_dirname}/${rundir_config_lognbame}" > /dev/null
-	cd ${srcrundir}
-    fi
-fi
-
-#-----------------------------------------------------------------
 # Create and populate warnings file
 #-----------------------------------------------------------------
 if [[ $met == "geosfp" ]]; then
-   echo -e ${fp_msg} > ${rundir}/warnings.txt
+    echo -e ${fp_msg} > ${rundir}/warnings.txt
 fi
 
 exit 0

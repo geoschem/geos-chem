@@ -1,3 +1,8 @@
+#ifdef MAPL3
+#include "MAPL.h"
+#else
+#include "MAPL_Generic.h"
+#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -16,12 +21,18 @@ MODULE GCHP_HistoryExports_Mod
 !
 ! !USES:
 !
-#include "MAPL_Generic.h"
   USE DiagList_Mod
   USE TaggedDiagList_Mod
   USE ErrCode_Mod
   USE Precision_Mod
+#ifdef MAPL3
+  USE MAPL, ONLY : MAPL_Assert, MAPL_Verify
+  USE MAPL, ONLY : MAPL_GridCompAddSpec, MAPL_StateGetPointer
+  USE MAPL, ONLY : MAPL_VERTICAL_STAGGER_CENTER, MAPL_VERTICAL_STAGGER_EDGE
+  USE MAPL, ONLY : MAPL_VERTICAL_STAGGER_NONE
+#else
   USE MAPL_Mod
+#endif
 
   IMPLICIT NONE
   PRIVATE
@@ -644,6 +655,7 @@ CONTAINS
 ! !USES:
 !
     USE ESMF, ONLY : ESMF_GridComp
+    USE ESMF, ONLY : ESMF_STATEINTENT_EXPORT, ESMF_TYPEKIND_R4
     USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
@@ -702,25 +714,49 @@ CONTAINS
        ! Create an export for this item
        IF ( current%rank == 3 ) THEN
           IF ( current%vloc == VLocationCenter ) THEN
+#ifdef MAPL3
+             CALL MAPL_GridCompAddSpec(gridcomp=GC,        &
+                  short_name       = TRIM(current%name),      &
+                  standard_name    = TRIM(current%long_name), &
+                  units            = TRIM(current%units),     &
+                  dims             = 'xyz',                   &
+                  vertical_stagger = MAPL_VERTICAL_STAGGER_CENTER, &
+                  state_intent     = ESMF_STATEINTENT_EXPORT, &
+                  typekind         = ESMF_TYPEKIND_R4,        &
+                  _RC )
+#else
              CALL MAPL_AddExportSpec(GC,                                     &
-                                     SHORT_NAME = TRIM(current%name),        &
-                                     LONG_NAME  = TRIM(current%long_name),   &
-                                     UNITS      = TRIM(current%units),       &
-                                     DIMS       = MAPL_DimsHorzVert,         &
-                                     VLOCATION  = MAPL_VLocationCenter,      &
-                                     RC         = RC                         )
+                  SHORT_NAME = TRIM(current%name),        &
+                  LONG_NAME  = TRIM(current%long_name),   &
+                  UNITS      = TRIM(current%units),       &
+                  DIMS       = MAPL_DimsHorzVert,         &
+                  VLOCATION  = MAPL_VLocationCenter,      &
+                  RC         = RC                         )
+#endif
           IF ( RC == GC_FAILURE ) THEN
              ErrMsg =  "Problem adding 3D export for " // TRIM(current%name)
              EXIT
           ENDIF
          ELSEIF ( current%vloc == VLocationEdge ) THEN
+#ifdef MAPL3
+            CALL MAPL_GridCompAddSpec(gridcomp=GC,        &
+                 short_name       = TRIM(current%name),      &
+                 standard_name    = TRIM(current%long_name), &
+                 units            = TRIM(current%units),     &
+                 dims             = 'xyz',                   &
+                 vertical_stagger = MAPL_VERTICAL_STAGGER_EDGE,   &
+                 state_intent     = ESMF_STATEINTENT_EXPORT, &
+                 typekind         = ESMF_TYPEKIND_R4,        &
+                 _RC )
+#else
             CALL MAPL_AddExportSpec(GC,                                     &
-                                    SHORT_NAME = TRIM(current%name), &
-                                    LONG_NAME  = TRIM(current%long_name),   &
-                                    UNITS      = TRIM(current%units),       &
-                                    DIMS       = MAPL_DimsHorzVert,         &
-                                    VLOCATION  = MAPL_VLocationEdge,        &
-                                    RC         = STATUS                    )
+                 SHORT_NAME = TRIM(current%name), &
+                 LONG_NAME  = TRIM(current%long_name),   &
+                 UNITS      = TRIM(current%units),       &
+                 DIMS       = MAPL_DimsHorzVert,         &
+                 VLOCATION  = MAPL_VLocationEdge,        &
+                 RC         = STATUS                    )
+#endif
          ELSE
             IF ( am_I_Root ) THEN
                PRINT *, "Unknown vertical location for ", &
@@ -728,12 +764,25 @@ CONTAINS
             ENDIF
          ENDIF
        ELSEIF ( current%rank == 2 ) THEN
+#ifdef MAPL3
+          CALL MAPL_GridCompAddSpec(gridcomp=GC,              &
+               short_name       = TRIM(current%name),         &
+               standard_name    = TRIM(current%long_name),    &
+               units            = TRIM(current%units),        &
+               dims             = 'xy',                       &
+               vertical_stagger = MAPL_VERTICAL_STAGGER_NONE, &
+               state_intent     = ESMF_STATEINTENT_EXPORT,    &
+               typekind         = ESMF_TYPEKIND_R4,           &
+               _RC )
+#else
           CALL MAPL_AddExportSpec(GC,                                     &
-                                  SHORT_NAME = TRIM(current%name), &
-                                  LONG_NAME  = TRIM(current%long_name),   &
-                                  UNITS      = TRIM(current%units),       &
-                                  DIMS       = MAPL_DimsHorzOnly,         &
-                                  RC         = RC                        )
+               SHORT_NAME = TRIM(current%name), &
+               LONG_NAME  = TRIM(current%long_name),   &
+               UNITS      = TRIM(current%units),       &
+               DIMS       = MAPL_DimsHorzOnly,         &
+               RC         = RC                        )
+#endif
+
           IF ( RC == GC_FAILURE ) THEN
              ErrMsg =  "Problem adding 2D export for " // TRIM(current%name)
              EXIT
@@ -1073,11 +1122,21 @@ CONTAINS
 
        ! For MAPL export, need to pass a pointer of the right dimension
        IF ( current%rank == 2 ) THEN
+#ifdef MAPL3
+          CALL MAPL_StateGetPointer ( EXPORT, current%ExportData2d, &
+               current%name, __RC__ )
+#else
           CALL MAPL_GetPointer ( EXPORT, current%ExportData2d, &
-                                 current%name, __RC__ )
+               current%name, __RC__ )
+#endif
        ELSEIF ( current%rank == 3 ) THEN
+#ifdef MAPL3
+          CALL MAPL_StateGetPointer ( EXPORT, current%ExportData3d, &
+               current%name, __RC__ )
+#else
           CALL MAPL_GetPointer ( EXPORT, current%ExportData3d, &
-                                 current%name, __RC__ )
+               current%name, __RC__ )
+#endif
        ENDIF
 
        !! debugging
