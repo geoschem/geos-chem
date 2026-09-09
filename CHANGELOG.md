@@ -41,6 +41,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated default GCHP resolution in createRunDir.sh from c24 for MERRA2/GEOS-FP and c30 for GEOS-IT to c90 in all cases.
 
 ### Fixed
+- Removed invalid OpenMP directives from the `MPI_LOAD_BALANCE` block of `GeosCore/fullchem_mod.F90`, which caused GCHP compilation to fail with `-DOMP=ON`
 - Fixed incorrect variable names and removed unused variables in `NcdfUtil/ncdf_mod.F90`
 - Fixed incorrect Arrhenius "A" coefficient (1.97d-12 --> 1.97d-11) in C3H8 + OH = A3O2 rxn
 - Fixed GCHP transport tracers extdata.yaml to include valid_range for CEDS

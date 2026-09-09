@@ -1733,22 +1733,12 @@ CONTAINS
        RETURN
     ENDIF
 
-    !$OMP PARALLEL DO                                                        &
-    !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I,        J,        L,       N                           )&
-    !$OMP PRIVATE( ICNTRL,   C_before_integrate                             )&
-    !$OMP PRIVATE( SO4_FRAC, IERR,     RCNTRL,  ISTATUS,   RSTATE           )&
-    !$OMP PRIVATE( SpcID,    KppID,    F,       P,         Vloc             )&
-    !$OMP PRIVATE( Aout,     Thread,   RC,      S,         LCH4             )&
-    !$OMP PRIVATE( OHreact,  PCO_TOT,  PCO_CH4, PCO_NMVOC, SR               )&
-    !$OMP PRIVATE( SIZE_RES, LWC                                            )&
-#ifdef MODEL_GEOS
-    !$OMP PRIVATE( NOxTau,     NOxConc, NOx_weight, NOx_tau_weighted        )&
-#endif
-    !$OMP COLLAPSE( 3                                                       )&
-    !$OMP SCHEDULE( DYNAMIC, 24                                             )&
-    !$OMP REDUCTION( +:errorCount                                           )
-
+    ! NOTE: No OpenMP parallelization is used in the MPI load-balancing
+    ! code below.  Work is distributed across the MPI ranks on each node
+    ! via a shared-memory counter (MPI_Fetch_and_op), which is not
+    ! thread-safe without MPI_THREAD_MULTIPLE.  The DO loop below also has
+    ! no loop control and cannot be the target of an OMP PARALLEL DO.
+    !  -- see https://github.com/geoschem/geos-chem/issues/3365
     origin_val = 1                      ! add 1 each time
     disp       = 0_MPI_ADDRESS_KIND     ! first integer in the window
     CALL MPI_Win_lock_all(MPI_MODE_NOCHECK, win_next_cell_index, ierr)
@@ -1902,8 +1892,6 @@ CONTAINS
              !ENDIF
 #else
              !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-             ! Make sure only one thread at a time executes this block
-             !$OMP CRITICAL
              !
              ! Set a flag to break out of loop gracefully
              ! NOTE: You can set a GDB breakpoint here to examine the error
@@ -1927,7 +1915,6 @@ CONTAINS
                 PRINT*, RCONST(N), TRIM( ADJUSTL( EQN_NAMES(N) ) )
              ENDDO
              !
-             !$OMP END CRITICAL
              !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
              ! Start skipping to end of loop upon 2 failures in a row
@@ -2333,7 +2320,6 @@ CONTAINS
     ENDDO
     ENDDO
     ENDDO
-    !$OMP END PARALLEL DO
 
 #endif  ! MPI_LOAD_BALANCE
 
