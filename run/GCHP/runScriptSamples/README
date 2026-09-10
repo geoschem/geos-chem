@@ -5,7 +5,10 @@ This folder contains:
 (1) template file 'gchp.batch_job.sh' to adapt for submitting GCHP batch
     jobs for various schedulers (PBS, LSF, and SLURM)
 
-(2) template file 'gchp.local.sh' to adapt for running GCHP on the command line
+(2) template file 'gchp.local.run' to adapt for running GCHP on the command line
+
+(3) template file 'gchp.build' to interactively build GCHP from the run directory
+    or submit as a batch job
 
 (3) subdirectory 'operational_examples' containing job scripts and
     environment files used regularly on specific systems.
