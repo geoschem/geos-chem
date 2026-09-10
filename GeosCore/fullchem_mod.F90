@@ -41,10 +41,12 @@ MODULE FullChem_Mod
 ! !PRIVATE TYPES:
 !
   ! Species ID flags (and logicals to denote if species are present)
-  INTEGER               :: id_OH,  id_HO2,  id_O3P,  id_O1D, id_CH4
-  INTEGER               :: id_PCO, id_LCH4, id_NH3,  id_SO4
-  INTEGER               :: id_SALAAL, id_SALCAL, id_SALC, id_SALA
-  INTEGER               :: id_PSO4
+  INTEGER               :: id_OH,      id_HO2,     id_O3P,     id_O1D
+  INTEGER               :: id_CH4,     id_PCO,     id_LCH4,    id_NH3
+  INTEGER               :: id_SO4,     id_SALAAL,  id_SALCAL,  id_SALC
+  INTEGER               :: id_SALA,    id_DSTbin1, id_DSTbin2, id_DSTbin3
+  INTEGER               :: id_DSTbin4, id_DSTbin5, id_DSTbin6, id_DSTbin7
+  INTEGER               :: id_SO2,     id_pFe,     id_PSO4
 #ifdef TOMAS
   INTEGER               :: id_NK05, id_NK08, id_NK10, id_NK20
 #endif
@@ -963,18 +965,28 @@ CONTAINS
        !=====================================================================
 
        ! Populate fields of the State_Het object
-       CALL fullchem_SetStateHet( I         = I,                             &
-                                  J         = J,                             &
-                                  L         = L,                             &
-                                  id_SALA   = id_SALA,                       &
-                                  id_SALAAL = id_SALAAL,                     &
-                                  id_SALC   = id_SALC,                       &
-                                  id_SALCAL = id_SALCAL,                     &
-                                  Input_Opt = Input_Opt,                     &
-                                  State_Chm = State_Chm,                     &
-                                  State_Met = State_Met,                     &
-                                  H         = State_Het,                     &
-                                  RC        = RC                            )
+       CALL fullchem_SetStateHet( I          = I,                            &
+                                  J          = J,                            &
+                                  L          = L,                            &
+                                  id_DSTbin1 = id_DSTbin1,                   &
+                                  id_DSTbin2 = id_DSTbin2,                   &
+                                  id_DSTbin3 = id_DSTbin3,                   &
+                                  id_DSTbin4 = id_DSTbin4,                   &
+                                  id_DSTbin5 = id_DSTbin5,                   &
+                                  id_DSTbin6 = id_DSTbin6,                   &
+                                  id_DSTbin7 = id_DSTbin7,                   &
+                                  id_pFe     = id_pFe,                       &
+                                  id_SALA    = id_SALA,                      &
+                                  id_SALAAL  = id_SALAAL,                    &
+                                  id_SALC    = id_SALC,                      &
+                                  id_SALCAL  = id_SALCAL,                    &
+                                  id_SO2     = id_SO2,                       &
+                                  id_SO4     = id_SO4,                       &
+                                  Input_Opt  = Input_Opt,                    &
+                                  State_Chm  = State_Chm,                    &
+                                  State_Met  = State_Met,                    &
+                                  H          = State_Het,                    &
+                                  RC         = RC                           )
 
        !=====================================================================
        ! CHEMISTRY MECHANISM INITIALIZATION (#5)
@@ -1457,9 +1469,21 @@ CONTAINS
           H2SO4_RATE(I,J,L) = 0.0d0
        ENDIF
 
+       !IF (H2SO4_RATE(I,J,L) > 0.0_fp .AND. L == 1) THEN
+       !   print*, 'DEBUG H2SO4_RATE I,J,L:', I, J, L, H2SO4_RATE(I,J,L)
+       !ENDIF
+       ! DEBUG: check PSO4AQ accumulation after KPP integration
+       !IF (C(ind_PSO4AQ) > 1.0d4 .AND. L == 1) THEN
+       !   print*, 'DEBUG PSO4AQ C(ind_PSO4AQ) I,J,L:', I, J, L, C(ind_PSO4AQ)
+       !ENDIF
+
        PSO4AQ_RATE(I,J,L) = C(ind_PSO4AQ) / AVO * 98.e-3_fp * &
                             State_Met%AIRVOL(I,J,L)    * &
                             1.0e+6_fp ! kg per timestep box-1
+       ! DEBUG
+       !IF (PSO4AQ_RATE(I,J,L) > 0.0_fp .AND. L == 1) THEN
+       !     print*, 'DEBUG PSO4AQ_RATE I,J,L:', I, J, L, PSO4AQ_RATE(I,J,L)
+       !ENDIF
 
        IF ( PSO4AQ_RATE(I,J,L) < 0.0d0) THEN
           write(*,*) "PSO4AQ_RATE negative in fullchem_mod.F90", &
@@ -1709,22 +1733,12 @@ CONTAINS
        RETURN
     ENDIF
 
-    !$OMP PARALLEL DO                                                        &
-    !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I,        J,        L,       N                           )&
-    !$OMP PRIVATE( ICNTRL,   C_before_integrate                             )&
-    !$OMP PRIVATE( SO4_FRAC, IERR,     RCNTRL,  ISTATUS,   RSTATE           )&
-    !$OMP PRIVATE( SpcID,    KppID,    F,       P,         Vloc             )&
-    !$OMP PRIVATE( Aout,     Thread,   RC,      S,         LCH4             )&
-    !$OMP PRIVATE( OHreact,  PCO_TOT,  PCO_CH4, PCO_NMVOC, SR               )&
-    !$OMP PRIVATE( SIZE_RES, LWC                                            )&
-#ifdef MODEL_GEOS
-    !$OMP PRIVATE( NOxTau,     NOxConc, NOx_weight, NOx_tau_weighted        )&
-#endif
-    !$OMP COLLAPSE( 3                                                       )&
-    !$OMP SCHEDULE( DYNAMIC, 24                                             )&
-    !$OMP REDUCTION( +:errorCount                                           )
-
+    ! NOTE: No OpenMP parallelization is used in the MPI load-balancing
+    ! code below.  Work is distributed across the MPI ranks on each node
+    ! via a shared-memory counter (MPI_Fetch_and_op), which is not
+    ! thread-safe without MPI_THREAD_MULTIPLE.  The DO loop below also has
+    ! no loop control and cannot be the target of an OMP PARALLEL DO.
+    !  -- see https://github.com/geoschem/geos-chem/issues/3365
     origin_val = 1                      ! add 1 each time
     disp       = 0_MPI_ADDRESS_KIND     ! first integer in the window
     CALL MPI_Win_lock_all(MPI_MODE_NOCHECK, win_next_cell_index, ierr)
@@ -1878,8 +1892,6 @@ CONTAINS
              !ENDIF
 #else
              !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-             ! Make sure only one thread at a time executes this block
-             !$OMP CRITICAL
              !
              ! Set a flag to break out of loop gracefully
              ! NOTE: You can set a GDB breakpoint here to examine the error
@@ -1903,7 +1915,6 @@ CONTAINS
                 PRINT*, RCONST(N), TRIM( ADJUSTL( EQN_NAMES(N) ) )
              ENDDO
              !
-             !$OMP END CRITICAL
              !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
              ! Start skipping to end of loop upon 2 failures in a row
@@ -2309,7 +2320,6 @@ CONTAINS
     ENDDO
     ENDDO
     ENDDO
-    !$OMP END PARALLEL DO
 
 #endif  ! MPI_LOAD_BALANCE
 
@@ -2532,7 +2542,7 @@ CONTAINS
 
     ! Assume success
     RC  = GC_SUCCESS
-
+      ! print*,'PREVIOUS units', previous_units
     ! Convert species to [kg]
     CALL Convert_Spc_Units(                                                  &
          Input_Opt      = Input_Opt,                                         &
@@ -2568,6 +2578,9 @@ CONTAINS
 !       SO4OXID = PSO4_SO2AQ(I,J,L) * State_Met%AD(I,J,L) &
 !                 / ( AIRMW / State_Chm%SpcData(id_SO4)%Info%MW_g ) ! convert v/v to kg/box
 
+        !IF (PSO4AQ_RATE(I,J,L) > 0.0_fp .AND. L == 1) THEN
+        ! print*, 'DEBUG SO4OXID in TOMAS_SO4_AQ:', I, J, L, PSO4AQ_RATE(I,J,L)
+        ! ENDIF
        IF ( SO4OXID > 0e+0_fp ) THEN
           ! JKodros (6/2/15 - Set activating bin based on which TOMAS bin
           !length being used)
@@ -2590,10 +2603,10 @@ CONTAINS
 #endif
 
           KMIN = ( BINACT1 + BINACT2 )/ 2.
-
           ! Indicate that we are NOT calling AqOxid from wetdep, which
           ! will avoid doing any further internal unit conversion (as
           ! units are already in kg here). -- Bob Yantosca (11 Apr 2024)
+
           CALL AqOxid(                                                       &
                I          = I,                                               &
                J          = J,                                               &
@@ -3488,10 +3501,12 @@ CONTAINS
     USE aciduptake_DustChemFuncs, ONLY : aciduptake_InitDustChem
     USE ErrCode_Mod
     USE fullchem_SulfurChemFuncs, ONLY : fullchem_InitSulfurChem
-    USE Gckpp_Monitor,            ONLY : Eqn_Names, Fam_Names
+    USE Gckpp_Global,             ONLY : ATOL,       Henry_CR,  Henry_K0
+    USE Gckpp_Global,             ONLY : MW,         SR_MW
+    USE Gckpp_Initialize,         ONLY : Initialize
+    USE Gckpp_Monitor,            ONLY : Eqn_Names,  Fam_Names, Spc_Names
+    USE Gckpp_Parameters,         ONLY : nFam,       nReact,    nSpec
     USE Gckpp_Precision
-    USE Gckpp_Parameters,         ONLY : nFam, nReact, nSpec
-    USE Gckpp_Global,             ONLY : Henry_K0, Henry_CR, MW, SR_MW
     USE Input_Opt_Mod,            ONLY : OptInput
     USE KppSa_Interface_Mod,      ONLY : KppSa_Config
     USE State_Chm_Mod,            ONLY : ChmState
@@ -3563,20 +3578,29 @@ CONTAINS
     ENDIF
 
     ! Initialize species flags
-    id_CH4      = Ind_( 'CH4', 'A'     ) ! CH4 advected species
+    id_CH4      = Ind_( 'CH4',    'A'  ) ! CH4 advected species
+    id_DSTbin1  = Ind_( 'DSTbin1'      )
+    id_DSTbin2  = Ind_( 'DSTbin2'      )
+    id_DSTbin3  = Ind_( 'DSTbin3'      )
+    id_DSTbin4  = Ind_( 'DSTbin4'      )
+    id_DSTbin5  = Ind_( 'DSTbin5'      )
+    id_DSTbin6  = Ind_( 'DSTbin6'      )
+    id_DSTbin7  = Ind_( 'DSTbin7'      )
     id_HO2      = Ind_( 'HO2'          )
     id_NH3      = Ind_( 'NH3'          )
     id_O3P      = Ind_( 'O'            )
     id_O1D      = Ind_( 'O1D'          )
     id_OH       = Ind_( 'OH'           )
+    id_pFe      = Ind_( 'pFe'          )
+    id_SO2      = Ind_( 'SO2'          )
     id_SO4      = Ind_( 'SO4'          )
     id_SALA     = Ind_( 'SALA'         )
     id_SALAAL   = Ind_( 'SALAAL'       )
     id_SALC     = Ind_( 'SALC'         )
     id_SALCAL   = Ind_( 'SALCAL'       )
 #ifdef TOMAS
-    id_NK05     = Ind_( 'NK5'          )
-    id_NK08     = Ind_( 'NK8'          )
+    id_NK05     = Ind_( 'NK05'         )
+    id_NK08     = Ind_( 'NK08'         )
     id_NK10     = Ind_( 'NK10'         )
     id_NK20     = Ind_( 'NK20'         )
 #endif
@@ -3662,7 +3686,6 @@ CONTAINS
                                State_Diag%Archive_O1DconcAfterChem      .or. &
                                State_Diag%Archive_O3PconcAfterChem          )
 
-
     !========================================================================
     ! Assign default values for KPP absolute and relative tolerances
     ! for species where these have not been explicitly defined.
@@ -3674,6 +3697,13 @@ CONTAINS
     WHERE( State_Chm%KPP_RelTol == MISSING_DBLE )
        State_Chm%KPP_RelTol = 0.5e-2_f8
     ENDWHERE
+
+    !========================================================================
+    ! Call the KPP Initialize routine to zero concentration arrays
+    ! and to denote dummy species as those having ATOL > 1e25.
+    !========================================================================
+    ATOL = State_Chm%KPP_AbsTol
+    CALL Initialize( PassiveSpc_ATOL_Threshold = 1.0e+25_dp )
 
     !========================================================================
     ! Save physical parameters from the species database into KPP arrays
@@ -3688,6 +3718,7 @@ CONTAINS
           HENRY_CR(KppId) = State_Chm%SpcData(N)%Info%Henry_CR
        ENDIF
     ENDDO
+
     !========================================================================
     ! Allocate arrays
     !========================================================================

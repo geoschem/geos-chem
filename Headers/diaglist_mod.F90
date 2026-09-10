@@ -109,7 +109,7 @@ MODULE DiagList_Mod
 ! !PUBLIC DATA MEMBERS:
 !
   TYPE(ColList),    PUBLIC  :: CollList      ! Collection list object
-#if defined( ESMF_ )
+#if defined( MODEL_GCHP ) || defined( MODEL_GEOS)
 !
 ! !PUBLIC PARAMETERS
 !
@@ -628,7 +628,7 @@ CONTAINS
        !====================================================================
 
        ! Skip line if gridded component name not present and using GCHP or GEOS
-#if defined( MODEL_GCHPCTM )
+#if defined( MODEL_GCHP )
        IF ( INDEX( Line, 'GCHPchem' ) .le. 0 ) CYCLE
 #elif defined( MODEL_GEOS )
        IF ( INDEX( Line, 'GEOSCHEMCHEM' ) .le. 0 ) CYCLE
@@ -676,7 +676,7 @@ CONTAINS
              state = 'CHEM'
           ELSEIF ( nameAllCaps(1:5) == 'GRID_' ) THEN
              state = 'GRID'
-#ifdef ESMF_
+#if defined( MODEL_GCHP ) || defined( MODEL_GEOS)
           ! HEMCO diagnostics are included in HISTORY.rc in GCHP/GEOS only.
           ! Prefix for HEMCO diagnostics in HEMCO_Diagn.rc must be one of the
           ! following (case-insensitve).
@@ -710,7 +710,7 @@ CONTAINS
           isWildcard = .FALSE.
           wildcard   = ''
           IF ( INDEX( name, '?' ) > 0 ) THEN
-#if defined( MODEL_GCHPCTM ) || defined( MODEL_GEOS ) || defined( MODEL_CESM )
+#if defined( MODEL_GCHP ) || defined( MODEL_GEOS ) || defined( MODEL_CESM )
              ! Exit with an error if using GCHP and wildcard is present
              ErrMsg = 'ERROR: HISTORY.rc wildcard handling is not ' // &
                       'implemented in GCHP/CESM: ' // TRIM(name) // '. Replace ' // &

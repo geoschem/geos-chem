@@ -1571,7 +1571,8 @@ CONTAINS
        Current%Item%Ptr3d_I => NULL()
 
        ! Destroy the REGISTRY ITEM itself
-#if defined( ESMF_ )
+#if defined( USE_ESMF )
+       ! ewl: can/should we do this for all models???
        IF ( ASSOCIATED( Current%Item ) ) NULLIFY( Current%Item )
 #else
        IF ( ASSOCIATED( Current%Item ) ) DEALLOCATE( Current%Item )
