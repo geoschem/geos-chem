@@ -189,6 +189,12 @@ function getFullchemLocal() {
     # 2nd argument: Local restart file directory
     #========================================================================
 
+    # APM
+    if [[ "x${1}" == "xAPM" ]]; then
+        echo $(join "${2}" "${RUNDIR_restarts_apm_local}")
+        return $?
+    fi
+
     # TOMAS15
     if [[ "x${1}" == "xTOMAS15" ]]; then
         echo $(join "${2}" "${RUNDIR_restarts_tomas15_local}")
@@ -214,6 +220,12 @@ function getFullchemRemote() {
     # 1st argument: sim_extra_option
     # 2nd argument: Local restart file directory
     #========================================================================
+
+    # APM
+    if [[ "x${1}" == "xAPM" ]]; then
+        echo $(join "${2}" "${RUNDIR_restarts_apm_remote}")
+        return $?
+    fi
 
     # TOMAS15
     if [[ "x${1}" == "xTOMAS15" ]]; then
@@ -426,7 +438,7 @@ function copyRestartToRunDir() {
 	local_rst=$(getCarbonLocal "${loc_root}")
 
     elif [[ "x${sim_name}" == "xfullchem" ]]; then
-        # NOTE: Also handles TOMAS40 and TOMAS15
+        # NOTE: Also handles APM, TOMAS15, and TOMAS40
         remote_rst=$(getFullchemRemote "${sim_extra_option}" "${rst_root}")
         local_rst=$(getFullchemLocal "${sim_extra_option}" "${loc_root}")
 

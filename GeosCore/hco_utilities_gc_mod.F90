@@ -2516,7 +2516,7 @@ CONTAINS
          ENDIF
       ELSE
          IF ( Input_Opt%amIRoot ) THEN
-#ifdef ESMF_
+#ifdef MAPL_ESMF
             ! ExtData and HEMCO behave ambiguously - if the file was found
             ! but was full of zeros throughout the domain of interest, it
             ! will result in the same output from ExtData as if the field

@@ -71,6 +71,7 @@ CONTAINS
     USE State_Grid_Mod,   ONLY : GrdState
     USE PhysConstants,    ONLY : AIRMW,  AVO
     USE TIME_MOD,         ONLY : GET_LOCALTIME
+    USE Time_Mod,         ONLY : Its_Time_for_Chem
 !
 ! !INPUT PARAMETERS:
 !
@@ -125,14 +126,16 @@ CONTAINS
     ! Set species concentration for diagnostics in units of
     ! molec/cm3 (hplin, 11/21/21)
     !-----------------------------------------------------------------------
-    CALL Set_SpcConc_Diags_MND  ( Input_Opt,  State_Chm, State_Diag,         &
-                                  State_Grid, State_Met, RC                 )
+    IF ( Its_Time_for_Chem() ) THEN
+       CALL Set_SpcConc_Diags_MND  ( Input_Opt,  State_Chm, State_Diag,         &
+            State_Grid, State_Met, RC                 )
 
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered setting SpeciesConcMND diagnostic'
-       CALL GC_ERROR( ErrMsg, RC, ThisLoc )
-       RETURN
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered setting SpeciesConcMND diagnostic'
+          CALL GC_ERROR( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
     ENDIF
 
 #ifdef ADJOINT
@@ -583,6 +586,7 @@ CONTAINS
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
     USE Time_Mod,       ONLY : Get_LocalTime
+    USE Time_Mod,       ONLY : Its_Time_for_Chem
     USE UnitConv_Mod,   ONLY : Check_Units, MOLES_SPECIES_PER_MOLES_DRY_AIR
 !
 ! !INPUT PARAMETERS:
@@ -638,7 +642,7 @@ CONTAINS
     !=======================================================================
     ! Copy species to SpeciesConc (concentrations diagnostic) [v/v dry]
     !=======================================================================
-    IF ( State_Diag%Archive_SpeciesConcVV ) THEN
+    IF ( State_Diag%Archive_SpeciesConcVV .AND. Its_Time_for_Chem() ) THEN
 
        ! Point to mapping obj specific to SpeciesConcVV diagnostic collection
        mapData => State_Diag%Map_SpeciesConcVV
@@ -660,7 +664,7 @@ CONTAINS
     !=======================================================================
     ! Copy species to SatDiagn (satellite diagnostic output) [v/v dry]
     !=======================================================================
-    IF ( State_Diag%Archive_SatDiagnConc ) THEN
+    IF ( State_Diag%Archive_SatDiagnConc .AND. Its_Time_for_Chem() ) THEN
 
        ! Loop over longitudes
        !$OMP PARALLEL DO                                                    &
@@ -691,7 +695,7 @@ CONTAINS
     !=======================================================================
     ! Copy species to SpeciesBC (transport boundary conditions) [v/v dry]
     !=======================================================================
-    IF ( State_Diag%Archive_SpeciesBC ) THEN
+    IF ( State_Diag%Archive_SpeciesBC .AND. Its_Time_for_Chem() ) THEN
 
        ! Point to mapping obj specific to species boundary conditions
        mapData => State_Diag%Map_SpeciesBC
@@ -752,7 +756,7 @@ CONTAINS
     !      distribution, sources, and processes" Atmos. Chem. Phys.,
     !      12, 4,539-4,4554, 2012.
     !=======================================================================
-    IF ( State_Diag%Archive_ConcAboveSfc ) THEN
+    IF ( State_Diag%Archive_ConcAboveSfc .AND. Its_Time_for_Chem() ) THEN
 
        ! Loop over the number of drydep species that we wish
        ! to save at a user-specified altitude above the surface
