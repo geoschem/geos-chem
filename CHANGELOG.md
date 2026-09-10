@@ -4,6 +4,23 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - TBD
+### Added
+- Added PSO4AQ and PH2SO4 as a product to certain reactions; see `KPP/fullchem/CHANGELOG_fullchem.md`
+- Added methanediol (MDL) as a transported gas-phase species and to the KPP fullchem and custom mechanisms
+- Added routine `Cloud_CH2O_MDL` in `KPP/fullchem/fullchem_SulfurChemFuncs.F90`
+- Added multiphase sulfate chemistry and cloud Hplus diagnostic for Travis et al. (2025)
+- Added `IONIC` output argument in calls to HETP driver routine `MACH_HETP_Main15Cases`
+- Added APM restart file paths to `run/shared/download_data.yml`
+- Added the option to use stratospheric-adjusted radiative forcing with RRTMG in GC-Classic
+
+### Changed
+- Renamed `State_Chm%Isorrop*` fields to `State_Chm%Ate*` (aerosol thermodynamical equilibrium), as ISORROPIA is no longer used
+- Updated routine `fullchem_SetStateHet` to accept `id_DSTbin{1..7}`, `id_pFe`, `id_SO2`, and `id_SO4` as arguments
+- Renamed `CRITRH` to `RH_35_PERCENT` and `CRITRH2` to `RH_50_PERCENT` in `KPP/fullchem/fullchem_RateLawFuncs.F90`
+- Added DSTbin{1..7}, SO2, SO4, and pFE species ID flags to the `SetStateHet` routine in `KPP/fullchem_HetStateFuncs.F90` and `KPP/stubs/stub_fullchem_HetStateFuncs.F90`
+- Updated `run/shared/download_data.py` and `run/shared/setupForRestarts.sh` to read APM restart file paths
+
 ## [14.7.1] - 2026-04-08
 ### Added
 - Added `HTAP_SHIP` toggle in `HEMCO_Config.rc.carbon` templates for GC-Classic and GCHP

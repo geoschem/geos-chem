@@ -21,7 +21,7 @@ MODULE State_Chm_Mod
 !
 ! USES:
 !
-  USE AerMass_Container_Mod              ! Aerosol mass object          
+  USE AerMass_Container_Mod              ! Aerosol mass object
   USE Dictionary_M, ONLY : dictionary_t  ! Fortran hash table type
   USE ErrCode_Mod                        ! Error handling
   USE Phot_Container_Mod                 ! For photolysis state object
@@ -152,6 +152,7 @@ MODULE State_Chm_Mod
      REAL(fp), POINTER :: WetAeroRadi(:,:,:,:)  ! Aerosol Radius [cm]
      REAL(fp), POINTER :: AeroH2O    (:,:,:,:)  ! Aerosol water [cm3/cm3]
      REAL(fp), POINTER :: GammaN2O5  (:,:,:,:)  ! N2O5 aerosol uptake [unitless]
+     REAL(fp), POINTER :: GammaSO2   (:,:,:,:)  ! SO2 aerosol uptake [unitless]
      REAL(fp), POINTER :: SSAlk      (:,:,:,:)  ! Sea-salt alkalinity[-]
      REAL(fp), POINTER :: H2O2AfterChem(:,:,:)  ! H2O2, SO2 [v/v]
      REAL(fp), POINTER :: SO2AfterChem (:,:,:)  !  after sulfate chem
@@ -175,6 +176,7 @@ MODULE State_Chm_Mod
      !-----------------------------------------------------------------------
      REAL(fp),          POINTER :: pHCloud    (:,:,:  ) ! Cloud pH [-]
      REAL(fp),          POINTER :: isCloud    (:,:,:  ) ! Cloud presence [-]
+     REAL(fp),          POINTER :: HPlusCloud (:,:,:  ) ! Cloud H+
 
      !-----------------------------------------------------------------------
      ! Fields for KPP solver
@@ -192,13 +194,15 @@ MODULE State_Chm_Mod
      !-----------------------------------------------------------------------
      ! For isoprene SOA via ISORROPIA/HETP
      !-----------------------------------------------------------------------
-     REAL(fp),          POINTER :: IsorropAeropH  (:,:,:,:) ! ISORROPIA aero pH
-     REAL(fp),          POINTER :: IsorropHplus   (:,:,:,:) ! H+ conc [M]
-     REAL(fp),          POINTER :: IsorropAeroH2O (:,:,:,:) ! ISORROPIA aero H2O
-     REAL(fp),          POINTER :: IsorropSulfate (:,:,:  ) ! Sulfate conc [M]
-     REAL(fp),          POINTER :: IsorropNitrate (:,:,:,:) ! Nitrate conc [M]
-     REAL(fp),          POINTER :: IsorropChloride(:,:,:,:) ! Chloride conc [M]
-     REAL(fp),          POINTER :: IsorropBisulfate(:,:,:  )! Bisulfate conc [M]
+     REAL(fp),          POINTER :: AteAeropH  (:,:,:,:) ! ISORROPIA aero pH
+     REAL(fp),          POINTER :: AteHplus   (:,:,:,:) ! H+ conc [M]
+     REAL(fp),          POINTER :: AteIONIC   (:,:,:) ! ISORROPIA aero IONIC
+     REAL(fp),          POINTER :: AteOH      (:,:,:) ! ISORROPIA aero OH
+     REAL(fp),          POINTER :: AteAeroH2O (:,:,:,:) ! ISORROPIA aero H2O
+     REAL(fp),          POINTER :: AteSulfate (:,:,:  ) ! Sulfate conc [M]
+     REAL(fp),          POINTER :: AteNitrate (:,:,:,:) ! Nitrate conc [M]
+     REAL(fp),          POINTER :: AteChloride(:,:,:,:) ! Chloride conc [M]
+     REAL(fp),          POINTER :: AteBisulfate(:,:,:  )! Bisulfate conc [M]
 
      !-----------------------------------------------------------------------
      ! For the tagged Hg simulation
@@ -214,6 +218,16 @@ MODULE State_Chm_Mod
                                                             !  snowpack on ocean
      REAL(fp),          POINTER :: SnowHgLandStored(:,:)    ! Non-reducible Hg
                                                             !  snowpack on land
+     !----------------------------------------------------------------------
+     ! For SO2 aerosol heterogeneous chemistry
+     !----------------------------------------------------------------------
+     REAL(fp),          POINTER :: HSO3_AQ_A   (:,:,:  ) ! Aerosol bisulfite!/SO2 ratio
+     REAL(fp),          POINTER :: SO3_AQ_A    (:,:,:  ) ! Aerosol sulfite!/SO2 ratio
+     REAL(fp),          POINTER :: SO2_AQ_A    (:,:,:  ) ! Aerosol SO2
+     REAL(fp),          POINTER :: FeIII_A     (:,:,:  ) ! Aerosol FeIII [M]
+     REAL(fp),          POINTER :: MnII_A      (:,:,:  ) ! Aerosol MnII [M]
+     REAL(fp),          POINTER :: FeIII_AMAX     (:,:,:  ) ! Aerosol FeIII [M]
+     REAL(fp),          POINTER :: MnII_AMAX      (:,:,:  ) ! Aerosol MnII [M]
 
      !----------------------------------------------------------------------
      ! For HOBr + S(IV) heterogeneous chemistry
@@ -353,11 +367,11 @@ MODULE State_Chm_Mod
      TYPE(dictionary_t)         :: RegDict              ! Registry lookup table
 
      !-----------------------------------------------------------------------
-     ! GEOS specific fields 
+     ! GEOS specific fields
      !-----------------------------------------------------------------------
 #if defined( MODEL_GEOS )
      ! CO mesosphere boundary
-     INTEGER            :: COmesosphere 
+     INTEGER            :: COmesosphere
      CHARACTER(LEN=255) :: impCOmeso
      ! CO2 photolysis
      INTEGER            :: CO2fromGOCART
@@ -517,6 +531,7 @@ CONTAINS
     State_Chm%WetAeroRadi       => NULL()
     State_Chm%AeroH2O           => NULL()
     State_Chm%GammaN2O5         => NULL()
+    State_Chm%GammaSO2          => NULL()
     State_Chm%SSAlk             => NULL()
     State_Chm%OMOC              => NULL()
     State_Chm%OMOC_POA          => NULL()
@@ -524,6 +539,7 @@ CONTAINS
     State_Chm%DryDepNitrogen    => NULL()
     State_Chm%WetDepNitrogen    => NULL()
     State_Chm%pHCloud           => NULL()
+    State_Chm%HPlusCloud        => NULL()
     State_Chm%isCloud           => NULL()
     State_Chm%QLxpHCloud        => NULL()
     State_Chm%ORVCsesq          => NULL()
@@ -535,6 +551,13 @@ CONTAINS
     State_Chm%SoilDust          => NULL()
     State_Chm%HSO3_AQ           => NULL()
     State_Chm%SO3_AQ            => NULL()
+    State_Chm%HSO3_AQ_A         => NULL()
+    State_Chm%SO3_AQ_A          => NULL()
+    State_Chm%SO2_AQ_A          => NULL()
+    State_Chm%FeIII_A           => NULL()
+    State_Chm%MnII_A            => NULL()
+    State_Chm%FeIII_AMAX        => NULL()
+    State_Chm%MnII_AMAX         => NULL()
     State_Chm%fupdateHOBr       => NULL()
     State_Chm%fupdateHOCl       => NULL()
     State_Chm%TLSTT             => NULL()
@@ -584,13 +607,15 @@ CONTAINS
     State_Chm%QQRain            => NULL()
 
     ! Isoprene SOA
-    State_Chm%IsorropAeropH     => NULL()
-    State_Chm%IsorropHplus      => NULL()
-    State_Chm%IsorropAeroH2O    => NULL()
-    State_Chm%IsorropSulfate    => NULL()
-    State_Chm%IsorropNitrate    => NULL()
-    State_Chm%IsorropChloride   => NULL()
-    State_Chm%IsorropBisulfate  => NULL()
+    State_Chm%AteAeropH     => NULL()
+    State_Chm%AteHplus      => NULL()
+    State_Chm%AteAeroH2O    => NULL()
+    State_Chm%AteIONIC      => NULL()
+    State_Chm%AteOH         => NULL()
+    State_Chm%AteSulfate    => NULL()
+    State_Chm%AteNitrate    => NULL()
+    State_Chm%AteChloride   => NULL()
+    State_Chm%AteBisulfate  => NULL()
 
     ! Hg simulation quantities
     State_Chm%OceanHg0          => NULL()
@@ -615,9 +640,9 @@ CONTAINS
 
 #if defined( MODEL_GEOS )
     State_Chm%COmesosphere      = .FALSE.
-    State_Chm%impCOmeso         = "unknown" 
+    State_Chm%impCOmeso         = "unknown"
     State_Chm%CO2fromGOCART     = .FALSE.
-    State_Chm%impCO2name        = "unknown" 
+    State_Chm%impCO2name        = "unknown"
     State_Chm%numphoto          = 0
     State_Chm%nxdo              = 0
     State_Chm%nlam              = 0
@@ -1043,7 +1068,7 @@ CONTAINS
           CALL GC_Error( errMsg, RC, thisLoc )
           RETURN
        ENDIF
-       
+
        !---------------------------------------------------------------------
        ! AeroArea
        !---------------------------------------------------------------------
@@ -1261,6 +1286,32 @@ CONTAINS
        ENDIF
 
        !---------------------------------------------------------------------
+       ! Gamma SO2
+       !---------------------------------------------------------------------
+
+       fieldId(1) = 'GammaSO2TMI'
+       fieldId(2) = 'GammaSO2O3'
+       fieldId(3) = 'GammaSO2H2O2'
+       fieldId(4) = 'GammaSO2NO2'
+       fieldId(5) = 'GammaSO2CH2O'
+       DO N=1,5
+          CALL Init_and_Register(                                               &
+               Input_Opt  = Input_Opt,                                          &
+               State_Chm  = State_Chm,                                          &
+               State_Grid = State_Grid,                                         &
+               chmId      = TRIM( fieldId(N) ),                              &
+               Ptr2Data   = State_Chm%GammaSO2,                                 &
+               nSlots     =  5,                                                  &
+               nCat       = N,                                                   &
+               RC         = RC                                                 )
+
+          IF ( RC /= GC_SUCCESS ) THEN
+             errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+             CALL GC_Error( errMsg, RC, thisLoc )
+             RETURN
+          ENDIF
+       ENDDO
+       !---------------------------------------------------------------------
        ! GammaN2O5
        !---------------------------------------------------------------------
        fieldId(1) = 'GammaN2O5overall '
@@ -1335,10 +1386,10 @@ CONTAINS
        ENDIF
 
        !---------------------------------------------------------------------
-       ! IsorropAeropH
+       ! AteAeropH
        !---------------------------------------------------------------------
-       fieldId(1) = 'IsorropAeropHAccum'
-       fieldId(2) = 'IsorropAeropHCoarse'
+       fieldId(1) = 'AteAeropHAccum'
+       fieldId(2) = 'AteAeropHCoarse'
 
        ! Allocate and register each field individually
        DO N = 1, 2
@@ -1347,7 +1398,7 @@ CONTAINS
                State_Chm  = State_Chm,                                       &
                State_Grid = State_Grid,                                      &
                chmId      = TRIM( fieldId(N) ),                              &
-               Ptr2Data   = State_Chm%IsorropAeropH,                         &
+               Ptr2Data   = State_Chm%AteAeropH,                         &
                nSlots     = 2,                                               &
                nCat       = N,                                               &
                RC         = RC                                              )
@@ -1360,10 +1411,10 @@ CONTAINS
        ENDDO
 
        !---------------------------------------------------------------------
-       ! IsorropHplus
+       ! AteHplus
        !---------------------------------------------------------------------
-       fieldId(1) = 'IsorropHplusAccum'
-       fieldId(2) = 'IsorropHplusCoarse'
+       fieldId(1) = 'AteHplusAccum'
+       fieldId(2) = 'AteHplusCoarse'
 
        ! Allocate and register each field individually
        DO N = 1, 2
@@ -1372,7 +1423,7 @@ CONTAINS
                State_Chm  = State_Chm,                                       &
                State_Grid = State_Grid,                                      &
                chmId      = TRIM( fieldId(N) ),                              &
-               Ptr2Data   = State_Chm%IsorropHplus,                          &
+               Ptr2Data   = State_Chm%AteHplus,                          &
                nSlots     = 2,                                               &
                nCat       = N,                                               &
                RC         = RC                                              )
@@ -1385,10 +1436,10 @@ CONTAINS
        ENDDO
 
        !---------------------------------------------------------------------
-       ! IsorropAeroH2O
+       ! AteAeroH2O
        !---------------------------------------------------------------------
-       fieldId(1) = 'IsorropAeroH2OAccum'
-       fieldId(2) = 'IsorropAeroH2OCoarse'
+       fieldId(1) = 'AteAeroH2OAccum'
+       fieldId(2) = 'AteAeroH2OCoarse'
 
        ! Allocate and register each field individually
        DO N = 1, 2
@@ -1397,7 +1448,7 @@ CONTAINS
                State_Chm  = State_Chm,                                       &
                State_Grid = State_Grid,                                      &
                chmId      = TRIM( fieldId(N) ),                              &
-               Ptr2Data   = State_Chm%IsorropAeroH2O,                        &
+               Ptr2Data   = State_Chm%AteAeroH2O,                        &
                nSlots     = 2,                                               &
                nCat       = N,                                               &
                RC         = RC                                              )
@@ -1410,15 +1461,49 @@ CONTAINS
        ENDDO
 
        !---------------------------------------------------------------------
-       ! IsorropSulfate
+       ! AteIONIC
        !---------------------------------------------------------------------
-       chmId = 'IsorropSulfate'
+       chmId = 'AteIONIC'
        CALL Init_and_Register(                                               &
             Input_Opt  = Input_Opt,                                          &
             State_Chm  = State_Chm,                                          &
             State_Grid = State_Grid,                                         &
             chmId      = chmId,                                              &
-            Ptr2Data   = State_Chm%IsorropSulfate,                           &
+            Ptr2Data   = State_Chm%AteIONIC,                           &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+       !---------------------------------------------------------------------
+       ! AteOH
+       !---------------------------------------------------------------------
+       chmId = 'AteOH'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%AteOH,                           &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+       !---------------------------------------------------------------------
+       ! AteSulfate
+       !---------------------------------------------------------------------
+       chmId = 'AteSulfate'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%AteSulfate,                           &
             RC         = RC                                                 )
 
        IF ( RC /= GC_SUCCESS ) THEN
@@ -1429,10 +1514,10 @@ CONTAINS
 
 
        !---------------------------------------------------------------------
-       ! IsorropNitrate
+       ! AteNitrate
        !---------------------------------------------------------------------
-       fieldId(1) = 'IsorropNitrateAccum'
-       fieldId(2) = 'IsorropNitrateCoarse'
+       fieldId(1) = 'AteNitrateAccum'
+       fieldId(2) = 'AteNitrateCoarse'
 
        ! Allocate and register each field individually
        DO N = 1, 2
@@ -1441,7 +1526,7 @@ CONTAINS
                State_Chm  = State_Chm,                                       &
                State_Grid = State_Grid,                                      &
                chmId      = TRIM( fieldId(N) ),                              &
-               Ptr2Data   = State_Chm%IsorropNitrate,                        &
+               Ptr2Data   = State_Chm%AteNitrate,                        &
                nSlots     = 2,                                               &
                nCat       = N,                                               &
                RC         = RC                                              )
@@ -1454,10 +1539,10 @@ CONTAINS
        ENDDO
 
        !---------------------------------------------------------------------
-       ! IsorropChloride
+       ! AteChloride
        !---------------------------------------------------------------------
-       fieldId(1) = 'IsorropChlorideAccum'
-       fieldId(2) = 'IsorropChlorideCoarse'
+       fieldId(1) = 'AteChlorideAccum'
+       fieldId(2) = 'AteChlorideCoarse'
 
        ! Allocate and register each field individually
        DO N = 1, 2
@@ -1466,7 +1551,7 @@ CONTAINS
                State_Chm  = State_Chm,                                       &
                State_Grid = State_Grid,                                      &
                chmId      = TRIM( fieldId(N) ),                              &
-               Ptr2Data   = State_Chm%IsorropChloride,                       &
+               Ptr2Data   = State_Chm%AteChloride,                       &
                nSlots     = 2,                                               &
                nCat       = N,                                               &
                RC         = RC                                              )
@@ -1479,15 +1564,15 @@ CONTAINS
        ENDDO
 
        !---------------------------------------------------------------------
-       ! IsorropBisulfate
+       ! AteBisulfate
        !---------------------------------------------------------------------
-       chmId  = 'IsorropBisulfate'
+       chmId  = 'AteBisulfate'
        CALL Init_and_Register(                                               &
             Input_Opt  = Input_Opt,                                          &
             State_Chm  = State_Chm,                                          &
             State_Grid = State_Grid,                                         &
             chmId      = chmId,                                              &
-            Ptr2Data   = State_Chm%IsorropBisulfate,                         &
+            Ptr2Data   = State_Chm%AteBisulfate,                         &
             RC         = RC                                                 )
 
        IF ( RC /= GC_SUCCESS ) THEN
@@ -1603,6 +1688,129 @@ CONTAINS
             State_Grid = State_Grid,                                         &
             chmId      = chmId,                                              &
             Ptr2Data   = State_Chm%SO3_AQ,                                   &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+       !---------------------------------------------------------------------
+       ! HSO3_AQ_A
+       !---------------------------------------------------------------------
+       chmId = 'HSO3_AQ_A'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%HSO3_AQ_A,                                   &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+       !---------------------------------------------------------------------
+       ! SO2_AQ_A
+       !---------------------------------------------------------------------
+       chmId = 'SO2_AQ_A'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%SO2_AQ_A,                                  &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! SO3_AQ_A
+       !---------------------------------------------------------------------
+       chmId = 'SO3_AQ_A'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%SO3_AQ_A,                                   &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! FeIII_A
+       !---------------------------------------------------------------------
+       chmId = 'FeIII_A'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%FeIII_A,                                  &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! MnII_A
+       !---------------------------------------------------------------------
+       chmId = 'MnII_A'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%MnII_A,                                  &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+       !---------------------------------------------------------------------
+       ! FeIII_A
+       !---------------------------------------------------------------------
+       chmId = 'FeIII_AMAX'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%FeIII_AMAX,                                  &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! MnII_A
+       !---------------------------------------------------------------------
+       chmId = 'MnII_AMAX'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%MnII_AMAX,                                  &
             RC         = RC                                                 )
 
        IF ( RC /= GC_SUCCESS ) THEN
@@ -1900,6 +2108,23 @@ CONTAINS
          State_Grid = State_Grid,                                            &
          chmId      = chmId,                                                 &
          Ptr2Data   = State_Chm%SO2AfterChem,                                &
+         RC         = RC                                                    )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    !------------------------------------------------------------------------
+    ! HPlusCloud
+    !------------------------------------------------------------------------
+    chmId = 'HPlusCloud'
+    CALL Init_and_Register(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         chmId      = chmId,                                                 &
+         Ptr2Data   = State_Chm%HPlusCloud,                                     &
          RC         = RC                                                    )
 
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2341,7 +2566,7 @@ CONTAINS
        WRITE( 6, 10 )
  10    FORMAT( /, 'Registered variables contained within the State_Chm object:')
        WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-       
+
        ! Print registered fields
        CALL Registry_Print( Input_Opt   = Input_Opt,                         &
                             Registry    = State_Chm%Registry,                &
@@ -2501,7 +2726,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%Map_KppVar = 0
 
-       ! 
+       !
        ALLOCATE( State_Chm%KPP_AbsTol( N ), STAT=RC )
        CALL GC_CheckVar( 'State_Chm%Kpp_AbsTol', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -3308,6 +3533,13 @@ CONTAINS
        State_Chm%GammaN2O5 => NULL()
     ENDIF
 
+    IF ( ASSOCIATED( State_Chm%GammaSO2 ) ) THEN
+       DEALLOCATE( State_Chm%GammaSO2, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%GammaSO2', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%GammaSO2 => NULL()
+    ENDIF
+
     IF ( ASSOCIATED( State_Chm%OMOC ) ) THEN
        DEALLOCATE( State_Chm%OMOC, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%OMOC', 2, RC )
@@ -3329,53 +3561,67 @@ CONTAINS
        State_Chm%OMOC_OPOA => NULL()
     ENDIF
 
-    IF ( ASSOCIATED( State_Chm%IsorropAeropH ) ) THEN
-       DEALLOCATE( State_Chm%IsorropAeropH, STAT=RC  )
-       CALL GC_CheckVar( 'State_Chm%IsorropAeropH', 2, RC )
+    IF ( ASSOCIATED( State_Chm%AteAeropH ) ) THEN
+       DEALLOCATE( State_Chm%AteAeropH, STAT=RC  )
+       CALL GC_CheckVar( 'State_Chm%AteAeropH', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%IsorropAeropH => NULL()
+       State_Chm%AteAeropH => NULL()
     ENDIF
 
-    IF ( ASSOCIATED( State_Chm%IsorropHplus ) ) THEN
-       DEALLOCATE( State_Chm%IsorropHplus, STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%IsorropHplus', 2, RC )
+    IF ( ASSOCIATED( State_Chm%AteHplus ) ) THEN
+       DEALLOCATE( State_Chm%AteHplus, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%AteHplus', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%IsorropHplus => NULL()
+       State_Chm%AteHplus => NULL()
     ENDIF
 
-    IF ( ASSOCIATED( State_Chm%IsorropAeroH2O ) ) THEN
-       DEALLOCATE( State_Chm%IsorropAeroH2O, STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%IsorropAeroH2O', 2, RC )
+    IF ( ASSOCIATED( State_Chm%AteOH ) ) THEN
+       DEALLOCATE( State_Chm%AteOH, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%AteOH', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%IsorropAeroH2O => NULL()
+       State_Chm%AteOH => NULL()
     ENDIF
 
-    IF ( ASSOCIATED( State_Chm%IsorropSulfate ) ) THEN
-       DEALLOCATE( State_Chm%IsorropSulfate, STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%IsorropSulfate', 2, RC )
+    IF ( ASSOCIATED( State_Chm%AteAeroH2O ) ) THEN
+       DEALLOCATE( State_Chm%AteAeroH2O, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%AteAeroH2O', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%IsorropSulfate => NULL()
+       State_Chm%AteAeroH2O => NULL()
     ENDIF
 
-    IF ( ASSOCIATED( State_Chm%IsorropNitrate ) ) THEN
-       DEALLOCATE( State_Chm%IsorropNitrate, STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%IsorropNitrate', 2, RC )
+    IF ( ASSOCIATED( State_Chm%AteSulfate ) ) THEN
+       DEALLOCATE( State_Chm%AteSulfate, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%AteSulfate', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%IsorropNitrate => NULL()
+       State_Chm%AteSulfate => NULL()
     ENDIF
 
-    IF ( ASSOCIATED( State_Chm%IsorropChloride ) ) THEN
-       DEALLOCATE( State_Chm%IsorropChloride, STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%IsorropChloride', 2, RC )
+    IF ( ASSOCIATED( State_Chm%AteNitrate ) ) THEN
+       DEALLOCATE( State_Chm%AteNitrate, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%AteNitrate', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%IsorropChloride => NULL()
+       State_Chm%AteNitrate => NULL()
     ENDIF
 
-    IF ( ASSOCIATED( State_Chm%IsorropBisulfate ) ) THEN
-       DEALLOCATE( State_Chm%IsorropBisulfate, STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%IsorropBisulfate', 2, RC )
+    IF ( ASSOCIATED( State_Chm%AteChloride ) ) THEN
+       DEALLOCATE( State_Chm%AteChloride, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%AteChloride', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%IsorropBisulfate => NULL()
+       State_Chm%AteChloride => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%AteBisulfate ) ) THEN
+       DEALLOCATE( State_Chm%AteBisulfate, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%AteBisulfate', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%AteBisulfate => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%HPlusCloud ) ) THEN
+       DEALLOCATE( State_Chm%HPlusCloud, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%HPlusCloud', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%HPlusCloud => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%pHCloud ) ) THEN
@@ -3471,6 +3717,53 @@ CONTAINS
        CALL GC_CheckVar( 'State_Chm%SO3_AQ', 3, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%SO3_AQ => NULL()
+    ENDIF
+    IF ( ASSOCIATED( State_Chm%FeIII_A ) ) THEN
+       DEALLOCATE( State_Chm%FeIII_A, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%FeIII_A', 3, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%FeIII_A => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%MnII_A ) ) THEN
+       DEALLOCATE( State_Chm%MnII_A, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%MnII_A', 3, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%MnII_A => NULL()
+    ENDIF
+    IF ( ASSOCIATED( State_Chm%FeIII_AMAX ) ) THEN
+       DEALLOCATE( State_Chm%FeIII_AMAX, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%FeIII_AMAX', 3, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%FeIII_AMAX => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%MnII_AMAX ) ) THEN
+       DEALLOCATE( State_Chm%MnII_AMAX, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%MnII_AMAX', 3, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%MnII_AMAX => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%HSO3_AQ_A ) ) THEN
+       DEALLOCATE( State_Chm%HSO3_AQ_A, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%HSO3_AQ_A', 3, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%HSO3_AQ_A => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%SO3_AQ_A ) ) THEN
+       DEALLOCATE( State_Chm%SO3_AQ_A, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%SO3_AQ_A', 3, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%SO3_AQ_A => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%SO2_AQ_A ) ) THEN
+       DEALLOCATE( State_Chm%SO2_AQ_A, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%SO2_AQ_A', 3, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%SO2_AQ_A => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%fupdateHOBr ) ) THEN
@@ -4444,6 +4737,31 @@ CONTAINS
           IF ( isUnits ) Units = 'l'
           IF ( isRank  ) Rank = 3
 
+       CASE ( 'GAMMASO2TMI' )
+          IF ( isDesc  ) Desc = 'Sticking coefficient for Gamma SO2+TMI/O2'
+          IF ( isUnits ) Units = 'l'
+          IF ( isRank  ) Rank = 3
+
+       CASE ( 'GAMMASO2O3' )
+          IF ( isDesc  ) Desc = 'Sticking coefficient for Gamma SO2+O3'
+          IF ( isUnits ) Units = 'l'
+          IF ( isRank  ) Rank = 3
+
+       CASE ( 'GAMMASO2H2O2' )
+          IF ( isDesc  ) Desc = 'Sticking coefficient for Gamma SO2+H2O2'
+          IF ( isUnits ) Units = 'l'
+          IF ( isRank  ) Rank = 3
+
+       CASE ( 'GAMMASO2NO2' )
+          IF ( isDesc  ) Desc = 'Sticking coefficient for Gamma SO2+NO2'
+          IF ( isUnits ) Units = 'l'
+          IF ( isRank  ) Rank = 3
+
+       CASE ( 'GAMMASO2CH2O' )
+          IF ( isDesc  ) Desc = 'Sticking coefficient for Gamma SO2+CH2O'
+          IF ( isUnits ) Units = 'l'
+          IF ( isRank  ) Rank = 3
+
        CASE ( 'KPPHVALUE' )
           IF ( isDesc  ) Desc  = 'H-value for Rosenbrock solver'
           IF ( isUnits ) Units = '1'
@@ -4526,76 +4844,91 @@ CONTAINS
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
-       CASE( 'ISORROPAEROPHACCUM' )
-          IF ( isDesc  ) Desc  = 'ISORROPIA aerosol pH, accumulation mode'
+       CASE( 'ATEAEROPHACCUM' )
+          IF ( isDesc  ) Desc  = 'Aerosol pH (accumulation mode) from ATE'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
-       CASE( 'ISORROPAEROPHCOARSE' )
-          IF ( isDesc  ) Desc  = 'ISORROPIA aerosol pH, accumulation mode'
+       CASE( 'ATEAEROPHCOARSE' )
+          IF ( isDesc  ) Desc  = 'Aerosol pH (accumulation mode) from ATE'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
-       CASE( 'ISORROPHPLUSACCUM' )
+       CASE( 'ATEHPLUSACCUM' )
           IF ( isDesc  ) Desc  = &
-             'ISORROPIA H+ concentration, accumulation mode'
+               'H+ concentration (accumulation mode) from ATE'
           IF ( isUnits ) Units = 'mol L-1'
           IF ( isRank  ) Rank  = 3
 
-       CASE( 'ISORROPHPLUSCOARSE' )
-          IF ( isDesc  ) Desc  = 'ISORROPIA H+ concentration, coarse mode'
+       CASE( 'ATEIONIC' )
+          IF ( isDesc  ) Desc  = 'Ionic strength'
+          IF ( isUnits ) Units = 'mol L-1' ! check
+          IF ( isRank  ) Rank  = 3
+
+       CASE( 'ATEOH' )
+          IF ( isDesc  ) Desc  = 'Hydroxide from ATE'
+          IF ( isUnits ) Units = 'mol L-1' ! check
+          IF ( isRank  ) Rank  = 3
+
+       CASE( 'ATEHPLUSCOARSE' )
+          IF ( isDesc  ) Desc  = 'H+ concentration (coarse mode) from ATE'
           IF ( isUnits ) Units = 'mol L-1'
           IF ( isRank  ) Rank  = 3
 
-       CASE( 'ISORROPAEROH2OACCUM' )
+       CASE( 'ATEAEROH2OACCUM' )
           IF ( isDesc  ) Desc  = &
-             'ISORROPIA aerosol water concentration, accumulation mode'
+             'Aerosol water concentration (accumulation mode) from ATE'
           IF ( isUnits ) Units = 'ug m-3'
           IF ( isRank  ) Rank  = 3
 
-       CASE( 'ISORROPAEROH2OCOARSE' )
+       CASE( 'ATEAEROH2OCOARSE' )
           IF ( isDesc  ) Desc  = &
-             'ISORROPIA aerosol water concentration, coarse mode'
+             'Aerosol water concentration (coarse mode) from ATE'
           IF ( isUnits ) Units = 'ug m-3'
           IF ( isRank  ) Rank  = 3
 
-       CASE( 'ISORROPSULFATE' )
-          IF ( isDesc  ) Desc  = 'ISORROPIA sulfate concentration'
+       CASE( 'ATESULFATE' )
+          IF ( isDesc  ) Desc  = 'Sulfate concentration from ATE'
           IF ( isUnits ) Units = 'mol L-1'
           IF ( isRank  ) Rank  = 3
 
-       CASE( 'ISORROPNITRATEACCUM' )
+       CASE( 'ATENITRATEACCUM' )
           IF ( isDesc  ) Desc  = &
-             'ISORROPIA nitrate concentration, accumulation mode'
+             'Nitrate concentration (accumulation mode) from ATE'
           IF ( isUnits ) Units = 'mol L-1'
           IF ( isRank  ) Rank  = 3
 
-       CASE( 'ISORROPNITRATECOARSE' )
+       CASE( 'ATENITRATECOARSE' )
           IF ( isDesc  ) Desc  = &
-             'ISORROPIA nitrate concentration, coarse mode'
+             'Nitrate concentration (coarse mode) from ATE'
           IF ( isUnits ) Units = 'mol L-1'
           IF ( isRank  ) Rank  = 3
 
-       CASE( 'ISORROPCHLORIDEACCUM' )
+       CASE( 'ATECHLORIDEACCUM' )
           IF ( isDesc  ) Desc  = &
-             'ISORROPIA chloride concentration, accumulation mode'
+             'Chloride concentration (accumulation mode) from ATE'
           IF ( isUnits ) Units = 'mol/L'
           IF ( isRank  ) Rank  = 3
 
-       CASE( 'ISORROPCHLORIDECOARSE' )
+       CASE( 'ATECHLORIDECOARSE' )
           IF ( isDesc  ) Desc  = &
-             'ISORROPIA chloride concentration, coarse mode'
+             'Chloride concentration (coarse mode) from ATE'
           IF ( isUnits ) Units = 'mol/L'
           IF ( isRank  ) Rank  = 3
 
-       CASE( 'ISORROPBISULFATE' )
-          IF ( isDesc  ) Desc  = 'ISORROPIA Bisulfate (general acid)' &
-                                 // ' concentration'
+       CASE( 'ATEBISULFATE' )
+          IF ( isDesc  ) Desc  = &
+               'Bisulfate (general acid) concentration from ATE'
           IF ( isUnits ) Units = 'mol L-1'
           IF ( isRank  ) Rank  =  3
 
        CASE( 'PHCLOUD' )
           IF ( isDesc  ) Desc  = 'Cloud pH'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  =  3
+
+       CASE( 'HPLUSCLOUD' )
+          IF ( isDesc  ) Desc  = 'Cloud H+'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  =  3
 
@@ -4631,6 +4964,41 @@ CONTAINS
 
        CASE ( 'SO3AQ' )
           IF ( isDesc  ) Desc  = 'Cloud sulfite concentration'
+          IF ( isUnits ) Units = 'mol L-1'
+          IF ( isRank  ) Rank  =  3
+
+       CASE ( 'HSO3_AQ_A' )
+          IF ( isDesc  ) Desc  = 'Aerosol bisulfite concentration'
+          IF ( isUnits ) Units = 'mol L-1'
+          IF ( isRank  ) Rank  =  3
+
+       CASE ( 'SO3_AQ_A' )
+          IF ( isDesc  ) Desc  = 'Aerosol sulfite concentration'
+          IF ( isUnits ) Units = 'mol L-1'
+          IF ( isRank  ) Rank  =  3
+
+       CASE ( 'SO2_AQ_A' )
+          IF ( isDesc  ) Desc  = 'Aerosol SO2aq concentration'
+          IF ( isUnits ) Units = 'mol L-1'
+          IF ( isRank  ) Rank  =  3
+
+       CASE ( 'FEIII_A' )
+          IF ( isDesc  ) Desc  = 'Aerosol FeIII concentration'
+          IF ( isUnits ) Units = 'mol L-1'
+          IF ( isRank  ) Rank  =  3
+
+       CASE ( 'MNII_A' )
+          IF ( isDesc  ) Desc  = 'Aerosol MnII concentration'
+          IF ( isUnits ) Units = 'mol L-1'
+          IF ( isRank  ) Rank  =  3
+
+       CASE ( 'FEIII_AMAX' )
+          IF ( isDesc  ) Desc  = 'Aerosol FeIII max concentration'
+          IF ( isUnits ) Units = 'mol L-1'
+          IF ( isRank  ) Rank  =  3
+
+       CASE ( 'MNII_AMAX' )
+          IF ( isDesc  ) Desc  = 'Aerosol MnII max concentration'
           IF ( isUnits ) Units = 'mol L-1'
           IF ( isRank  ) Rank  =  3
 
@@ -5561,7 +5929,7 @@ CONTAINS
     modelId = N
     IF ( PerSpc == 'DRY' ) modelId = State_Chm%Map_DryDep(N)
     IF ( PerSpc == 'WET' ) modelId = State_Chm%Map_WetDep(N)
-    
+
     ! Point to the proper species, by modelId
     ThisSpc => State_Chm%SpcData(modelId)%Info
 
