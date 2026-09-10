@@ -588,7 +588,7 @@ CONTAINS
        Container%NcFormat = ''
     ENDIF
 
-#if !defined( ESMF_ ) && !defined( NC_HAS_COMPRESSION )
+#if defined( MODEL_CLASSIC ) && !defined( NC_HAS_COMPRESSION )
 
     ! For GEOS-Chem Classic simulations compiled with either DEBUG=y or
     ! NC_NODEFLATE=y, set NcFormat to "NetCDF-3 with large file support",

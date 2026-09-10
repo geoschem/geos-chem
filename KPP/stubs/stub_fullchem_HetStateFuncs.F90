@@ -10,10 +10,14 @@ MODULE fullchem_HetStateFuncs
   !
 CONTAINS
   !
-  SUBROUTINE fullChem_SetStateHet( I,         J,         L,                  &
-                                   id_SALA,   id_SALAAL, id_SALC,            &
-                                   id_SALCAL, Input_Opt, State_Chm,          &
-                                   State_Met, H,         RC                 )
+  SUBROUTINE fullChem_SetStateHet( I,          J,          L,                &
+                                   id_DSTbin1, id_DSTbin2, id_DSTbin3,       &
+                                   id_DSTbin4, id_DSTbin5, id_DSTbin6,       &
+                                   id_DSTbin7, id_pFe,     id_SALA,          &
+                                   id_SALAAL,  id_SALC,    id_SALCAL,        &
+                                   id_SO2,     id_SO4,     Input_Opt,        &
+                                   State_Chm,  State_Met,  H,                &
+                                   RC                                       )
     !
     ! Stub routine to avoid compilation errors
     !
@@ -26,10 +30,20 @@ CONTAINS
     INTEGER,        INTENT(IN)    :: I
     INTEGER,        INTENT(IN)    :: J
     INTEGER,        INTENT(IN)    :: L
+    INTEGER,        INTENT(IN)    :: id_DSTbin1
+    INTEGER,        INTENT(IN)    :: id_DSTbin2
+    INTEGER,        INTENT(IN)    :: id_DSTbin3
+    INTEGER,        INTENT(IN)    :: id_DSTbin4
+    INTEGER,        INTENT(IN)    :: id_DSTbin5
+    INTEGER,        INTENT(IN)    :: id_DSTbin6
+    INTEGER,        INTENT(IN)    :: id_DSTbin7
+    INTEGER,        INTENT(IN)    :: id_pFe
     INTEGER,        INTENT(IN)    :: id_SALA
     INTEGER,        INTENT(IN)    :: id_SALAAL
     INTEGER,        INTENT(IN)    :: id_SALC
     INTEGER,        INTENT(IN)    :: id_SALCAL
+    INTEGER,        INTENT(IN)    :: id_SO2
+    INTEGER,        INTENT(IN)    :: id_SO4
     TYPE(OptInput), INTENT(IN)    :: Input_Opt
     TYPE(ChmState), INTENT(IN)    :: State_Chm
     TYPE(MetState), INTENT(IN)    :: State_Met
@@ -37,6 +51,7 @@ CONTAINS
     INTEGER,        INTENT(OUT)   :: RC
     !
     RC = 0
+    !
   END SUBROUTINE fullchem_SetStateHet
   !
 END MODULE fullchem_HetStateFuncs

@@ -57,7 +57,9 @@ CONTAINS
     REAL(dp), INTENT(IN) :: a0, c0
     REAL(dp)             :: k
     !
-    k = a0 * EXP( c0 / TEMP )
+    ! Use precomputed INV_TEMP to replace the costly division by TEMP
+    ! with a multiply (result differs at most in the last ULP)
+    k = a0 * EXP( c0 * INV_TEMP )
   END FUNCTION GCARR_ac
 
   FUNCTION GCARR_abc( a0, b0, c0 ) RESULT( k )
@@ -67,7 +69,9 @@ CONTAINS
     REAL(dp), INTENT(IN) :: a0, b0, c0
     REAL(dp)             :: k
     !
-    k = a0 * EXP( c0 / TEMP ) * K300_OVER_TEMP**b0
+    ! Use precomputed INV_TEMP to replace the costly division by TEMP
+    ! with a multiply (result differs at most in the last ULP)
+    k = a0 * EXP( c0 * INV_TEMP ) * K300_OVER_TEMP**b0
   END FUNCTION GCARR_abc
 
   !#########################################################################

@@ -113,7 +113,6 @@ VerboseOnCores:              root       # Accepted values: root all
     --> CMIP6_SHIP             :       ${RUNDIR_CMIP6_FIELDS}    # 1850-2100
 # ----- BIOMASS BURNING EMISSIONS ---------------------------------------------
     --> QFED2                  :       false    # 2000-2020
-    --> GFAS                   :       false    # 2003-2021
     --> BB4MIPS                :       ${RUNDIR_CMIP6_FIELDS}    # 1850-2100
     --> GFED4_CLIMATOLOGY      :       false    # If true, turn off GFED ext below
     --> FINNv25                :       false    # 2012-2023
@@ -181,6 +180,8 @@ VerboseOnCores:              root       # Accepted values: root all
     --> fraction POG1          :       0.49
     --> CO to SOAP             :       0.013
     --> GFED_subgrid_coag      :       false
+112     GFAS                   : ${RUNDIR_GFAS_EXT}   ACET/ACR/ACTA/ALD2/ALK4/BCPI/BCPO/BENZ/C2H2/C2H4/C2H6/C3H8/C4H6/CH2O/CO/DMS/EOH/FURA/GLYX/HCOOH/ISOP/MEK/MGLY/MOH/MTPA/MVK/NAP/NH3/NO/OCPI/OCPO/pFe/PHEN/POG1/POG2/PRPE/RCHO/SO2/SOAP/STYR/TOLU/XYLE
+    --> Vertical Profile Species:      CO
 117     Volcano                : on    SO2
     --> Volcano_Source         :       AeroCom
     --> Volcano_Table          :       ${RUNDIR_VOLC_TABLE}
@@ -1610,23 +1611,6 @@ VerboseOnCores:              root       # Accepted values: root all
 )))QFED2
 
 #==============================================================================
-# --- GFAS biomass burning ---
-#==============================================================================
-(((GFAS
-0 GFAS_SOAP  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc cofire        2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s SOAP 75/281 5 3
-0 GFAS_BCPI  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc bcfire        2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s BCPI 70/75  5 3
-0 GFAS_BCPO  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc bcfire        2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s BCPO 71/75  5 3
-0 GFAS_OCPI  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc ocfire        2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s OCPI 72/75  5 3
-0 GFAS_OCPO  $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc ocfire        2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s OCPO 73/75  5 3
-0 GFAS_SO2   $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc so2fire       2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s SO2  75     5 3
-0 GFAS_pFe   $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc so2fire       2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s pFe  75/66  5 3
-0 GFAS_NH3   $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc nh3fire       2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s NH3  75     5 3
-0 GFAS_DMS   $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc c2h6sfire     2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s DMS  75     5 3
-)))GFAS
-
-(((EMISSIONS
-
-#==============================================================================
 # --- FINNv2.5 biomass burning ---
 # Uses dataset derived with combined fire detection from MODIS and VIIRS.
 # Data downloaded from: https://rda.ucar.edu/datasets/d312009/dataaccess/
@@ -1899,6 +1883,26 @@ VerboseOnCores:              root       # Accepted values: root all
 111 GFED_FRAC_3HOUR $ROOT/GFED4/v2023-03/$YYYY/GFED4_3hrfrac_gen.025x025.$YYYY$MM.nc   GFED_FRAC3HR 2010-2023/1-12/1/0-23  RF xy 1 * - 1 1
 )))GFED_3hourly
 )))GFED4
+
+#==============================================================================
+# --- GFAS biomass burning (Extension 112) ---
+#
+# NOTE: Scale factors for species not in GFAS have been computed
+# with respect to CO in the GFAS_CLIMATOLOGY data.
+#==============================================================================
+(((GFAS
+112 GFAS_CO_3D    $ROOT/GFAS/v2026-06/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc cofire_3d     2003-2100/1-12/1-31/0 EFY xyz kg/m2/s * 75       1 1
+112 GFAS_CO_2D    $ROOT/GFAS/v2026-06/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc cofire        2003-2100/1-12/1-31/0 EFY xy  kg/m2/s * 75       1 1
+112 GFAS_SOAP_2D  -                                                       -             -                     -   -   -       * 75/281   1 1
+112 GFAS_BCPI_2D  $ROOT/GFAS/v2026-06/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc bcfire        2003-2100/1-12/1-31/0 EFY xy  kg/m2/s * 70/75    1 1
+112 GFAS_BCPO_2D  $ROOT/GFAS/v2026-06/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc bcfire        2003-2100/1-12/1-31/0 EFY xy  kg/m2/s * 71/75    1 1
+112 GFAS_DMS_2D   $ROOT/GFAS/v2026-06/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc c2h6sfire     2003-2100/1-12/1-31/0 EFY xy  kg/m2/s * 75       1 1
+112 GFAS_NH3_2D   $ROOT/GFAS/v2026-06/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc nh3fire       2003-2100/1-12/1-31/0 EFY xy  kg/m2/s * 75       1 1
+112 GFAS_OCPI_2D  $ROOT/GFAS/v2026-06/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc ocfire        2003-2100/1-12/1-31/0 EFY xy  kg/m2/s * 72/75    1 1
+112 GFAS_OCPO_2D  $ROOT/GFAS/v2026-06/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc ocfire        2003-2100/1-12/1-31/0 EFY xy  kg/m2/s * 73/75    1 1
+112 GFAS_pFe_2D   $ROOT/GFAS/v2026-06/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc so2fire       2003-2100/1-12/1-31/0 EFY xy  kg/m2/s * 75/66    1 1
+112 GFAS_SO2_2D   $ROOT/GFAS/v2026-06/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc so2fire       2003-2100/1-12/1-31/0 EFY xy  kg/m2/s * 75       1 1
+)))GFAS
 
 )))EMISSIONS
 
@@ -2474,13 +2478,6 @@ ${RUNDIR_TES_CLIM_N2O}
 255 NEI2016_SO2_YRSCALE  4.773/4.701/4.626/4.625/4.171/3.717/3.273/2.879/2.446/2.038/1.591/1.525/1.469/1.237/1.000/0.767/0.735/0.641/0.583 - 2002-2020/1/1/0 C xy 1 1
 256 NEI2016_PM25_YRSCALE 1.120/1.140/1.159/1.178/1.213/1.248/1.202/1.195/1.190/1.192/1.153/1.115/1.077/1.040/1.000/0.964/0.961/0.958/0.955 - 2002-2020/1/1/0 C xy 1 1
 )))NEI2016_MONMEAN
-
-#==============================================================================
-# --- GFAS scale factors ---
-#==============================================================================
-(((GFAS
-300 GFAS_EMITL $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc mami 2003-2021/1-12/1-31/0 C xy m 1
-)))GFAS
 
 #==============================================================================
 # --- QFED vertical partitioning ---
