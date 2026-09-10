@@ -642,12 +642,15 @@ cp ./gitignore                        ${rundir}/.gitignore
 
 # Only copy extdata.yaml used in ExtData2G if using Transport Tracers
 # (extdata.yaml not yet available for other simulations)
-if [[ "x${sim_name}" == "xTransportTracers" ]]; then
+if [[ "x${sim_name}" == "xTransportTracers" || "x${sim_name}" == "xtagO3" ]]; then
     cp ./ExtData2G.yaml.templates/extdata.yaml.${sim_name} ${rundir}/extdata.yaml
 fi
 
 # Copy file to auto-update common settings
 cp ./setCommonRunSettings.sh.template  ${rundir}/setCommonRunSettings.sh
+
+# Copy file to extract performance metrics, currently only timing info from allPEs.log
+cp ./extractPerformance.sh  ${rundir}/extractPerformance.sh
 
 # Copy metrics.py file to computing global OH
 if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xcarbon" ]]; then
@@ -668,6 +671,7 @@ chmod 744 ${rundir}/setEnvironmentLink.sh
 chmod 744 ${rundir}/setRestartLink.sh
 chmod 744 ${rundir}/setCommonRunSettings.sh
 chmod 744 ${rundir}/checkRunSettings.sh
+chmod 744 ${rundir}/extractPerformance.sh
 
 # Copy species database; append APM or TOMAS species if needed
 # Also copy APM input files to the run directory
@@ -892,7 +896,7 @@ while [ "$valid_response" -eq 0 ]; do
 	printf "\n\nChanges to the following run directory files are tracked by git:\n\n" >> ${version_log}
 	printf "\n"
 	git init
-	git add *.rc *.sh *.yml input.nml
+	git add *.rc *.sh *.yml *.yaml input.nml
 	if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xcarbon" ]]; then
 	    git add *.py
 	fi
@@ -921,7 +925,7 @@ printf "\n  -- Example run scripts are in the runScriptSamples subdirectory"
 printf "\n  -- For more information visit the GCHP user guide at"
 printf "\n     https://readthedocs.org/projects/gchp/\n\n"
 
-if [[ "x${sim_name}" == "xTransportTracers" ]]; then
+if [[ "x${sim_name}" == "xTransportTracers" || "x${sim_name}" == "xtagO3" ]]; then
     printf "\n\n*** NOTE: ExtData2G is now available as beta! ***\n"
     printf " - New configuration file extdata.yaml is located in your run directory\n"
     printf " - It is configured for use with MERRA2 meteorology at grid resolutions <= C180\n"

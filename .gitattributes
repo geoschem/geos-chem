@@ -1,0 +1,12 @@
+# Normalize line endings to LF for text files by default.
+# This repo is built and run on Linux/HPC clusters, so CRLF endings in
+# scripts/source break shebangs, Fortran preprocessing, and compilation.
+* text=auto eol=lf
+
+# Binary assets — never diff/merge as text.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary

@@ -4,6 +4,48 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - TBD
+### Added
+- Added PSO4AQ and PH2SO4 as a product to certain reactions; see `KPP/fullchem/CHANGELOG_fullchem.md`
+- Added methanediol (MDL) as a transported gas-phase species and to the KPP fullchem and custom mechanisms
+- Added routine `Cloud_CH2O_MDL` in `KPP/fullchem/fullchem_SulfurChemFuncs.F90`
+- Added multiphase sulfate chemistry and cloud Hplus diagnostic for Travis et al. (2025)
+- Added `IONIC` output argument in calls to HETP driver routine `MACH_HETP_Main15Cases`
+- Added APM restart file paths to `run/shared/download_data.yml`
+- Added for TOMAS, organic and Dunne new particle formation, 3D GFAS capability, and updates for accomodation coefficients
+- Added code blocks for MAPL3 code in development
+- Added GCHP utility script extractPerformance.sh to scrape allPEs.log for timing summary in GCHP run directories
+- Added GCHP build scripts to GCHP runScriptSamples for Harvard
+- Added several additional run, build, and utility scripts to GCHP runScriptSamples for Harvard and AWS pcluster
+- Added `.gitattributes`, `CITATION.cff`, `GOVERNANCE.md`, `SECURITY.md` for GitHub
+- Added `CLAUDE.md`, which gives guidance to Claude Code AI
+- Added `.release/changeVersionNumbers.sh` to change version numbers in relevant files in this repository
+- Added AI disclosure section to `.github/PULL_REQUEST_TEMPLATE.md`
+
+### Changed
+- Renamed `State_Chm%Isorrop*` fields to `State_Chm%Ate*` (aerosol thermodynamical equilibrium), as ISORROPIA is no longer used
+- Updated routine `fullchem_SetStateHet` to accept `id_DSTbin{1..7}`, `id_pFe`, `id_SO2`, and `id_SO4` as arguments
+- Renamed `CRITRH` to `RH_35_PERCENT` and `CRITRH2` to `RH_50_PERCENT` in `KPP/fullchem/fullchem_RateLawFuncs.F90`
+- Added DSTbin{1..7}, SO2, SO4, and pFE species ID flags to the `SetStateHet` routine in `KPP/fullchem_HetStateFuncs.F90` and `KPP/stubs/stub_fullchem_HetStateFuncs.F90`
+- Updated `run/shared/download_data.py` and `run/shared/setupForRestarts.sh` to read APM restart file paths
+- Selected RODAS3.1 as the default integration method for the fullchem mechanism; Regenerated fullchem solver files with KPP 3.4.0
+- Updated the minimum version of KPP needed to build the fullchem mechanism from 3.2.0 to 3.4.0
+- Changed C-preprocessor switch `MODEL_` to `MODEL_EXTERNAL`, and `ESMF_` to `USE_ESMF`
+- Changed the order of DO loops in `GeosCore/tomas_mod.F90` from `I-J-L` to `L-J-I` and added `!$OMP COLLAPSE( 3 )` statements
+- Updated run directory configuration files for GFAS (extension number 112)
+- Changed time cycle for GFAS data in the `gc_4x5_merra2_carbon_CH4_straddle_00z` from `EFY` to `C` to avoid runtime error
+
+### Fixed
+- Fixed incorrect variable names and removed unused variables in `NcdfUtil/ncdf_mod.F90`
+- Fixed incorrect Arrhenius "A" coefficient (1.97d-12 --> 1.97d-11) in C3H8 + OH = A3O2 rxn
+- Fixed GCHP transport tracers extdata.yaml to include valid_range for CEDS
+- Fixed OpenMP parallelization error in `GeosCore/tomas_mod.F90`
+- Fixed typos (extra `:` characters) in `run/shared/kpp_standalone_interface.yml`
+
+### Removed
+- Removed obsolete code in dust_mod.F90
+- Removed unused subroutine I_Am_UnOPENed in inquireMod.F90
+
 ## [14.7.1] - 2026-04-08
 ### Added
 - Added `HTAP_SHIP` toggle in `HEMCO_Config.rc.carbon` templates for GC-Classic and GCHP
@@ -51,6 +93,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed timestep mismatch between GCHP C180 and GCC 0.5x0.625
 - Fixed incorrect dust species names in `run/GCClassic/HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.fullchem.onlineE` 
 - Fixed incorrect extension number for `InvDustL23M` entries in `run/GCHP/HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.fullchem`
+- Fixed incorrect `InvAFCID` diagnostic entries `HEMCO_Diagn.rc.fullchem` and `HISTORY.rc.fullchem` template files
 
 ### Removed
 - Removed `ARCTAS_SHIP`, `CORBETT_SHIP`, `ICOADS_SHIP` from `HEMCO_Config.rc` template files
@@ -58,6 +101,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Removed `GeosUtil/grid_registry_mod.F90`.
 - Removed `OHconcAfterChem` from GCClassic and GCHP `HISTORY.rc.carbon` templates, as OH is fixed during the simulation
 - Removed `State_Grid` argument from `Set_Prof_FJX` routine
+
+### Fixed
+- Fixed the species database entry of `DMS` to use `Is_Gas: true`, as DMS is a gas-phase species and not an aerosol
+
+### Changed
+- Changed frequency of SpeciesConcVV and SpeciesConcMND diagnostic update to every chemistry timestep (previously dynamic timestep) to avoid value oscillation for certain species when dynamic timestep is less than chemistry timestep
 
 ## [14.7.0] - 2026-02-05
 ### Added
@@ -165,7 +214,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Changed OpenMP loop scheduling from `DYNAMIC` to `GUIDED` in routine `DO_CONVECTION`
 - Added `Diagn_APM` routine in `GeosCore/hcoi_gc_diagn_mod.F90` to restore HEMCO manual diagnostics for use w/ APM
 - Added hidden option to read GC-Classic restart file as real8 locally rather than real4 through HEMCO
-
+	
 ### Changed
 - Updated logic to include ObsPack observations that span UTC date boundaries
 - Assigned ObsPack averaging interval end times (instead of start times) to the `aveEnd` variable in routine `ObsPack_Write_Output`
