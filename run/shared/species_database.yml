@@ -1274,7 +1274,7 @@ DMS:
   FullName: Dimethyl sulfide
   Henry_CR: 3100.0
   Henry_K0: 0.48
-  Is_Aerosol: true
+  Is_Gas: true
   MW_g: 62.13
 DSTbin_PROP: &DSTbinproperties
   DD_DustDryDep: true
@@ -3053,10 +3053,22 @@ MCT:
   Is_WetDep: true
   MW_g: 124.0
   WD_RetFactor: 2.0e-2
+MDL:
+  DD_F0: 1.0
+  DD_Hstar: 1.3e+6
+  Formula: HOCH2OH
+  FullName: Methanediol
+  Henry_CR: 5200.0
+  Henry_K0: 8.1e+5
+  Is_DryDep: true
+  Is_Gas: true
+  Is_WetDep: true
+  MW_g: 64.05
+  WD_RetFactor: 2.0e-2
 MEKCO3:
- Formula: C3H5O4
- Is_Gas: true
- MW_g: 105.07
+  Formula: C3H5O4
+  Is_Gas: true
+  MW_g: 105.07
 MEK:
   Formula: RC(O)R
   FullName: Methyl Ethyl Ketone
@@ -3995,6 +4007,16 @@ PHg2Cl:
   Is_Gas: true
   MW_g: 200.59   # Use mol wt of atomic Hg
   KPP_AbsTol: 1.0e25
+PHMSAQ:
+  FullName: Dummy species to track production of HMS in cloud chemistry
+  Is_Gas: true
+  MW_g: 111.10
+  KPP_AbsTol: 1.0e25
+PHMSMP:
+  FullName: Dummy species to track production of multiphase HMS
+  Is_Gas: true
+  MW_g: 111.10
+  KPP_AbsTol: 1.0e25
 PIN:
   DD_F0: 1.0
   DD_Hstar: 2.0e+6
@@ -4414,9 +4436,14 @@ PSO4:
   MW_g: 96.06
   KPP_AbsTol: 1.0e+25
 PSO4AQ:
-  FullName: SO4 from cloud chemistry
+  FullName: Prod SO4 from cloud chemistry
   Is_Gas: true
   MW_g: 96.06
+PSO4MP:
+  FullName: Dummy species to track production of multiphase sulfate
+  Is_Gas: true
+  MW_g: 96.06
+  KPP_AbsTol: 1.0e+25
 PYAC:
   DD_F0: 1.0
   DD_Hstar: 3.14e+5

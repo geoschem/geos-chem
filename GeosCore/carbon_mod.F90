@@ -19,6 +19,10 @@ MODULE CARBON_MOD
   USE PhysConstants     ! Physical constants
   USE PRECISION_MOD     ! For GEOS-Chem Precisions
 
+#ifdef TOMAS
+  USE TOMAS_MOD,   ONLY : ORG_NUC       !SamO
+#endif
+
   IMPLICIT NONE
   PRIVATE
 !
@@ -224,6 +228,24 @@ MODULE CARBON_MOD
   REAL(fp), ALLOCATABLE, TARGET :: OCPI_BIOB_BULK(:,:)
   REAL(fp), ALLOCATABLE, TARGET :: OCPO_BIOB_BULK(:,:)
 
+ ! Used for if BB3D (naj 6/26/2024)
+  REAL(fp), ALLOCATABLE, TARGET :: BCFF_3D(:,:,:,:,:)
+  REAL(fp), ALLOCATABLE, TARGET :: OCFF_3D(:,:,:,:,:)
+  REAL(fp), ALLOCATABLE, TARGET :: BCBF_3D(:,:,:,:,:)
+  REAL(fp), ALLOCATABLE, TARGET :: OCBF_3D(:,:,:,:,:)
+  REAL(fp), ALLOCATABLE, TARGET :: BCBB_3D(:,:,:,:,:)
+
+  REAL(fp), ALLOCATABLE, TARGET :: BCPI_ANTH_BULK_3D(:,:,:)
+  REAL(fp), ALLOCATABLE, TARGET :: BCPO_ANTH_BULK_3D(:,:,:)
+  REAL(fp), ALLOCATABLE, TARGET :: OCPI_ANTH_BULK_3D(:,:,:)
+  REAL(fp), ALLOCATABLE, TARGET :: OCPO_ANTH_BULK_3D(:,:,:)
+
+  REAL(fp), ALLOCATABLE, TARGET :: BCPI_BIOB_BULK_3D(:,:,:)
+  REAL(fp), ALLOCATABLE, TARGET :: BCPO_BIOB_BULK_3D(:,:,:)
+  REAL(fp), ALLOCATABLE, TARGET :: OCPI_BIOB_BULK_3D(:,:,:)
+  REAL(fp), ALLOCATABLE, TARGET :: OCPO_BIOB_BULK_3D(:,:,:)
+  REAL(fp), ALLOCATABLE, TARGET :: OCBB_3D(:,:,:,:,:)
+
   REAL(fp), ALLOCATABLE :: TERP_ORGC(:,:)
   REAL(fp), ALLOCATABLE :: CO_ANTH(:,:)
 #endif
@@ -369,6 +391,7 @@ CONTAINS
 #ifdef TOMAS
     INTEGER            :: I, J
     REAL*4             :: BOXVOL, TEMPTMS, PRES, BOXMASS
+    REAL*4             :: RHTOMAS
 #endif
 
     ! Pointers
@@ -383,6 +406,14 @@ CONTAINS
     INTEGER            :: FLAG,I,J,N,IDCARBON
     REAL(fp)           :: A_M2, E_CARBON, DTSRCE
     REAL(fp)           :: EMITRATE(State_Grid%NX,State_Grid%NY)
+#endif
+
+#ifdef TOMAS
+  ! ---------------------------------------------------------- SamO
+    IF (.NOT. ALLOCATED (ORG_NUC)) THEN
+      ALLOCATE(ORG_NUC(State_Grid%NX,State_Grid%NY,State_Grid%NZ))
+    ENDIF
+  ! ---------------------------------------------------------- SamO
 #endif
 
     !=================================================================
@@ -836,9 +867,9 @@ CONTAINS
       CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid, &
                  State_Met, State_Diag,'CHECKMN from chemcarbon', RC)
 
-      !$OMP PARALLEL DO                                                      &
-      !$OMP DEFAULT( SHARED                                                 )&
-      !$OMP PRIVATE( I, J, L, NEWSOA, BOXVOL, TEMPTMS, PRES, BOXMASS        )&
+      !$OMP PARALLEL DO       &
+      !$OMP DEFAULT( SHARED ) &
+      !$OMP PRIVATE( I, J, L, NEWSOA, BOXVOL, TEMPTMS, PRES, BOXMASS, RHTOMAS)&
       !$OMP COLLAPSE( 3                                                     )
       DO L = 1, State_Grid%NZ
       DO J = 1, State_Grid%NY
@@ -847,11 +878,19 @@ CONTAINS
          BOXVOL  = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3
          BOXMASS  = State_Met%AD(I,J,L)  !kg
          TEMPTMS = State_Met%T(I,J,L)
+         RHTOMAS = State_Met%RH(I,J,L) / 1.e2
+         IF ( RHTOMAS > 0.99 ) RHTOMAS = 0.99
+         !IF (I.eq.40 .and. J.eq.46 .and. L.eq.1) THEN  ! SGP for 0.25x0.3125
+         !IF (I.eq.17 .and. J.eq.32 .and. L.eq.1) THEN  ! SGP for 4x5
+         !print*,'---------------------------------------------------------------------'
+         ! print*,'TEMPTMS, RHTOMAS in chemcarbon =',TEMPTMS,RHTOMAS,I,J,L
+         !ENDIF
          PRES    = GET_PCENTER(I,j,L)*100.0 ! in Pa
          IF ( NEWSOA > 0.0e+0_fp ) THEN
             !sfarina16: SOAP -> size Resolved TOMAS SOA
+            ORG_NUC(I,J,L) =  NEWSOA/DTCHEM ! SamO [kg/box/second]
             CALL SOACOND( NEWSOA, I, J, L, BOXVOL, TEMPTMS, PRES, BOXMASS, &
-                          State_Chm, State_Grid, State_Diag, RC)
+                          State_Chm, State_Grid, State_Diag, RC, RHTOMAS)
          ENDIF
          Spc(id_SOAS)%Conc(I,J,L) = Spc(id_SOAS)%Conc(I,J,L) + NEWSOA
          Spc(id_SOAP)%Conc(I,J,L) = Spc(id_SOAP)%Conc(I,J,L) - NEWSOA
@@ -4905,6 +4944,7 @@ CONTAINS
    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_GetDiagn
    USE HCO_State_GC_Mod,     ONLY : HcoState, ExtState
    USE HCO_EMISLIST_MOD,     ONLY : HCO_GetPtr !(ramnarine 12/27/2018)
+   USE Species_Mod,          ONLY : SpcConc !(naj 7/11/2024)
    USE Input_Opt_Mod,        ONLY : OptInput
    USE State_Chm_Mod,        ONLY : ChmState
    USE State_Diag_Mod,       ONLY : DgnState
@@ -4949,9 +4989,14 @@ CONTAINS
    REAL*4                   :: BOXVOL  ! calculated from State_Met
    REAL*4                   :: BOXMASS  ! calculated from State_Met
    REAL*4                   :: TEMPTMS ! calculated from State_Met
+   REAL*4                   :: RHTOMAS
    REAL*4                   :: PRES    ! calculated from State_Met
    REAL(fp)                 :: OC2OM = 1.8d0
    LOGICAL                  :: SGCOAG = .FALSE. ! bc,jrp turn off subgrid coag 18/12/23
+   LOGICAL                  :: BB3D = .FALSE. !naj TOMAS BBPIH 6/26/2024
+                                  ! set to TRUE and in hcoi_gc_diag_mod.F90 to use 3D GFAS
+                                  ! and need to modify HEMCO_Config.rc and ExtData.rc
+                                  ! need to eventually move this switch to HEMCO_Config.rc, bc, jrp 26/03/2026
    INTEGER                  :: L, K, EMTYPE
    INTEGER                  :: ii=53, jj=29
    INTEGER                  :: previous_units
@@ -4969,6 +5014,15 @@ CONTAINS
    REAL(fp)                 :: SIZE_DIST(State_Grid%NX,State_Grid%NY,State_Chm%nTomasBins,4) !(ramnarine 12/27/2018)
    REAL(fp)                 :: FIRE_NUM(State_Grid%NX,State_Grid%NY)
 
+   ! Arrays for if using TOMAS BBPIH (naj 6/26/2024)
+   REAL(fp)                                     :: BCSRC_3D(State_Grid%NX,State_Grid%NY,State_Grid%NZ,State_Chm%nTomasBins,2)
+   REAL(fp)                                     :: OCSRC_3D(State_Grid%NX,State_Grid%NY,State_Grid%NZ,State_Chm%nTomasBins,2)
+   REAL(fp)                                     :: NUMBSRC_3D(State_Grid%NX,State_Grid%NY,State_Grid%NZ,State_Chm%nTomasBins)
+   REAL(fp)                                     :: SIZE_DIST_3D(State_Grid%NX,State_Grid%NY,State_Grid%NZ,State_Chm%nTomasBins,4)
+   REAL(fp)                                     :: TMP_MASS_3D(State_Grid%NX,State_Grid%NY,State_Grid%NZ,State_Chm%nTomasBins)
+
+
+
    ! Strings
    CHARACTER(LEN= 63)       :: DgnName
    CHARACTER(LEN=255)       :: MSG, ErrMsg
@@ -4978,6 +5032,8 @@ CONTAINS
    REAL(fp),        POINTER :: emis2D(:,:)
    REAL(f4),        POINTER :: Ptr2D(:,:)
    REAL(f4),        POINTER :: Ptr3D(:,:,:)
+   REAL(fp),            POINTER :: Spc(:,:,:,:)
+   TYPE(SpcConc), POINTER :: Spc_3D(:)
 
    !=================================================================
    ! EMISSCARBONTOMAS begins here!
@@ -5005,6 +5061,12 @@ CONTAINS
                id_OCOB01 > 1 ) ) THEN
       CALL ERROR_STOP ( 'TOMAS Species not defined!', LOC )
    ENDIF
+
+   ! ---------------------------------------------------------- SamO
+    IF (.NOT. ALLOCATED (ORG_NUC)) THEN
+      ALLOCATE(ORG_NUC(State_Grid%NX,State_Grid%NY,State_Grid%NZ))
+    ENDIF
+  ! ---------------------------------------------------------- SamO
 
    ! Emission timestep [seconds]
    DTSRCE = HcoState%TS_EMIS
@@ -5041,7 +5103,11 @@ CONTAINS
    ENDIF
 
    ! ---------FOSSIL FUEL EMISSIONS IN 3d---------------------------
-   DO EMTYPE = 1,4
+   ! Start: Adding TOMAS BBPIH Updates (naj 6/26/2024)
+
+   IF (.NOT. BB3D) THEN
+
+      DO EMTYPE = 1,4
       SELECT CASE (EMTYPE)
       CASE (1)
          DgnName = 'BCPI_ANTH'
@@ -5220,6 +5286,174 @@ CONTAINS
       CALL EMITHIGH2( Input_Opt, State_Chm, State_Grid, State_Met, &
                       BCSRC,     OCSRC,     NUMBSRC )
    ENDIF  !sgcoag
+    ELSEIF (BB3D) THEN
+         ! First Fossil Fuel Emissions    
+         DgnName = 'BCPI_ANTH'
+         CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, &
+         	                     .FALSE., ERR, Ptr3D=Ptr3D )
+         IF ( .NOT. ASSOCIATED(Ptr3D) ) THEN
+             CALL GC_WARNING( 'HEMCO diagnostic not found: '//TRIM(DgnName), &
+         	                     ERR, THISLOC=LOC )
+         ELSE
+             BCPI_ANTH_BULK_3D = Ptr3D(:,:,:)
+         ENDIF
+         Ptr3D => NULL()
+         DgnName = 'BCPO_ANTH'
+         CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, &
+         	                     .FALSE., ERR, Ptr3D=Ptr3D )
+         IF ( .NOT. ASSOCIATED(Ptr3D) ) THEN
+             CALL GC_WARNING( 'HEMCO diagnostic not found: '//TRIM(DgnName), &
+         	                     ERR, THISLOC=LOC )
+         ELSE
+             BCPO_ANTH_BULK_3D = Ptr3D(:,:,:)
+         ENDIF
+         Ptr3D => NULL()
+         DgnName = 'OCPI_ANTH'
+         CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, &
+         	                     .FALSE., ERR, Ptr3D=Ptr3D )
+      IF ( .NOT. ASSOCIATED(Ptr3D) ) THEN
+             CALL GC_WARNING( 'HEMCO diagnostic not found: '//TRIM(DgnName), &
+         	                     ERR, THISLOC=LOC )
+         ELSE
+             OCPI_ANTH_BULK_3D = Ptr3D(:,:,:)
+         ENDIF
+         Ptr3D => NULL()
+         DgnName = 'OCPO_ANTH'
+         CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, &
+         	                     .FALSE., ERR, Ptr3D=Ptr3D )
+         IF ( .NOT. ASSOCIATED(Ptr3D) ) THEN
+             CALL GC_WARNING( 'HEMCO diagnostic not found: '//TRIM(DgnName), &
+         	                     ERR, THISLOC=LOC )
+         ELSE
+             OCPO_ANTH_BULK_3D = Ptr3D(:,:,:)
+         ENDIF
+         Ptr3D => NULL()
+         ! Convert to kg/box/timestep
+         DO L=1,State_Grid%NZ
+             BCPI_ANTH_BULK_3D(:,:,L) = BCPI_ANTH_BULK_3D(:,:,L) * AREA(:,:) * DTSRCE
+             BCPO_ANTH_BULK_3D(:,:,L) = BCPO_ANTH_BULK_3D(:,:,L) * AREA(:,:) * DTSRCE
+             OCPI_ANTH_BULK_3D(:,:,L) = OCPI_ANTH_BULK_3D(:,:,L) * AREA(:,:) * DTSRCE
+             OCPO_ANTH_BULK_3D(:,:,L) = OCPO_ANTH_BULK_3D(:,:,L) * AREA(:,:) * DTSRCE
+         ENDDO
+         ! Distribute to TOMAS bins
+         DO L=1,State_Grid%NZ
+             BCFF_3D(:,:,L,:,1) = SCALECARB( State_Chm, State_Grid, BCPI_ANTH_BULK_3D(:,:,L), 1, 1 )
+             BCFF_3D(:,:,L,:,2) = SCALECARB( State_Chm, State_Grid, BCPO_ANTH_BULK_3D(:,:,L), 1, 1 )
+             OCFF_3D(:,:,L,:,1) = SCALECARB( State_Chm, State_Grid, OCPI_ANTH_BULK_3D(:,:,L), 1, 2 ) * OC2OM
+             OCFF_3D(:,:,L,:,2) = SCALECARB( State_Chm, State_Grid, OCPO_ANTH_BULK_3D(:,:,L), 1, 2 ) * OC2OM
+         ENDDO
+         ! BB Emissions in 3D
+         DgnName = 'BCPI_BB'
+     	   CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, &
+     	                         StopIfNotFound=.FALSE., RC=RC, Ptr3D=Ptr3D )
+     	   IF ( .NOT. ASSOCIATED(Ptr3D) ) THEN
+     	      CALL GC_WARNING('HEMCO diagnostic not found: '//TRIM(DgnName), &
+     	                       ERR, THISLOC=LOC)
+     	   ELSE
+     	      BCPI_BIOB_BULK_3D = Ptr3D(:,:,:)
+     	   ENDIF
+     	   Ptr3D => NULL()
+     	   DgnName = 'BCPO_BB'
+     	   CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, &
+     	                         StopIfNotFound=.FALSE., RC=RC, Ptr3D=Ptr3D )
+     	   IF ( .NOT. ASSOCIATED(Ptr3D) ) THEN
+     	      CALL GC_WARNING('HEMCO diagnostic not found: '//TRIM(DgnName), &
+     	                       ERR, THISLOC=LOC)
+     	   ELSE
+     	      BCPO_BIOB_BULK_3D = Ptr3D(:,:,:)
+     	   ENDIF
+     	   Ptr3D => NULL()
+     	   DgnName = 'OCPI_BB'
+     	   CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, &
+     	                         StopIfNotFound=.FALSE., RC=RC, Ptr3D=Ptr3D )
+     	   IF ( .NOT. ASSOCIATED(Ptr3D) ) THEN
+     	      CALL GC_WARNING('HEMCO diagnostic not found: '//TRIM(DgnName), &
+     	                       ERR, THISLOC=LOC)
+     	   ELSE
+     	      OCPI_BIOB_BULK_3D = Ptr3D(:,:,:)
+     	   ENDIF
+     	   Ptr3D => NULL()
+     	   DgnName = 'OCPO_BB'
+     	   CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, &
+     	                         StopIfNotFound=.FALSE., RC=RC, Ptr3D=Ptr3D )
+     	   IF ( .NOT. ASSOCIATED(Ptr3D) ) THEN
+     	      CALL GC_WARNING('HEMCO diagnostic not found: '//TRIM(DgnName), &
+     	                       ERR, THISLOC=LOC)
+     	   ELSE
+     	      OCPO_BIOB_BULK_3D = Ptr3D(:,:,:)
+     	   ENDIF
+     	   Ptr3D => NULL()
+     	   ! Convert to kg/box/timestep
+     	   DO L = 1, State_Grid%NZ
+     	       BCPI_BIOB_BULK_3D(:,:,L) = BCPI_BIOB_BULK_3D(:,:,L) * AREA(:,:) * DTSRCE
+     	       BCPO_BIOB_BULK_3D(:,:,L) = BCPO_BIOB_BULK_3D(:,:,L) * AREA(:,:) * DTSRCE 
+             OCPI_BIOB_BULK_3D(:,:,L) = OCPI_BIOB_BULK_3D(:,:,L) * AREA(:,:) * DTSRCE
+             OCPO_BIOB_BULK_3D(:,:,L) = OCPO_BIOB_BULK_3D(:,:,L) * AREA(:,:) * DTSRCE
+         ENDDO
+         ! Distributing to TOMAS Size Bins
+         IF ( USE_FIRE_NUM ) THEN
+             ErrMsg = 'ERROR: 3D BB Emissions in TOMAS CANNOT USE SAKAMOTO COAG.'
+             CALL GC_Error( ErrMsg, RC, 'carbon_mod.F90: EMISSCARBONTOMAS')
+         ELSE
+             DO L = 1, State_Grid%NZ
+                 BCBB_3D(:,:,L,:,1) = SCALECARB(State_Chm, State_Grid, BCPI_BIOB_BULK_3D(:,:,L), 3,1)
+                 BCBB_3D(:,:,L,:,2) = SCALECARB(State_Chm, State_Grid, BCPO_BIOB_BULK_3D(:,:,L), 3,1)
+                 OCBB_3D(:,:,L,:,1) = SCALECARB(State_Chm, State_Grid, OCPI_BIOB_BULK_3D(:,:,L), 3,2) * OC2OM
+                 OCBB_3D(:,:,L,:,2) = SCALECARB(State_Chm, State_Grid, OCPO_BIOB_BULK_3D(:,:,L), 3,2) * OC2OM
+             ENDDO
+         ENDIF
+         ! Add into BCSRC and OCSCRC
+         BCSRC_3D(:,:,:,:,1) = BCFF_3D(:,:,:,:,1) + BCBF_3D(:,:,:,:,1) + BCBB_3D(:,:,:,:,1)
+         BCSRC_3D(:,:,:,:,2) = BCFF_3D(:,:,:,:,2) + BCBF_3D(:,:,:,:,2) + BCBB_3D(:,:,:,:,2)
+         OCSRC_3D(:,:,:,:,1) = OCFF_3D(:,:,:,:,1) + OCBF_3D(:,:,:,:,1) + OCBB_3D(:,:,:,:,1)
+         OCSRC_3D(:,:,:,:,2) = OCFF_3D(:,:,:,:,2) + OCBF_3D(:,:,:,:,2) + OCBB_3D(:,:,:,:,2)
+  
+         IF ( SGCOAG ) THEN
+             ErrMsg = 'ERROR: 3D BB Emissions in TOMAS Requires SGCOAG=FALSE'
+             CALL GC_Error( ErrMsg, RC, 'carbon_mod.F90: EMISSCARBONTOMAS' )
+         ELSE
+             !-----------------------------------------
+     	       ! Add emission w/o sub-grid coagulation
+     	       !-----------------------------------------
+     	       Spc_3D => State_Chm%Species
+     	       
+     	       ! Convert the total mass emission to number emisison [No.]
+     	       DO K = 1, State_Chm%nTomasBins
+     	           NUMBSRC_3D(:,:,:,K) = ( BCSRC_3D(:,:,:,K,1) + BCSRC_3D(:,:,:,K,2) + &
+     	                              OCSRC_3D(:,:,:,K,1) + OCSRC_3D(:,:,:,K,2) )/ AVGMASS(K)
+     	       ENDDO
+  
+     	       DO L = 1, State_Grid%NZ
+             DO J = 1, State_Grid%NY
+             DO I = 1, State_Grid%NX
+             DO K = 1, State_Chm%nTomasBins
+         
+                 ! Hydrophilic ELEMENTAL CARBON
+                 Spc_3D(id_ECIL01-1+K)%Conc(I,J,L) = Spc_3D(id_ECIL01-1+K)%Conc(I,J,L) + BCSRC_3D(I,J,L,K,1)
+         
+                 ! Hydrophobic ELEMENTAL CARBON
+                 Spc_3D(id_ECOB01-1+K)%Conc(I,J,L) = Spc_3D(id_ECOB01-1+K)%Conc(I,J,L) + BCSRC_3D(I,J,L,K,2)
+         
+                 ! Hydrophilic ORGANIC CARBON
+                 Spc_3D(id_OCIL01-1+K)%Conc(I,J,L) = Spc_3D(id_OCIL01-1+K)%Conc(I,J,L) + OCSRC_3D(I,J,L,K,1)
+         
+                 ! Hydrophobic ORGANIC CARBON
+                 Spc_3D(id_OCOB01-1+K)%Conc(I,J,L) = Spc_3D(id_OCOB01-1+K)%Conc(I,J,L) + OCSRC_3D(I,J,L,K,2)
+         
+                 ! Number corresponding to EC + OC [No.]
+                 Spc_3D(id_NK01-1+K)%Conc(I,J,L)   = Spc_3D(id_NK01-1+K)%Conc(I,J,L) + NUMBSRC_3D(I,J,L,K)
+         
+             ENDDO
+             ENDDO
+             ENDDO
+             ENDDO
+     	       NULLIFY( Spc_3D )
+     	   ENDIF !sgcoag
+     ENDIF ! BB3D
+
+     ! END: Adding TOMAS BBPIH Updates (naj 6/26/2024)
+
+
 
    !end anthro emissions
 
@@ -5242,7 +5476,7 @@ CONTAINS
 
    !$OMP PARALLEL DO       &
    !$OMP DEFAULT( SHARED ) &
-   !$OMP PRIVATE( I, J, BOXVOL, TEMPTMS, PRES, BOXMASS )
+   !$OMP PRIVATE( I, J, BOXVOL, TEMPTMS, PRES, BOXMASS, RHTOMAS )
    DO J = 1, State_Grid%NY
    DO I = 1, State_Grid%NX
       CALL CHECKMN( I, J, 1, Input_Opt, State_Chm, State_Grid, &
@@ -5251,9 +5485,17 @@ CONTAINS
          BOXVOL  = State_Met%AIRVOL(I,J,1) * 1.e6 !convert from m3 -> cm3
          BOXMASS  = State_Met%AD(I,J,1)  ! kg
          TEMPTMS = State_Met%T(I,J,1)
+         RHTOMAS = State_Met%RH(I,J,1)/ 1.e2
+         IF ( RHTOMAS > 0.99 ) RHTOMAS = 0.99
          PRES    = GET_PCENTER(I,J,1)*100.0 ! in Pa
+         ORG_NUC(I,J,1) = ORG_NUC(I,J,1) + TERP_ORGC(I,J)/DTSRCE ! SamO
+         
+         IF (I.eq.17 .and. J.eq.32) THEN  ! SGP for 4x5
+         !IF (I.eq.40 .and. J.eq.46) THEN  ! SGP for 0.25x0.3125
+         ! print*,'TEMPTMS, RHTOMAS in emisscarb =',TEMPTMS,RHTOMAS,I,J
+         ENDIF 
          CALL SOACOND( TERP_ORGC(I,J), I, J, 1, BOXVOL, TEMPTMS, PRES, BOXMASS,&
-                       State_Chm, State_Grid, State_Diag, RC )
+                       State_Chm, State_Grid, State_Diag, RC, RHTOMAS)
       END IF
    END DO
    END DO
@@ -7801,6 +8043,34 @@ CONTAINS
    IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCBB' )
    OCBB = 0e+0_fp
 
+  ! For TOMAS 3D Emiss (naj 7/11/2024)
+   ALLOCATE( BCFF_3D(State_Grid%NX,State_Grid%NY,State_Grid%NZ,State_Chm%nTomasBins,2), STAT=AS)
+   IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCFF' )
+   BCFF_3D = 0e+0_fp
+
+   ALLOCATE( OCFF_3D(State_Grid%NX,State_Grid%NY,State_Grid%NZ,State_Chm%nTomasBins,2), STAT=AS)
+   IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCFF' )
+   OCFF_3D = 0e+0_fp
+
+   ALLOCATE( BCBF_3D(State_Grid%NX,State_Grid%NY,State_Grid%NZ,State_Chm%nTomasBins,2), STAT=AS)
+   IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCBF' )
+   BCBF_3D = 0e+0_fp
+
+   ALLOCATE( OCBF_3D(State_Grid%NX,State_Grid%NY,State_Grid%NZ,State_Chm%nTomasBins,2), STAT=AS)
+   IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCBF' )
+   OCBF_3D = 0e+0_fp
+
+   ALLOCATE( BCBB_3D(State_Grid%NX,State_Grid%NY,State_Grid%NZ,State_Chm%nTomasBins,2), STAT=AS)
+   IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCBB' )
+   BCBB_3D = 0e+0_fp
+
+   ALLOCATE( OCBB_3D(State_Grid%NX,State_Grid%NY,State_Grid%NZ,State_Chm%nTomasBins,2), STAT=AS)
+   IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCBB' )
+   OCBB_3D = 0e+0_fp
+
+
+
+
    ! BC
    ALLOCATE( BCPI_ANTH_BULK(State_Grid%NX,State_Grid%NY), STAT=AS)
    IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCPI_ANTH_BULK' )
@@ -7818,6 +8088,23 @@ CONTAINS
    IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCPO_BIOB_BULK' )
    BCPO_BIOB_BULK = 0e+0_fp
 
+   ! For TOMAS 3D Emiss (naj 7/11/2024)
+   ALLOCATE( BCPI_ANTH_BULK_3D(State_Grid%NX,State_Grid%NY,State_Grid%NZ), STAT=AS)
+   IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCPI_ANTH_BULK' )
+   BCPI_ANTH_BULK_3D = 0e+0_fp
+
+   ALLOCATE( BCPO_ANTH_BULK_3D(State_Grid%NX,State_Grid%NY,State_Grid%NZ), STAT=AS)
+   IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCPO_ANTH_BULK' )
+   BCPO_ANTH_BULK_3D = 0e+0_fp
+
+   ALLOCATE( BCPI_BIOB_BULK_3D(State_Grid%NX,State_Grid%NY,State_Grid%NZ), STAT=AS)
+   IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCPI_BIOB_BULK' )
+   BCPI_BIOB_BULK_3D = 0e+0_fp
+
+   ALLOCATE( BCPO_BIOB_BULK_3D(State_Grid%NX,State_Grid%NY,State_Grid%NZ), STAT=AS)
+   IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCPO_BIOB_BULK' )
+   BCPO_BIOB_BULK_3D = 0e+0_fp
+
    ! OC ----------------
    ALLOCATE( OCPI_ANTH_BULK(State_Grid%NX,State_Grid%NY), STAT=AS)
    IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCPI_ANTH_BULK' )
@@ -7834,6 +8121,23 @@ CONTAINS
    ALLOCATE( OCPO_BIOB_BULK(State_Grid%NX,State_Grid%NY), STAT=AS)
    IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCPO_BIOB_BULK' )
    OCPO_BIOB_BULK = 0e+0_fp
+
+   ! For TOMAS 3D Emiss (naj 7/11/2024)
+   ALLOCATE( OCPI_ANTH_BULK_3D(State_Grid%NX,State_Grid%NY,State_Grid%NZ), STAT=AS)
+   IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCPI_ANTH_BULK' )
+   OCPI_ANTH_BULK_3D = 0e+0_fp
+
+   ALLOCATE( OCPO_ANTH_BULK_3D(State_Grid%NX,State_Grid%NY,State_Grid%NZ), STAT=AS)
+   IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCPO_ANTH_BULK' )
+   OCPO_ANTH_BULK_3D = 0e+0_fp
+
+   ALLOCATE( OCPI_BIOB_BULK_3D(State_Grid%NX,State_Grid%NY,State_Grid%NZ), STAT=AS)
+   IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCPI_BIOB_BULK' )
+   OCPI_BIOB_BULK_3D = 0e+0_fp
+
+   ALLOCATE( OCPO_BIOB_BULK_3D(State_Grid%NX,State_Grid%NY,State_Grid%NZ), STAT=AS)
+   IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCPO_BIOB_BULK' )
+   OCPO_BIOB_BULK_3D = 0e+0_fp
 
    !biogenic
    ALLOCATE( TERP_ORGC(State_Grid%NX,State_Grid%NY), STAT=AS )
@@ -7982,6 +8286,20 @@ CONTAINS
    IF ( ALLOCATED( OCPO_BIOB_BULK )) DEALLOCATE( OCPO_BIOB_BULK)
    IF ( ALLOCATED( TERP_ORGC      )) DEALLOCATE( TERP_ORGC     )
    IF ( ALLOCATED( CO_ANTH        )) DEALLOCATE( CO_ANTH       )
+   IF ( ALLOCATED( BCFF_3D           )) DEALLOCATE( BCFF_3D          )
+   IF ( ALLOCATED( OCFF_3D           )) DEALLOCATE( OCFF_3D          )
+   IF ( ALLOCATED( BCBF_3D           )) DEALLOCATE( BCBF_3D          )
+   IF ( ALLOCATED( OCBF_3D           )) DEALLOCATE( OCBF_3D          )
+   IF ( ALLOCATED( BCBB_3D           )) DEALLOCATE( BCBB_3D          )
+   IF ( ALLOCATED( OCBB_3D           )) DEALLOCATE( OCBB_3D          )
+   IF ( ALLOCATED( BCPI_ANTH_BULK_3D )) DEALLOCATE( BCPI_ANTH_BULK_3D)
+   IF ( ALLOCATED( BCPO_ANTH_BULK_3D )) DEALLOCATE( BCPO_ANTH_BULK_3D)
+   IF ( ALLOCATED( BCPI_BIOB_BULK_3D )) DEALLOCATE( BCPI_BIOB_BULK_3D)
+   IF ( ALLOCATED( BCPO_BIOB_BULK_3D )) DEALLOCATE( BCPO_BIOB_BULK_3D)
+   IF ( ALLOCATED( OCPI_ANTH_BULK_3D )) DEALLOCATE( OCPI_ANTH_BULK_3D)
+   IF ( ALLOCATED( OCPO_ANTH_BULK_3D )) DEALLOCATE( OCPO_ANTH_BULK_3D)
+   IF ( ALLOCATED( OCPI_BIOB_BULK_3D )) DEALLOCATE( OCPI_BIOB_BULK_3D)
+   IF ( ALLOCATED( OCPO_BIOB_BULK_3D )) DEALLOCATE( OCPO_BIOB_BULK_3D)
 #endif
 
  END SUBROUTINE CLEANUP_CARBON

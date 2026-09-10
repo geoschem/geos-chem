@@ -255,13 +255,15 @@ CONTAINS
 
     ! Select a particular integration method.
     ! For Rosenbrock, options are:
-    ! = 0 :  default method is Rodas3
-    ! = 1 :  method is  Ros2
-    ! = 2 :  method is  Ros3
-    ! = 3 :  method is  Ros4
-    ! = 4 :  method is  Rodas3
-    ! = 5:   method is  Rodas4
-    ICNTRL(3) = 4
+    ! = 0 :    Rodas3 (default)
+    ! = 1 :    Ros2
+    ! = 2 :    Ros3
+    ! = 3 :    Ros4
+    ! = 4 :    Rodas3
+    ! = 5 :    Rodas4
+    ! = 6 :    Rang3
+    ! = 7 :    Rodas3.1
+    ICNTRL(3) = 7
 
     ! 0 - adjoint, 1 - no adjoint
     ICNTRL(7) = 1
