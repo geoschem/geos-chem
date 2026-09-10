@@ -337,7 +337,9 @@ OCS_OCEAN         kgS/km2/s N Y F%y4-%m2-01T00:00:00 none 1.0e-6 COS_Flux ./HcoD
 ###
 ###############################################################################
 
+#==============================================================================
 # --- GFED4 (Extension 111)---
+#==============================================================================
 GFED_TEMP kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_TEMP ./HcoDir/GFED4/v2023-03/%y4/GFED4_gen.025x025.%y4%m2.nc
 GFED_AGRI kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_AGRI ./HcoDir/GFED4/v2023-03/%y4/GFED4_gen.025x025.%y4%m2.nc
 GFED_DEFO kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_DEFO ./HcoDir/GFED4/v2023-03/%y4/GFED4_gen.025x025.%y4%m2.nc
@@ -351,6 +353,13 @@ GFED_FRAC_DAY 1 N Y %y4-%m2-%d2T00:00:00 none none GFED_FRACDAY ./HcoDir/GFED4/v
 # --- GFED_3hourly --
 #GFED_FRAC_3HOUR 1 N Y %y4-%m2-01T%h2:00:00 none none GFED_FRAC3HR ./HcoDir/GFED4/v2023-03/%y4/GFED4_3hrfrac_gen.025x025.%y4%m2.nc
 
+#==============================================================================
+# --- GFAS biomass burning (Extension 112) ---
+#==============================================================================
+GFAS_CO_3D  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none cofire_3d ./HcoDir/GFAS/v2026-06/%y4/%m2/GFAS-smoke-%y4%m2%d2.nc
+GFAS_CO_2D  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none cofire    ./HcoDir/GFAS/v2026-06/%y4/%m2/GFAS-smoke-%y4%m2%d2.nc
+GFAS_CH4_2D kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none ch4fire   ./HcoDir/GFAS/v2026-06/%y4/%m2/GFAS-smoke-%y4%m2%d2.nc
+GFAS_CO2_2D kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none co2fire   ./HcoDir/GFAS/v2026-06/%y4/%m2/GFAS-smoke-%y4%m2%d2.nc
 
 ###############################################################################
 ###

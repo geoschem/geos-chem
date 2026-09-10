@@ -1,4 +1,8 @@
+#ifdef MAPL3
+#include "MAPL.h"
+#else
 #include "MAPL_Generic.h"
+#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -942,8 +946,9 @@ CONTAINS
     CALL SET_DRY_SURFACE_PRESSURE( State_Grid, State_Met, 2 )
 
     ! Initialize surface pressures to match the post-advection pressures
-    State_Met%PSC2_WET = State_Met%PS1_WET
-    State_Met%PSC2_DRY = State_Met%PS1_DRY
+    ! and use them to set floating pressure in pressure module
+    State_Met%PSC2_WET = State_Met%PS2_WET
+    State_Met%PSC2_DRY = State_Met%PS2_DRY
     CALL SET_FLOATING_PRESSURES( State_Grid, State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -1172,28 +1177,7 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! 2. Dry deposition
-    !
-    ! Calculates the deposition rates in [s-1].
-    !=======================================================================
-    IF ( DoDryDep ) THEN
-       if(Input_Opt%AmIRoot.and.NCALLS<10) THEN
-          write(*,*) ' --- Do drydep now'
-          write(*,*) '     Use FULL PBL: ', Input_Opt%PBL_DRYDEP
-       endif
-       CALL MAPL_TimerOn( STATE, 'GC_DRYDEP' )
-
-       ! Do dry deposition
-       CALL Do_DryDep ( Input_Opt, State_Chm, State_Diag, &
-                        State_Grid, State_Met, RC )
-       _ASSERT(RC==GC_SUCCESS, 'Error calling Do_DryDep')
-
-       CALL MAPL_TimerOff( STATE, 'GC_DRYDEP' )
-       if(Input_Opt%AmIRoot.and.NCALLS<10) write(*,*) ' --- Drydep done!'
-    ENDIF
-
-    !=======================================================================
-    ! 3. Emissions (HEMCO)
+    ! 2. Emissions (HEMCO)
     !
     ! HEMCO must be called on first time step to make sure that the HEMCO
     ! data lists are all properly set up.
@@ -1232,6 +1216,40 @@ CONTAINS
           _VERIFY(STATUS)
        endif
 
+    ENDIF
+
+    !=======================================================================
+    ! 3. Dry deposition
+    !
+    ! Calculates the deposition rates in [s-1].  Call after emissions so
+    ! that we'll include the contribution from SeaFlux and PARANOx.
+    !=======================================================================
+    IF ( DoDryDep ) THEN
+       if(Input_Opt%AmIRoot.and.NCALLS<10) THEN
+          write(*,*) ' --- Do drydep now'
+          write(*,*) '     Use FULL PBL: ', Input_Opt%PBL_DRYDEP
+       endif
+       CALL MAPL_TimerOn( STATE, 'GC_DRYDEP' )
+
+       ! Compute dry deposition velocities & frequencies
+       CALL Do_DryDep ( Input_Opt, State_Chm, State_Diag, &
+                        State_Grid, State_Met, RC )
+       _ASSERT(RC==GC_SUCCESS, 'Error calling Do_DryDep')
+
+       ! Update dry-deposition velocities for full PBL mixing
+       ! by adding the sea-air deposition velocity from HEMCO
+       CALL Set_DryDepVel_Diagnostics( Input_Opt,  State_Chm,  State_Diag,   &
+                                       State_Grid, State_Met,  RC           )
+       _ASSERT(RC==GC_SUCCESS, 'Error calling SET_DRYDEPVEL_DIAGNOSTICS')
+
+       ! Apply dry deposition frequencies to species concentrations
+       ! to compute removal of species by dry deposition
+       CALL Do_DryDep_Removal( Input_Opt,  State_Chm, State_Diag,            &
+                               State_Grid, State_Met, RC                    )
+       _ASSERT(RC==GC_SUCCESS, 'Error calling DO_DRYDEP_REMOVAL')
+
+       CALL MAPL_TimerOff( STATE, 'GC_DRYDEP' )
+       if(Input_Opt%AmIRoot.and.NCALLS<10) write(*,*) ' --- Drydep done!'
     ENDIF
 
     !=======================================================================
@@ -1299,12 +1317,6 @@ CONTAINS
           _ASSERT(RC==GC_SUCCESS, 'Error calling COMPUTE_SFLX_FOR_VDIFF')
 
        ENDIF
-
-       ! Update dry-deposition velocities for full PBL mixing
-       ! by adding the sea-air deposition velocity from HEMCO
-       CALL Set_DryDepVel_Diagnostics( Input_Opt,  State_Chm,  State_Diag,   &
-                                       State_Grid, State_Met,  RC           )
-       _ASSERT(RC==GC_SUCCESS, 'Error calling SET_DRYDEPVEL_DIAGNOSTICS')
 
        ! Do mixing and apply tendencies. This will use the dynamic time step,
        ! which is fine since this call will be executed on every time step.

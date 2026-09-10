@@ -4,6 +4,74 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [NLPBL] - TBD
+### Added
+- Added routine `Do_Drydep_Removal` to `GeosCore/drydep_mod.F90` to apply dry deposition loss to species
+- Updated `main.F90` and `gchp_chunk_mod.F90` to so that dry deposition is done after emissions
+- Added routine `Do_Drydep_Removal` to `GeosCore/drydep_mod.F90` to apply dry deposition loss to species
+- Added `BudgetDryDep*` History diagnostics
+
+### Changed
+- Updated `main.F90` and `gchp_chunk_mod.F90` to so that dry deposition (and removal of species by dry deposition) is done after emissions
+- Renamed `State_Diag%DryDepMix` to `State_Diag%DryDepFlx` to denote that this field is no longer updated in mixing
+- Renamed routine `Init_NoRegister_DryDepChemMix` to `Init_NoRegister_DryDepChmMix` to `Init_NoRegister_DryDepChmFlx` in `Headers/state_diag_mod.F90`
+
+### Removed
+- Removed dry deposition loss code from routine `Do_Tend` (in `GeosCore/mixing_mod.F90`)
+- Removed code that computed surface dry depostion flux `dflx` in `Compute_Sflx_for_Vdiff` (in `GeosCore/hco_interface_gc_mod.F90`)
+
+## [Unreleased] - TBD
+### Added
+- Added PSO4AQ and PH2SO4 as a product to certain reactions; see `KPP/fullchem/CHANGELOG_fullchem.md`
+- Added methanediol (MDL) as a transported gas-phase species and to the KPP fullchem and custom mechanisms
+- Added routine `Cloud_CH2O_MDL` in `KPP/fullchem/fullchem_SulfurChemFuncs.F90`
+- Added multiphase sulfate chemistry, cloud Hplus diagnostic, and related prod/loss species per Travis et al. (2025), see `KPP/fullchem/CHANGELOG_fullchem.md`
+- Added `IONIC` output argument in calls to HETP driver routine `MACH_HETP_Main15Cases`
+- Added APM restart file paths to `run/shared/download_data.yml`
+- Added for TOMAS, organic and Dunne new particle formation, 3D GFAS capability, and updates for accomodation coefficients
+- Added code blocks for MAPL3 code in development
+- Added GCHP utility script extractPerformance.sh to scrape allPEs.log for timing summary in GCHP run directories
+- Added GCHP build scripts to GCHP runScriptSamples for Harvard
+- Added several additional run, build, and utility scripts to GCHP runScriptSamples for Harvard and AWS pcluster
+- Added calls to KPP `Initialize` routine from `INIT_FULLCHEM` and `INIT_MERCURY` to specify an absolute tolerance threshold for passive species
+
+### Changed
+- Renamed `State_Chm%Isorrop*` fields to `State_Chm%Ate*` (aerosol thermodynamical equilibrium), as ISORROPIA is no longer used
+- Updated routine `fullchem_SetStateHet` to accept `id_DSTbin{1..7}`, `id_pFe`, `id_SO2`, and `id_SO4` as arguments
+- Renamed `CRITRH` to `RH_35_PERCENT` and `CRITRH2` to `RH_50_PERCENT` in `KPP/fullchem/fullchem_RateLawFuncs.F90`
+- Added DSTbin{1..7}, SO2, SO4, and pFE species ID flags to the `SetStateHet` routine in `KPP/fullchem_HetStateFuncs.F90` and `KPP/stubs/stub_fullchem_HetStateFuncs.F90`
+- Updated `run/shared/download_data.py` and `run/shared/setupForRestarts.sh` to read APM restart file paths
+- Selected RODAS3.1 as the default integration method for the fullchem mechanism; Regenerated fullchem solver files with KPP 3.4.0
+- Updated the minimum version of KPP needed to build the fullchem mechanism from 3.2.0 to 3.4.0
+- Changed C-preprocessor switch `MODEL_` to `MODEL_EXTERNAL`, and `ESMF_` to `USE_ESMF`
+- Changed the order of DO loops in `GeosCore/tomas_mod.F90` from `I-J-L` to `L-J-I` and added `!$OMP COLLAPSE( 3 )` statements
+- Updated run directory configuration files for GFAS (extension number 112)
+- Changed time cycle for GFAS data in the `gc_4x5_merra2_carbon_CH4_straddle_00z` from `EFY` to `C` to avoid runtime error
+- Changed `#MINVERSION` to 3.5.0 in `Hg.kpp`, `fullchem.kpp` and `carbon.kpp` files
+- Gave all dummy species `KPP_AbsTol = 1.0e25` in `run/shared/species_database.yml` so that they would be not included in the Rosenbrock error norm
+- Updated Harvard Cannon environment files for GCHP & GCClassic to refer to new library location
+
+### Fixed
+- Fixed incorrect variable names and removed unused variables in `NcdfUtil/ncdf_mod.F90`
+- Fixed the species database entry of `DMS` to use `Is_Gas: true`, as DMS is a gas-phase species and not an aerosol  
+- Fixed incorrect Arrhenius "A" coefficient (1.97d-12 --> 1.97d-11) in C3H8 + OH = A3O2 rxn
+- Fixed GCHP transport tracers extdata.yaml to include valid_range for CEDS
+- Fixed OpenMP parallelization error in `GeosCore/tomas_mod.F90`
+- Fixed typos (extra `:` characters) in `run/shared/kpp_standalone_interface.yml`
+- Fixed bug in creating GCHP run directories using raw GEOS-IT C180 meteorology
+- Fixed bugs in Jacobian tracers simulation
+- Fixed missing entries in `SpeciesConc`, `CloudConvFlux`, `WetLossConv`, and `WetLossLS` collections in the GCHP `HISTORY.rc.fullchem` template file
+- Fixed minor issues causing APM simulation failure when debug flags turned on
+- Fixed incorrect treatment of `e90_s/n` and `nh_5/50` tracer in TransportTracer simulation
+- Fixed bug where `KPP_AbsTol` and `KPP_RelTol` tags were not being read from `species_database.yml`
+- Fixed error where `State_Chm%phCloud` was always being reset to 4.5
+- Fixed floating surface pressures in GCHP to be post-advection rather than pre-advection
+
+### Removed
+- Removed obsolete code in dust_mod.F90
+- Removed unused subroutine `I_Am_UnOPENed` in inquireMod.F90
+- Removed duplicate Dynamical Heating entry in gchp fullchem ExtData.rc file.
+
 ## [14.7.1] - 2026-04-08
 ### Added
 - Added `HTAP_SHIP` toggle in `HEMCO_Config.rc.carbon` templates for GC-Classic and GCHP
@@ -111,7 +179,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Replace hardwired values with constant parameters in routine `Aerosol_Conc` (in `GeosCore/aerosol_mod.F90`
 - Updated species database so that dust species use the anchor `&DSTbin properties` and metals species use `&METALSproperties`
 - Updated call to `ExtData_Set` in `hco_gc_interface_mod.F90` to accept `ExtState%SNOMAS`
-- Upated sample carbon simulation restart file to output generated from 10-year simulation
+- Updated sample carbon simulation restart file to output generated from 10-year simulation
 
 ### Fixed
 - Restored entries for TMB emissions in `HEMCO_Config.rc.fullchem` template files for GCClassic and GCHP
@@ -165,7 +233,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Changed OpenMP loop scheduling from `DYNAMIC` to `GUIDED` in routine `DO_CONVECTION`
 - Added `Diagn_APM` routine in `GeosCore/hcoi_gc_diagn_mod.F90` to restore HEMCO manual diagnostics for use w/ APM
 - Added hidden option to read GC-Classic restart file as real8 locally rather than real4 through HEMCO
-
+	
 ### Changed
 - Updated logic to include ObsPack observations that span UTC date boundaries
 - Assigned ObsPack averaging interval end times (instead of start times) to the `aveEnd` variable in routine `ObsPack_Write_Output`

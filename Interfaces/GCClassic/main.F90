@@ -1,14 +1,5 @@
+#ifdef MODEL_CLASSIC
 !BOC
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( MODEL_ )
-!----------------------------------------------------------------------------
-!         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
-!        %%%% GEOS-Chem Coupled with External Models %%%%
-!
-! When GEOS-Chem is connected to an external model or in GCHP,
-! the GEOS-Chem classic main.F90 should not be built.
-!----------------------------------------------------------------------------
-#else
-!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -1287,41 +1278,7 @@ PROGRAM GEOS_Chem
        IF ( ITS_TIME_FOR_EMIS() ) THEN
 
           !==================================================================
-          !            ***** D R Y   D E P O S I T I O N *****
-          !==================================================================
-          IF ( Input_Opt%LDRYD .and. notDryRun ) THEN
-
-             IF ( Input_Opt%useTimers ) THEN
-                CALL Timer_Start( "Dry deposition", RC )
-             ENDIF
-
-             ! Compute drydep velocities
-             CALL Do_Drydep( Input_Opt,  State_Chm, State_Diag, &
-                             State_Grid, State_Met, RC )
-
-             ! Trap potential errors
-             IF ( RC /= GC_SUCCESS ) THEN
-                ErrMsg = 'Error encountered in "Do_Drydep!"!'
-                CALL Error_Stop( ErrMsg, ThisLoc )
-             ENDIF
-
-             IF ( Input_Opt%useTimers ) THEN
-                CALL Timer_End ( "Dry deposition", RC )
-             ENDIF
-
-             IF ( VerboseAndRoot ) THEN
-                CALL Debug_Msg( '### MAIN: a DO_DRYDEP' )
-             ENDIF
-          ENDIF
-
-          !==================================================================
           !                ***** E M I S S I O N S *****
-          !
-          ! NOTE: For a complete description of how emissions from
-          ! HEMCO are added into GEOS-Chem (and how they are mixed
-          ! into the boundary layer), please see the wiki page:
-          !
-          ! http://wiki-geos-chem.org/Distributing_emissions_in_the_PBL
           !==================================================================
           IF ( Input_Opt%useTimers ) THEN
              CALL Timer_Start( "HEMCO", RC )
@@ -1350,10 +1307,85 @@ PROGRAM GEOS_Chem
           IF ( Input_Opt%useTimers ) THEN
              CALL Timer_End( "HEMCO", RC )
           ENDIF
+
+          !==================================================================
+          !            ***** D R Y   D E P O S I T I O N *****
+          !
+          ! NOTE: Need to call this after emissions so that we can get
+          ! the surface deposition from SeaFlux and ParaNOx extensions
+          !==================================================================
+          IF ( Input_Opt%LDRYD .and. notDryRun ) THEN
+
+             ! Start drydep timer
+             IF ( Input_Opt%useTimers ) THEN
+                CALL Timer_Start( "Dry deposition", RC )
+             ENDIF
+
+             !---------------------------------------------------------------
+             ! Compute drydep velocities
+             !---------------------------------------------------------------
+             CALL Do_Drydep( Input_Opt,  State_Chm, State_Diag,              &
+                             State_Grid, State_Met, RC                      )
+
+             ! Trap errors
+             IF ( RC /= GC_SUCCESS ) THEN
+                ErrMsg = 'Error encountered in "Do_Drydep!"!'
+                CALL Error_Stop( ErrMsg, ThisLoc )
+             ENDIF
+
+             ! Debug output
+             IF ( VerboseAndRoot ) THEN
+                CALL Debug_Msg( '### MAIN: a DO_DRYDEP' )
+             ENDIF
+
+             !------------------------------------------------------------
+             ! Update drydep velocities by adding the sea-air deposition
+             ! velocity computed by the HEMCO SeaFlux extension
+             !------------------------------------------------------------
+             CALL Set_DryDepVel_Diagnostics( Input_Opt,  State_Chm,       &
+                                             State_Diag, State_Grid,      &
+                                             State_Met,  RC              )
+
+             IF ( RC /= GC_SUCCESS ) THEN
+                ErrMsg = &
+                     'Error encountered in "Update_DryDepVel_for_Turbday"!'
+                CALL Error_Stop( errMsg, thisLoc )
+             ENDIF
+
+             IF ( VerboseAndRoot ) THEN
+                CALL Debug_Msg( '### MAIN: a Set_DryDepVel_Diagnostics' )
+             ENDIF
+
+             !---------------------------------------------------------------
+             ! Apply dry deposition frequencies to species concentrations
+             ! to compute removal of species by dry deposition
+             !---------------------------------------------------------------
+             CALL Do_DryDep_Removal( Input_Opt,  State_Chm, State_Diag,      &
+                                     State_Grid, State_Met, RC              )
+
+             ! Trap potential errors
+             IF ( RC /= GC_SUCCESS ) THEN
+                ErrMsg = 'Error encountered in "Do_DryDep_Removal!"!'
+                CALL Error_Stop( ErrMsg, ThisLoc )
+             ENDIF
+             
+             ! Verbose output
+             IF ( VerboseAndRoot ) THEN
+                CALL Debug_Msg( '### MAIN: a DO_DRYDEP_REMOVAL' )
+             ENDIF
+             
+             ! End drydep timer
+             IF ( Input_Opt%useTimers ) THEN
+                CALL Timer_End ( "Dry deposition", RC )
+             ENDIF
+             
+          ENDIF
        ENDIF
 
+       !=====================================================================
        ! Also prescribe methane surface concentrations throughout PBL
        ! (currently done outside emissions)
+       !=====================================================================
        IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .and.                             &
             id_CH4 > 0                     .and.                             &
             notDryRun                     ) THEN
@@ -1408,24 +1440,6 @@ PROGRAM GEOS_Chem
                    CALL Debug_Msg( '### MAIN: a Compute_Sflx_For_Vdiff' )
                 ENDIF
 
-             ENDIF
-
-             !------------------------------------------------------------
-             ! Update drydep velocities by adding the sea-air deposition
-             ! velocity computed by the HEMCO SeaFlux extension
-             !------------------------------------------------------------
-             CALL Set_DryDepVel_Diagnostics( Input_Opt,  State_Chm,       &
-                                             State_Diag, State_Grid,      &
-                                             State_Met,  RC              )
-
-             IF ( RC /= GC_SUCCESS ) THEN
-                ErrMsg = &
-                     'Error encountered in "Update_DryDepVel_for_Turbday"!'
-                CALL Error_Stop( errMsg, thisLoc )
-             ENDIF
-
-             IF ( VerboseAndRoot ) THEN
-                CALL Debug_Msg( '### MAIN: a Set_DryDepVel_Diagnostics' )
              ENDIF
 
           ENDIF
