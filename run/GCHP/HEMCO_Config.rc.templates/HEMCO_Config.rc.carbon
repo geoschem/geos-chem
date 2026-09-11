@@ -135,12 +135,13 @@ Mask fractions:              false
     --> UseTotalPriorEmis      :       false    # Skips global/regional inventories
     --> Emis_PosteriorSF       :       false    # Apply posterior scale factors to total emis?
 # -----------------------------------------------------------------------------
-111     GFED                   : on    CH4/CO/CO2
+111     GFED                   : ${RUNDIR_GFED_EXT}   CH4/CO/CO2
     --> GFED4                  :       true
     --> GFED_daily             :       true
     --> GFED_3hourly           :       false
     --> Scaling_CO             :       1.05
-
+112     GFAS                   : ${RUNDIR_GFAS_EXT}   CH4/CO/CO2
+    --> Vertical Profile Species:      CO
 ### END SECTION EXTENSION SWITCHES ###
 
 ###############################################################################
@@ -814,11 +815,6 @@ Mask fractions:              false
 0 QFED_CO_FT  $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4 biomass 2000-2022/1-12/1-31/0/+12hour EF xyL=PBL:5500m kg/m2/s CO 54/75/312 5 2
 )))QFED2
 
-# --- GFAS ---
-(((GFAS
-0 GFAS_CO $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc cofire 2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s CO 75 5 3
-)))GFAS
-
 # --- FINNv2.5 biomass burning ---
 (((FINNv25
 0 FINNv25_CO  $ROOT/FINNv25/v2025-06/$YYYY/emissions-finnv2.5modvrs_CO_bb_surface_daily_$YYYY0101-$YYYY1231_0.1x0.1.nc  fire_modisviirs_CO  2012-2023/1-12/1-31/0 EF xy molecules/cm^2/s CO 75 5 3
@@ -1018,6 +1014,16 @@ Mask fractions:              false
 111 GFED_FRAC_3HOUR $ROOT/GFED4/v2023-03/$YYYY/GFED4_3hrfrac_gen.025x025.$YYYY$MM.nc   GFED_FRAC3HR 2010-2023/1-12/1/0-23  RF xy 1 * - 1 1
 )))GFED_3hourly
 )))GFED4
+
+#==============================================================================
+# --- GFAS biomass burning (Extension 112) ---
+#==============================================================================
+(((GFAS
+112 GFAS_CO_3D    $ROOT/GFAS/v2026-06/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc cofire_3d 2003-2100/1-12/1-31/0 EFY xyz kg/m2/s * 75 1 1
+112 GFAS_CH4_2D   $ROOT/GFAS/v2026-06/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc cofire    2003-2100/1-12/1-31/0 EFY xy  kg/m2/s * 75 1 1
+112 GFAS_CO_2D    $ROOT/GFAS/v2026-06/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc cofire    2003-2100/1-12/1-31/0 EFY xy  kg/m2/s * 75 1 1
+112 GFAS_CO2_2D   $ROOT/GFAS/v2026-06/$YYYY/$MM/GFAS-smoke-$YYYY$MM$DD.nc cofire    2003-2100/1-12/1-31/0 EFY xy  kg/m2/s * 75 1 1
+)))GFAS
 
 )))EMISSIONS
 
@@ -1326,7 +1332,7 @@ ${RUNDIR_CO2_COPROD}
 # --- Perturbation factors ---
 #
 # Default scaling factor of 1.0 for OH field, which will be changed for Jacobian and posterior OptimizeOH run
-#==============================================================================
+#------------------------------------------------------------------------------
 2 OH_pert_factor  1.0 - - - xy 1 1
 
 #==============================================================================
@@ -1563,13 +1569,6 @@ ${RUNDIR_CO2_COPROD}
 316 INDUSTRY_LEVS $ROOT/VerticalScaleFactors/v2021-05/gc_layers.nc g_industry 2017/1/1/0 C xyz 1 1
 317 SHIP_LEVS     $ROOT/VerticalScaleFactors/v2021-05/gc_layers.nc cmv_c3     2017/1/1/0 C xyz 1 1
 )))CEDS_01x01
-
-#------------------------------------------------------------------------------
-# --- GFAS scale factors ---
-#------------------------------------------------------------------------------
-(((GFAS
-300 GFAS_EMITL $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc mami 2003-2021/1-12/1-31/0 C xy m 1
-)))GFAS
 
 #------------------------------------------------------------------------------
 # --- EPA NEI2016 (monthly-mean inventory) scale factors ---

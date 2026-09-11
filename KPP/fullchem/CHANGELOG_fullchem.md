@@ -3,6 +3,16 @@ This file documents all notable changes to the GEOS-Chem `fullchem` chemistry me
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 # Mechanism history
+## [14.8.0] - 2026-09-10
+### Added
+- Added PSO4MP and LSO4MP to track multi-phase production of SO4 in aerosol per Travis et al., 2025
+- Added PHMSMP, LHMSMP, PHMSAQ, LHMSAQ to differentiate HMS production/loss from cloud and aerosol chemistry per Travis et al. (2025)
+- Added PSO4AQ as a product to the SO2 + H2O2 rxn
+- Added PSO4AQ as a product to the SO2 + O3 rxn
+- Added PSO4AQ as a product to the SO2 {+O2} rxn
+- Added PH2SO4 as a product to the HOCl + SO2 rxn
+- Added PH2SO4 as a product to the HOBr + SO2 rxn
+- Fixed incorrect Arrhenius "A" coefficient (1.97d-12 --> 1.97d-11) in C3H8 + OH = A3O2 rxn
 
 ## [14.5.0] - TBD
 - Added four new species ALK4N1, ALK4N2, ALK4O2, and ALK4P to address issues in ALK4 and R4N2 chemistry following Brewer et al. (2023, JGR)
