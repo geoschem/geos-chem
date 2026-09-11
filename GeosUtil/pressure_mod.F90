@@ -35,6 +35,7 @@ MODULE PRESSURE_MOD
   PUBLIC  :: CLEANUP_PRESSURE
 #if defined( MODEL_GCHP ) || defined( MODEL_EXTERNAL )
   PUBLIC  :: Accept_External_Pedge
+  PUBLIC  :: Accept_External_PedgeDry
 #endif
 #if defined( MODEL_WRF ) || defined( MODEL_CESM )
   PUBLIC  :: Accept_External_ApBp
@@ -81,6 +82,8 @@ MODULE PRESSURE_MOD
 #if defined( MODEL_GCHP ) || defined( MODEL_EXTERNAL )
   REAL(fp), ALLOCATABLE :: EXTERNAL_PEDGE(:,:,:)  ! Pressure edges from
                                                   !  external grid
+  REAL(fp), ALLOCATABLE :: EXTERNAL_PEDGEDRY(:,:,:) ! Dry pressure edges from
+                                                    ! external grid
 #endif
 
 CONTAINS
@@ -412,7 +415,11 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 
+#if defined( MODEL_GCHP )
+    PEDGE_DRY = EXTERNAL_PEDGEDRY(I,J,L)
+#else
     PEDGE_DRY = AP(L) + ( BP(L) * PFLT_DRY(I,J) )
+#endif
 
   END FUNCTION GET_PEDGE_DRY
 !EOC
@@ -455,9 +462,14 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     REAL(fp)           :: PEDGE_DRY_BOT, PEDGE_DRY_TOP
-
+    
+#if defined( MODEL_GCHP )
+    PEDGE_DRY_BOT = EXTERNAL_PEDGEDRY(I,J,L)
+    PEDGE_DRY_TOP = EXTERNAL_PEDGEDRY(I,J,L+1)
+#else
     PEDGE_DRY_BOT = AP(L)   + ( BP(L)   * PFLT_DRY(I,J) )
     PEDGE_DRY_TOP = AP(L+1) + ( BP(L+1) * PFLT_DRY(I,J) )
+#endif
 
     DELP_DRY = PEDGE_DRY_BOT - PEDGE_DRY_TOP
 
@@ -576,6 +588,14 @@ CONTAINS
                                 State_Grid%NZ+1 ), &
                 STAT=RC )
       CALL GC_CheckVar( 'pressure_mod.F90:EXTERNAL_PEDGE', 2, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      EXTERNAL_PEDGE = 0e+0_fp
+    END IF
+    IF (.NOT. ALLOCATED( EXTERNAL_PEDGEDRY )) THEN
+      ALLOCATE( EXTERNAL_PEDGEDRY( State_Grid%NX, State_Grid%NY, &
+                                   State_Grid%NZ+1 ), &
+                STAT=RC )
+      CALL GC_CheckVar( 'pressure_mod.F90:EXTERNAL_PEDGEDRY', 2, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       EXTERNAL_PEDGE = 0e+0_fp
     END IF
@@ -1159,7 +1179,8 @@ CONTAINS
     IF ( ALLOCATED( PFLT_DRY    ) ) DEALLOCATE( PFLT_DRY    )
     IF ( ALLOCATED( PFLT_WET    ) ) DEALLOCATE( PFLT_WET    )
 #if defined( MODEL_GCHP ) || defined( MODEL_EXTERNAL ) || defined( MODEL_BCC )
-    IF ( ALLOCATED( EXTERNAL_PEDGE ) ) DEALLOCATE( EXTERNAL_PEDGE )
+    IF ( ALLOCATED( EXTERNAL_PEDGE    ) ) DEALLOCATE( EXTERNAL_PEDGE    )
+    IF ( ALLOCATED( EXTERNAL_PEDGEDRY ) ) DEALLOCATE( EXTERNAL_PEDGEDRY )
 #endif
 
   END SUBROUTINE CLEANUP_PRESSURE
@@ -1231,6 +1252,73 @@ CONTAINS
     RC             = GC_SUCCESS
 
   END SUBROUTINE Accept_External_Pedge
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Accept_External_PedgeDry
+!
+! !DESCRIPTION: Subroutine ACCEPT\_EXTERNAL\_PEDGEDRY sets the GEOS-Chem
+!  dry pressure edge variable with the values derived outside of GEOS-Chem.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Accept_External_PedgeDry( State_Met, State_Grid, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE State_Met_Mod,      ONLY : MetState
+    USE State_Grid_Mod,     ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology state object
+    TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
+!
+! !OUTPUT ARGUMENTS:
+!
+    INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  This routine is a setter for EXTERNAL_PEDGE.  It allows us to keep the
+!  EXTERNAL_PEDGE array PRIVATE to this module, which is good programming
+!  practice.
+!
+! !REVISION HISTORY:
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER            :: I, J, L
+
+    ! Set EXTERNAL_PEDGEDRY to the pressure edges [hPa] carried in the
+    ! State_Met object, which were obtained from outside GEOS-Chem
+    ! rather than computed locally from surface pressure.
+
+    !$OMP PARALLEL DO       &
+    !$OMP DEFAULT( SHARED ) &
+    !$OMP PRIVATE( I, J, L ) 
+    DO I = 1, State_Grid%NX
+    DO J = 1, State_Grid%NY
+    DO L = 1, State_Grid%NZ+1
+
+       EXTERNAL_PEDGEDRY(I,J,L) = State_Met%PEDGE_DRY(I,J,L)
+
+    ENDDO
+    ENDDO
+    ENDDO
+
+    ! Return successfully
+    RC             = GC_SUCCESS
+
+  END SUBROUTINE Accept_External_PedgeDry
 !EOC
 #endif
 #if defined ( MODEL_WRF ) || defined( MODEL_CESM )

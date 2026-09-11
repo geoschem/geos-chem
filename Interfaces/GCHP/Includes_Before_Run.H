@@ -107,14 +107,15 @@
 
   ! Set edge pressures, convert Pa -> hPa, and vertically flip
   !
-  ! NOTE: PLE is post-advection pressure edges computed in the
+  ! NOTE: PLE and DryPLE are post-advection pressure edges computed in the
   ! GCHPctmEnv gridded component, passed to FV3, and then passed
   ! (unchanged) to GEOS-Chem. Note that it is reversed in the vertical
   ! because it was prepared for and used in FV3. It was constructed from
   ! the instantaneous meteorology surface pressures PS1 and PS2 through
   ! time-interpolation to time after advection. This means PEDGE in
   ! GEOS-Chem represents post-advection pressure.
-  State_Met%PEDGE  (:,:,1:State_Grid%NZ+1) = PLE(:,:,State_Grid%NZ:0:-1) / 1d2
+  State_Met%PEDGE     (:,:,1:State_Grid%NZ+1) = PLE(:,:,State_Grid%NZ:0:-1) / 1d2
+  State_Met%PEDGE_DRY (:,:,1:State_Grid%NZ+1) = DryPLE(:,:,State_Grid%NZ:0:-1) / 1d2
 
   ! These will be set based on PS1_WET and PS2_WET in gchp_chunk_mod.F90
   State_Met%PS1_DRY(:,:) = 0.0d0 

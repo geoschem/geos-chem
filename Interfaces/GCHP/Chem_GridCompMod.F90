@@ -2275,6 +2275,7 @@ CONTAINS
     ! ckeller, 8/22/19: In GEOS, PLE and AIRDENS are from the IMPORT state
 #if !defined( MODEL_GEOS )
     REAL(ESMF_KIND_R8),  POINTER :: PLE(:,:,:)     => NULL() ! INTERNAL: PEDGE
+    REAL(ESMF_KIND_R8),  POINTER :: DryPLE(:,:,:)  => NULL()
 #endif
 
     ! RRTMG FDH needs to be able to read in dynamical heating
@@ -2470,7 +2471,8 @@ CONTAINS
 #      include "GCHPchem_GetPointer___.h"
 
        !IF ( IsCTM ) THEN
-       call MAPL_GetPointer ( IMPORT, PLE,      'PLE',     __RC__ )
+       call MAPL_GetPointer ( IMPORT, PLE,    'PLE',     __RC__ )
+       call MAPL_GetPointer ( IMPORT, DryPLE, 'DryPLE',  __RC__ )
 #ifdef RRTMG
        ! Read in dynamical heating rates
        If ( Read_Dyn_Heating ) Then
