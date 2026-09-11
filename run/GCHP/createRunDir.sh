@@ -896,7 +896,7 @@ while [ "$valid_response" -eq 0 ]; do
         for f in *.rc *.sh *.yml *.yaml *.py input.nml; do
 	    if [[ -f "${f}" ]]; then
                 git add "${f}"
-        fi
+            fi
         done
 	printf " " >> ${version_log}
 	git commit -m "Initial run directory" >> ${version_log}
