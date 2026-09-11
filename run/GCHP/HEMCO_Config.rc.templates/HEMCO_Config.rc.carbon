@@ -47,14 +47,15 @@ Mask fractions:              false
 ###############################################################################
 # ExtNr ExtName                on/off  Species   Years avail.
 0       Base                   : on    *
+# ----- SIMULATION SETTINGS (DO NOT EDIT) -------------------------------------
+    --> USE_CH4_DATA	       :       true
+    --> USE_CO_DATA            :       true
+    --> USE_CO2_DATA           :       true
+    --> USE_OCS_DATA           :       true     # 2012-2016
 # ----- MAIN SWITCHES ---------------------------------------------------------
     --> EMISSIONS              :       true
     --> METEOROLOGY            :       false
     --> CHEMISTRY_INPUT        :       true
-    --> USE_CH4_DATA           :       true
-    --> USE_CO_DATA            :       true
-    --> USE_CO2_DATA           :       true
-    --> USE_OCS_DATA           :       true     # 2012-2016
 # ----- RESTART FIELDS --------------------------------------------------------
     --> GC_RESTART             :       false
     --> HEMCO_RESTART          :       false
