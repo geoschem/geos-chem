@@ -4,7 +4,7 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [14.8.0] - 2026-09-10
+## [14.8.0] - 2026-09-11
 ### Added
 - Added PSO4AQ and PH2SO4 as a product to certain reactions; see `KPP/fullchem/CHANGELOG_fullchem.md`
 - Added methanediol (MDL) as a transported gas-phase species and to the KPP fullchem and custom mechanisms
@@ -39,6 +39,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Renamed GCHP history diagnostics for upwards mass flux to remove the `_R4` suffix
 - Updated utility script `run/shared/rtd_species_by_simulation.py` to read the `species_database.yml` for Hg simulations
 - Updated default GCHP resolution in createRunDir.sh from c24 for MERRA2/GEOS-FP and c30 for GEOS-IT to c90 in all cases.
+- Updated `download_data.yml` and GCHP `createRunDir.sh` to use restart files from the 14.8.0-rc.0 benchmarks (for some simulations)
 
 ### Fixed
 - Fixed incorrect variable names and removed unused variables in `NcdfUtil/ncdf_mod.F90`
