@@ -894,7 +894,7 @@ while [ "$valid_response" -eq 0 ]; do
 	printf "\n"
 	git init
         for f in *.rc *.sh *.yml *.yaml *.py input.nml; do
-	    if [[ -f "${f}" ]]; then
+            if [[ -f "${f}" ]]; then
                 git add "${f}"
             fi
         done
