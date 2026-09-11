@@ -893,11 +893,11 @@ while [ "$valid_response" -eq 0 ]; do
 	printf "\n\nChanges to the following run directory files are tracked by git:\n\n" >> ${version_log}
 	printf "\n"
 	git init
-	for f in *.rc *.sh *.yml *.yaml *.py input.nml; do
-    	    if [[ -f "${f}" ]]; then
-     	        git add "${f}"
-    	    fi
-	done
+        for f in *.rc *.sh *.yml *.yaml *.py input.nml; do
+	    if [[ -f "${f}" ]]; then
+                git add "${f}"
+        fi
+        done
 	printf " " >> ${version_log}
 	git commit -m "Initial run directory" >> ${version_log}
 	cd ${srcrundir}
