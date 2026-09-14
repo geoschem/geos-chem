@@ -52,5 +52,3 @@ mapl:
       standard_name: air_pressure
       units: hPa
       num_levels: 72
-      field_edge: PLE
-      field_center: PE
