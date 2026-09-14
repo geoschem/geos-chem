@@ -2556,7 +2556,7 @@ CONTAINS
 
     ! Assume success
     RC  = GC_SUCCESS
-      ! print*,'PREVIOUS units', previous_units
+
     ! Convert species to [kg]
     CALL Convert_Spc_Units(                                                  &
          Input_Opt      = Input_Opt,                                         &
