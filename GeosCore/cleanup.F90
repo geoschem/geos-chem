@@ -19,7 +19,6 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
   USE Carbon_Gases_Mod,        ONLY : Cleanup_Carbon_Gases
   USE DEPO_MERCURY_MOD,        ONLY : CLEANUP_DEPO_MERCURY
   USE DRYDEP_MOD,              ONLY : CLEANUP_DRYDEP
-  USE DUST_MOD,                ONLY : CLEANUP_DUST
   USE ErrCode_Mod
   USE ERROR_MOD,               ONLY : DEBUG_MSG
   USE FullChem_MOD,            ONLY : Cleanup_FullChem
@@ -121,7 +120,6 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
   !=================================================================
   CALL CLEANUP_CARBON()
   CALL CLEANUP_DRYDEP()
-  CALL CLEANUP_DUST()
   CALL CLEANUP_ATE()
   CALL CLEANUP_PJC_PFIX()
   CALL CLEANUP_PRESSURE()

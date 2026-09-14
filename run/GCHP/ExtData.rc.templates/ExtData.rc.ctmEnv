@@ -1,0 +1,41 @@
+Ext_AllowExtrap: .true.
+#
+PrimaryExports%%
+#--------|-------|------|------------|---------------|--------|-------|---------------------|
+# Export |       |      |            |___ Refresh ___|____ Factors ___|___ External File ___|
+# Name   | Units | Clim |Conservative| Time Template | Offset | Scale | Variable | Template |
+#--------|-------|------|------------|---------------|--------|-------|----------|----------|
+#
+# Notes:
+# Units should be in single quotes if they contain whitespace
+# Climatology should be Y if the file contains monthly climatology; otherwise it should be N
+# Conservative should be Y if units imply mass conservation dependency on regrid method (e.g. value per area)
+# Refresh Time Template should be:
+#    1. - if the file contains time-invariant constants
+#    2. prefixed with F if no time interpolation between data reads (F = fixed)
+#    3. 0 if data should be kept up-to-date at all times
+#    4. 0:HHMMSS if data occurs in file with frequency HHMMSS and should be updated at that frequency
+#    5. %y4-%m2-%d2T%h2:00:00, with any tokens replaced by appropriate constant time value, if multiple time
+#       values are in the same file. Note that including an F prefix indicates the data should be treated
+#       as constant until the next refresh time. Omission of the F prefix will time-interpolate between
+#       the values.
+# Minimize whitespace wherever possible to avoid surpassing the ESMF read buffer character limit,
+# applicable only for uncommented lines.
+#
+###############################################################################
+###
+### Meteorology data
+###
+###############################################################################
+${RUNDIR_MET_EXTDATA_PRIMARY_EXPORTS}
+#
+%%
+
+DerivedExports%%
+# ---------|---------|--------------------------------------------|
+#  Export  | Primary |_________________ Mask _____________________|
+#  Name    |  Name   |    Name    |           Expression          |    
+# ---------|---------|------------|-------------------------------|
+# ---------|---------|------------|-------------------------------|
+${RUNDIR_MET_EXTDATA_DERIVED_EXPORTS}
+%%

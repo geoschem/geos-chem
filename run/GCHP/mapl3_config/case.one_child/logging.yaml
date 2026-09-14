@@ -1,0 +1,124 @@
+schema_version: 1
+
+###############################      
+locks:
+   mpi:
+      class: MpiLock
+      comm:  MPI_COMM_WORLD
+
+###############################      
+formatters:
+   legacy:
+      class: Formatter
+      format:  '%(message)a'
+
+   basic:
+      class: Formatter
+      format:  '%(short_name)a15~: %(level_name)a~: %(message)a'
+
+   mpi:
+      class: MpiFormatter
+      format:  '%(mpi_rank)i4.4~: %(name)~: %(level_name)a~: %(message)a'
+      comm: MPI_COMM_WORLD
+
+   column:
+      class: Formatter
+      format: '(%(i)i3.3,%(j)i3.3): %(level_name)'
+
+   # This makes an output like:
+   # AGCM Date: 2000/04/14  Time: 21:00:00         GENERIC: DEBUG: Message
+   simtime:
+      class: Formatter
+      format: '%(simtime)a~ %(short_name)a15~: %(level_name)a~: %(message)a'
+      datefmt: ' GCHP Date: %(Y)i4.4~/%(M)i2.2~/%(D)i2.2  Time: %(HH)i2.2~:%(MM)i2.2~:%(SS)i2.2'
+
+###############################      
+handlers:
+
+   console:
+      class: streamhandler
+      formatter: basic
+      unit: OUTPUT_UNIT
+      level: DEBUG
+
+   warnings:
+      class:  FileHandler
+      filename: warnings_and_errors.log
+      lock: mpi
+      level: WARNING
+      formatter: basic
+
+   errors:
+      class:  StreamHandler
+      formatter: basic
+      unit: ERROR_UNIT
+      level: ERROR
+
+   mpi_shared:
+      class: FileHandler
+      filename: allPEs.log
+      formatter: mpi
+      comm: MPI_COMM_WORLD
+      lock: mpi
+      rank_keyword: rank
+      level: DEBUG
+
+   mpi_debug:
+      class: MpiFileHandler
+      formatter: basic
+      filename:  debug_%(rank)i3.3~.log
+      comm: MPI_COMM_WORLD      
+      rank_prefix: rank
+      level: DEBUG
+
+###############################      
+root:
+   handlers: [warnings,errors,console]
+   level: WARNING
+   root_level: INFO
+
+###############################      
+loggers:
+
+   errors:
+       handlers: [errors]
+       level: ERROR
+
+   HIST:
+      level: WARNING
+      root_level: DEBUG
+
+   EXTDATA:
+      level: WARNING
+      root_level: DEBUG
+
+   cap:
+       level: WARNING
+       root_level: DEBUG
+       
+   MAPL:
+       handlers: [mpi_shared]
+       level: WARNING
+       root_level: DEBUG
+
+   MAPL.profiler:
+       handlers: [mpi_shared]
+       propagate: FALSE
+       level: WARNING
+       root_level: DEBUG
+
+   CAP.EXTDATA:
+       handlers: [mpi_shared]
+       level: WARNING
+       root_level: DEBUG
+       propagate: false
+   
+   GCHPctmEnv:
+       handlers: [mpi_shared]
+       level: WARNING
+       root_level: DEBUG
+
+   GCHP:
+       handlers: [mpi_shared]
+       level: WARNING
+       root_level: DEBUG

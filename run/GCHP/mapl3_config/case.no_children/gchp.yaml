@@ -1,0 +1,15 @@
+mapl:
+
+  geometry:
+    esmf_geom:
+      class: CubedSphere
+      im_world: 24
+      nx: 1
+      ny: 1
+    vertical_grid:
+      class: model
+      standard_name: air_pressure
+      units: hPa
+      num_levels: 72
+      field_edge: PLE
+      field_center: PE

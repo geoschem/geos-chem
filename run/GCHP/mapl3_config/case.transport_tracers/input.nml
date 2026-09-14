@@ -1,0 +1,32 @@
+&fv_core_nml
+  npx = 13
+  npy = 13
+  npz = 91
+  adiabatic = .true.
+  fv_debug = .F.
+  range_warn = .F.
+  fv_sg_adj = -1
+  n_sponge = -1
+  n_zfilter = 0
+  compute_coords_locally = .false.
+/
+
+&fv_grid_nml
+/
+
+&main_nml
+/
+
+&test_case_nml
+       test_case = 5
+/
+
+&fms_io_nml
+/
+
+&fms_nml
+  print_memory_usage=.true.
+  domains_stack_size = 12000000
+  clock_grain='MODULE',
+  clock_flags='DETAILED',
+/
