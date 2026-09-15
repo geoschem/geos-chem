@@ -509,7 +509,7 @@ while [ "${valid_met}" -eq 0 ]; do
 	            elif [[ ${adv_flux_src} = "3hr_wind" ]]; then
 			RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.raw_3hr_c180_wind.txt)\n"
 		    fi
-		    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.raw_c180.txt)\n"
+		    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.nonadv_raw_c180.txt)\n"
 		fi
 
 	    else
@@ -522,7 +522,7 @@ while [ "${valid_met}" -eq 0 ]; do
 	            elif [[ ${adv_flux_src} = "3hr_wind" ]]; then
 			RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/advection_met/geosit.raw_3hr_c180_wind.txt)\n"
 		    fi
-		    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.raw_c180.txt)\n"
+		    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.nonadv_raw_c180.txt)\n"
 		fi
 
 	    fi
@@ -642,12 +642,15 @@ cp ./gitignore                        ${rundir}/.gitignore
 
 # Only copy extdata.yaml used in ExtData2G if using Transport Tracers
 # (extdata.yaml not yet available for other simulations)
-if [[ "x${sim_name}" == "xTransportTracers" ]]; then
+if [[ "x${sim_name}" == "xTransportTracers" || "x${sim_name}" == "xtagO3" ]]; then
     cp ./ExtData2G.yaml.templates/extdata.yaml.${sim_name} ${rundir}/extdata.yaml
 fi
 
 # Copy file to auto-update common settings
 cp ./setCommonRunSettings.sh.template  ${rundir}/setCommonRunSettings.sh
+
+# Copy file to extract performance metrics, currently only timing info from allPEs.log
+cp ./extractPerformance.sh  ${rundir}/extractPerformance.sh
 
 # Copy metrics.py file to computing global OH
 if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xcarbon" ]]; then
@@ -668,6 +671,7 @@ chmod 744 ${rundir}/setEnvironmentLink.sh
 chmod 744 ${rundir}/setRestartLink.sh
 chmod 744 ${rundir}/setCommonRunSettings.sh
 chmod 744 ${rundir}/checkRunSettings.sh
+chmod 744 ${rundir}/extractPerformance.sh
 
 # Copy species database; append APM or TOMAS species if needed
 # Also copy APM input files to the run directory
@@ -695,17 +699,17 @@ if [[ "x${sim_name}" == "xfullchem" ]]; then
 	restart_name="${sim_extra_option}"
     else
 	start_date='20190701'
-	restart_dir='GC_14.7.0'
+	restart_dir='GC_14.8.0'
 	restart_name="${sim_name}"
     fi
 elif [[ "x${sim_name}" == "xtagO3" ]]; then
     # NOTE: we use the fullchem restart file for tagO3
     start_date='20190701'
-    restart_dir='GC_14.7.0'
+    restart_dir='GC_14.8.0'
     restart_name="fullchem"
 elif [[ "x${sim_name}" == "xTransportTracers" ]]; then
     start_date='20190101'
-    restart_dir='GC_14.7.0'
+    restart_dir='GC_14.8.0'
     restart_name="${sim_name}"
 elif [[ ${sim_name} = "carbon" ]]; then
     start_date='20190101'
@@ -756,11 +760,8 @@ else
 fi
 
 # Set default grid resolution
-if [[ "${met}" == "geosit" && "${adv_flux_src}" == "1hr_mass_flux" ]]; then
-    RUNDIR_VARS+="RUNDIR_CS_RES='30'\n"
-else
-    RUNDIR_VARS+="RUNDIR_CS_RES='24'\n"
-fi
+RUNDIR_VARS+="RUNDIR_CS_RES='90'\n"
+
 
 # Assign appropriate file paths and settings in HEMCO_Config.rc
 if [[ "${sim_extra_option}" == "benchmark" ]]; then
@@ -892,10 +893,11 @@ while [ "$valid_response" -eq 0 ]; do
 	printf "\n\nChanges to the following run directory files are tracked by git:\n\n" >> ${version_log}
 	printf "\n"
 	git init
-	git add *.rc *.sh *.yml input.nml
-	if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xcarbon" ]]; then
-	    git add *.py
-	fi
+        for f in *.rc *.sh *.yml *.yaml *.py input.nml; do
+            if [[ -f "${f}" ]]; then
+                git add "${f}"
+            fi
+        done
 	printf " " >> ${version_log}
 	git commit -m "Initial run directory" >> ${version_log}
 	cd ${srcrundir}
@@ -921,7 +923,7 @@ printf "\n  -- Example run scripts are in the runScriptSamples subdirectory"
 printf "\n  -- For more information visit the GCHP user guide at"
 printf "\n     https://readthedocs.org/projects/gchp/\n\n"
 
-if [[ "x${sim_name}" == "xTransportTracers" ]]; then
+if [[ "x${sim_name}" == "xTransportTracers" || "x${sim_name}" == "xtagO3" ]]; then
     printf "\n\n*** NOTE: ExtData2G is now available as beta! ***\n"
     printf " - New configuration file extdata.yaml is located in your run directory\n"
     printf " - It is configured for use with MERRA2 meteorology at grid resolutions <= C180\n"

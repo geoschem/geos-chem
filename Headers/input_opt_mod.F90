@@ -16,8 +16,12 @@ MODULE Input_Opt_Mod
 ! !USES:
 !
   USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
-#if defined( ESMF_ )
-    USE pFlogger
+#ifdef MAPL_ESMF
+#ifdef MAPL3
+  USE pflogger, only: logger_t => logger
+#else
+  USE pFlogger
+#endif
 #endif
 
   IMPLICIT NONE
@@ -450,10 +454,14 @@ MODULE Input_Opt_Mod
      INTEGER                     :: LINOZ_NFIELDS
      REAL(fp),           POINTER :: LINOZ_TPARM(:,:,:,:)
 
-#if defined( ESMF_ )
+#ifdef MAPL_ESMF
+#ifdef MAPL3
+     class(logger_t), pointer    :: lgr
+#else     
      ! ESMF logger
      class(Logger), pointer      :: lgr
      Character(Len=255)          :: compname
+#endif
 #endif
 
   END TYPE OptInput
@@ -954,11 +962,13 @@ CONTAINS
 
     Input_Opt%LINOZ_TPARM            = 0.0_fp
 
-#if defined( ESMF_ )
+#ifdef MAPL_ESMF
+#ifndef MAPL3
     ! Logger handle is set up by Chem_GridCompMod
     Input_Opt%lgr => NULL()
-    ! Component name is acquired externally - this is a placeholder
+    ! Component name is acquired externally - this is a placeholder and might not be necessary in MAPL3
     Input_Opt%compname = 'GC'
+#endif
 #endif
 
   END SUBROUTINE Set_Input_Opt
@@ -1093,7 +1103,7 @@ CONTAINS
     ENDIF
 #endif
 
-#if defined( ESMF_ )
+#ifdef MAPL_ESMF
     If (Associated(Input_Opt%lgr)) Input_Opt%lgr => NULL()
 #endif
 

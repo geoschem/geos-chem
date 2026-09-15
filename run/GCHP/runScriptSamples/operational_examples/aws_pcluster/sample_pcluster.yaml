@@ -1,0 +1,70 @@
+Region: us-east-1
+Image:
+  Os: alinux2023
+  CustomAmi: ami-XX              # Edit
+
+HeadNode:
+  InstanceType: c5.2xlarge
+  Networking:
+    SubnetId: subnet-XX          # Edit
+    AdditionalSecurityGroups:
+    - sg-XX
+  Iam:
+    AdditionalIamPolicies:
+      - Policy: arn:aws:iam::XX:policy/S3_access_my_buckets # Create this policy for S3 push/get/delete permissions
+
+  Ssh:
+    KeyName: XX                   # Edit
+
+SharedStorage:
+  - MountDir: /home/ec2-user/fsx  # Edit
+    Name: XX                      # Edit
+    StorageType: FsxLustre
+    FsxLustreSettings:
+      FileSystemId: fs-XX         # Edit
+
+Scheduling:
+  Scheduler: slurm
+  SlurmQueues:
+
+  - Name: spot-2xlarge
+    CapacityType: SPOT
+    ComputeResources:
+    - Name: spot2xlarge
+      Instances:                        # Add/remove instances. Can also edits Names above.
+      - InstanceType: c5.2xlarge
+      - InstanceType: c6i.2xlarge
+      - InstanceType: c7i.2xlarge
+      - InstanceType: c8i.2xlarge
+      - InstanceType: c6a.2xlarge
+      DisableSimultaneousMultithreading: true
+      MinCount: 0
+      MaxCount: XX                 # Edit
+    Networking:
+      SubnetIds:
+      - subnet-XX                  # Edit
+      AdditionalSecurityGroups:
+      - sg-XX                      # Edit
+
+  - Name: spot-48physcore
+    CapacityType: SPOT
+    ComputeResources:
+    - Name: spot48cpu
+      Instances:
+      - InstanceType: c5.24xlarge
+      - InstanceType: c6i.24xlarge
+      - InstanceType: c7i.24xlarge
+      - InstanceType: c8i.24xlarge
+      - InstanceType: c6a.24xlarge
+      - InstanceType: m6i.24xlarge
+      - InstanceType: m7i.24xlarge
+      - InstanceType: m6a.24xlarge
+      - InstanceType: m7a.12xlarge
+      DisableSimultaneousMultithreading: true
+      MinCount: 0
+      MaxCount: XX                 # Edit
+    Networking:
+      SubnetIds:
+      - subnet-XX                  # Edit
+      AdditionalSecurityGroups:
+      - sg-XX                      # Edit

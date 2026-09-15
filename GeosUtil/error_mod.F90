@@ -1,3 +1,10 @@
+#ifdef MAPL_ESMF
+#ifdef MAPL3
+#include "MAPL.h"
+#else
+#include "MAPL_Generic.h"
+#endif
+#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -15,10 +22,15 @@ MODULE ERROR_MOD
 ! !USES:
 !
   USE ErrCode_Mod
-  USE Input_Opt_Mod,      ONLY : OptInput
-  USE PRECISION_MOD            ! For GEOS-Chem Precision (fp)
-#if defined( ESMF_ )
-    USE pFlogger
+  USE Input_Opt_Mod, ONLY : OptInput
+  USE Precision_Mod
+#ifdef MAPL_ESMF
+#ifdef MAPL3
+  USE mapl_ErrorHandlingMod, ONLY : MAPL_Assert
+  USE mapl3g_generic,        ONLY : MAPL_GridCompGet 
+#else
+  USE pFlogger
+#endif
 #endif
 
   IMPLICIT NONE
@@ -88,9 +100,11 @@ MODULE ERROR_MOD
 
   LOGICAL                 :: SHADOW_am_I_Root   ! Shadow for am_I_Root
   TYPE(OptInput), POINTER :: SHADOW_Input_Opt   ! Shadow for Input_Opt
-#if defined( ESMF_ )
-  class(Logger), pointer :: lgr
-  Character(Len=255) :: compname
+#ifdef MAPL_ESMF
+#ifndef MAPL3
+  class(Logger),  POINTER :: lgr
+  Character(Len=255)      :: compname
+#endif
 #endif
 
 CONTAINS
@@ -243,7 +257,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( LINUX_GFORTRAN )
+#if defined( LINUX_GFORTRAN )
 
     IT_IS_A_FINITE = ((.not.ISNAN(VALUE)) .and. &
                       (VALUE.lt.HUGE(1.d0)) .and. &
@@ -466,17 +480,15 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE Timers_Mod
-#if defined( ESMF_ )
-    !-----------------------------------------------------------------
-    !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
-    !
-    ! Use GEOS-5 style error reporting when connecting to the GEOS-5
-    ! GCM via the ESMF interface (bmy, 3/12/13)
-    !-----------------------------------------------------------------
+
+#ifdef MAPL_ESMF
+#ifndef MAPL3
     USE MAPL_Mod
-#   include "MAPL_Generic.h"
-#elif defined( MODEL_CESM )
-      USE CAM_ABORTUTILS,     ONLY : ENDRUN
+#endif
+#endif
+
+#ifdef MODEL_CESM
+    USE CAM_ABORTUTILS, ONLY : ENDRUN
 #endif
 !
 ! !REVISION HISTORY:
@@ -491,14 +503,16 @@ CONTAINS
     INTEGER :: RC          ! Success / Failure
     LOGICAL :: am_I_Root   ! Is this the root CPU?
 
-#if defined( ESMF_ )
+#ifdef MAPL_ESMF
     !-----------------------------------------------------------------
     !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
     !
     ! Use GEOS-5 style error reporting when connecting to the GEOS-5
     ! GCM via the ESMF interface (bmy, 3/12/13)
     !-----------------------------------------------------------------
+#ifndef MAPL3
     __Iam__('GEOSCHEMSTOP')
+#endif()
 
     ! Only write to stdout if we are on the root CPU
     am_I_Root = .TRUE.
@@ -671,6 +685,9 @@ CONTAINS
 ! !USES:
 !
     USE CharPak_Mod, ONLY : To_Uppercase
+#ifdef MAPL3
+    USE pflogger,    ONLY : logger_t => logger
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -690,6 +707,12 @@ CONTAINS
     CHARACTER(LEN=10)     :: LEVEL_SAFE
     CHARACTER(LEN=255)    :: Iam
 
+#ifdef MAPL_ESMF
+#ifdef MAPL3
+     class(logger_t), pointer :: logger
+#endif
+#endif
+    
     If (PRESENT(LEVEL)) Then
         LEVEL_SAFE = To_Uppercase(LEVEL)
     Else
@@ -701,7 +724,18 @@ CONTAINS
         Iam = 'unknown'
     End If
 
-#if defined( ESMF_ )
+#ifdef MAPL_ESMF
+#ifdef MAPL3
+    ! Comment this out for now since need to figure out how to get gc (ESMF_GridComp object)
+    !call MAPL_GridCompGet(gc, logger=logger, _RC)
+    !If (Level_Safe == 'INFO') Then
+    !    call logger%info('%a', Trim(Message))
+    !Else if (Level_Safe == 'DEBUG') Then
+    !    call logger%debug('%a', Trim(Message))
+    !Else
+    !    call logger%warning('%a', Trim(Message))
+    !End if
+#else
     ! Preceded by the component name already
     If (Level_Safe == 'INFO') Then
         call lgr%info(   '%a~: %a', Trim(Iam), Trim(Message))
@@ -710,6 +744,7 @@ CONTAINS
     Else
         call lgr%warning('%a~: %a', Trim(Iam), Trim(Message))
     End If
+#endif
 #else
     ! Print message
     WRITE( 6, '(a15,x,a5,2a)' ) Trim(Iam), Trim(LEVEL_SAFE), ': ',Trim(MESSAGE)
@@ -1153,9 +1188,11 @@ CONTAINS
     ! Store a shadow copy of Input_Opt (point to it instead of copying)
     SHADOW_Input_Opt => Input_Opt
 
-#if defined( ESMF_ )
+#ifdef MAPL_ESMF
+#ifndef MAPL3
     lgr => Input_Opt%lgr
     compname = Input_Opt%CompName
+#endif
 #endif
 
   END SUBROUTINE INIT_ERROR
@@ -1182,8 +1219,10 @@ CONTAINS
 !BOC
     ! Free the pointer to Input_Opt
     NULLIFY( SHADOW_Input_Opt )
-#if defined( ESMF_ )
+#ifdef MAPL_ESMF
+#ifndef MAPL3
     NULLIFY( lgr )
+#endif
 #endif
 
   END SUBROUTINE CLEANUP_ERROR

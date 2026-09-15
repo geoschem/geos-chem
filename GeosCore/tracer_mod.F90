@@ -1,5 +1,10 @@
-#if defined( MODEL_GEOS ) || defined( MODEL_GCHP )
+! Might actually not need this (ewl)
+#ifdef MAPL_ESMF
+#ifdef MAPL3
+#include "MAPL.h"
+#else
 #include "MAPL_Generic.h"
+#endif
 #endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -69,9 +74,14 @@ CONTAINS
     USE Timers_Mod,       ONLY : Timer_End, Timer_Start
     USE UnitConv_Mod
 
-#if defined( MODEL_GEOS ) || defined( MODEL_GCHP )
+#ifdef MAPL_ESMF
     USE ESMF
+#ifdef MAPL3
+    USE MAPL_CommsMod, only: MAPL_CommsAllReduceSum
+#else
     USE MAPL
+    USE MAPL_CommsMod, only: MAPL_CommsAllReduceSum
+#endif
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -119,7 +129,7 @@ CONTAINS
     ! Objects
     TYPE(Species), POINTER :: SpcInfo
 
-#if defined( MODEL_GEOS ) || defined( MODEL_GCHP )
+#ifdef MAPL_ESMF
     INTEGER       :: status
     TYPE(ESMF_VM) :: vm
 #endif
@@ -139,7 +149,7 @@ CONTAINS
     Total_Spc   = 0.0_fp
     Flux        = 0.0_fp
 
-#if defined( MODEL_GEOS ) || defined( MODEL_GCHP )
+#ifdef MAPL_ESMF
     call ESMF_VmGetCurrent(vm, rc=status)
     _VERIFY(status)
 #endif
@@ -256,7 +266,7 @@ CONTAINS
           DO I = 1, State_Grid%NX
 
              ! Set mask to zero outside of latitude zone
-             IF ( State_Grid%YMid(I,J) < SpcInfo%Src_LatMin .and. &
+             IF ( State_Grid%YMid(I,J) < SpcInfo%Src_LatMin .or. &
                   State_Grid%YMid(I,J) > SpcInfo%Src_LatMax ) THEN
                 Mask(I,J,:) = 0.0_fp
              ENDIF
@@ -375,7 +385,7 @@ CONTAINS
           ENDDO
           ENDDO
 
-#if defined( MODEL_GCHP ) || defined( MODEL_GEOS )
+#ifdef MAPL_ESMF
           ! Sum across all nodes
           call MAPL_CommsAllReduceSum(vm, sendbuf=Local_Tally, recvbuf=Total_Area, cnt=1, RC=status)
 #else
@@ -389,17 +399,16 @@ CONTAINS
           DO L = 1, State_Grid%NZ
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
-             IF ( Mask(I,J,L) > 0 ) THEN
-                Local_Tally = Local_Tally &
-                   + ( SpcInfo%Src_Value - State_Chm%Species(N)%Conc(I,J,L) ) &
-                   * ( State_Met%AIRNUMDEN(I,J,L) / AVO )                     &
-                   *  State_Met%AIRVOL(I,J,L)
-             ENDIF
+             ! Integrate over the entire domain instead only over source regions
+             Local_Tally = Local_Tally &
+                + ( SpcInfo%Src_Value - State_Chm%Species(N)%Conc(I,J,L) ) &
+                * ( State_Met%AIRNUMDEN(I,J,L) / AVO )                     &
+                *  State_Met%AIRVOL(I,J,L)
           ENDDO
           ENDDO
           ENDDO
 
-#if defined( MODEL_GCHP ) || defined( MODEL_GEOS )
+#ifdef MAPL_ESMF
           ! Sum across all nodes
           call MAPL_CommsAllReduceSum(vm, sendbuf=Local_Tally, recvbuf=Total_Spc, cnt=1, __RC__)
 #else

@@ -317,6 +317,13 @@
 
       ATOM4N=0.d0
 
+      ! Initialize values set later to get past FPE errors when debug flags on
+      zfv(:) = 0.d0
+      zfv_sp(:) = 0.d0
+      RLOSULF = 0.d0
+      MSULFLV = 0.d0
+      SUMXVA1 = 0.d0
+
 !      CLVSOG0 = 4.d6
       CLVSOG0 = 5.d5
 
@@ -1470,7 +1477,9 @@
 
 ! Scavenging of sulfate particles by other types of aerosols
           IF((TCS-CSSULF).GT.1.E-5) THEN
-           RLOSULF = MSULFLV/(SUMXVA1*DENSULF*1.d3)   !ratio of LO mass on SULF to total mass
+           IF ( SUMXVA1.GT.0.0d0 .AND. DENSULF.GT.0.0d0 ) then
+              RLOSULF = MSULFLV/(SUMXVA1*DENSULF*1.d3) !ratio of LO mass on SULF to total mass
+           ENDIF
            RLOSULF = MIN(RLOSULF, 1.0d0)
 
            CALL APM_COAGSCAV(
@@ -1651,10 +1660,10 @@
 
 
       IF(CACID.LT.0.0) THEN
-         WRITE(6,*) "CACID < 0, set it to 1E2/cc"
-        WRITE(6,99)II,JJ,LL,CACID,CACID0,PACID,YJAVE,CSSULF, 
-     &   GFGAS,MMSA,MNIT,MNH4,MSOA,MSO4, 
-     &   TCSOTHER,TOTCONDOTH,MCONDOTH,MDSTS
+!        WRITE(6,*) "CACID < 0, set it to 1E2/cc"
+!         WRITE(6,99)II,JJ,LL,CACID,CACID0,PACID,YJAVE,CSSULF,
+!     &   GFGAS,MMSA,MNIT,MNH4,MSOA,MSO4,
+!     &   TCSOTHER,TOTCONDOTH,MCONDOTH,MDSTS
          CACID = 1.E2
       ENDIF
 

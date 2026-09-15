@@ -373,7 +373,7 @@ CONTAINS
     LOGICAL                      :: v_bool
     INTEGER                      :: N,                C
     REAL(fp)                     :: JulianDateStart,  JulianDateEnd
-#if defined( ESMF_ ) || defined( MODEL_ )
+#if defined( MODEL_GCHP ) || defined( MODEL_GEOS )
     INTEGER                      :: H,       M,       S
     REAL(f4)                     :: init_UTC
 #endif
@@ -597,10 +597,10 @@ CONTAINS
     ENDIF
     Input_Opt%CHEM_INPUTS_DIR = TRIM( v_str )
 
-#if defined( MODEL_GCHP )
     !------------------------------------------------------------------------
     ! Meteorology field
     !------------------------------------------------------------------------
+#ifdef MODEL_GCHP
     key   = "simulation%met_field"
     v_str = MISSING_STR
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
@@ -612,7 +612,7 @@ CONTAINS
     Input_Opt%MetField = TRIM( v_str )
 #endif
 
-#if defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
     Input_Opt%MetField        = 'See ExtData.rc'
 #endif
 
@@ -2702,7 +2702,7 @@ CONTAINS
        ENDIF
     ENDIF
 
-#ifndef MODEL_GCHPCTM
+#ifndef MODEL_GCHP
     If (Input_Opt%RRTMG_FDH) Then
        errMsg = 'Fixed dynamical heating in RRTMG is currently only available in GCHP'
        CALL GC_Error( errMsg, RC, thisLoc )

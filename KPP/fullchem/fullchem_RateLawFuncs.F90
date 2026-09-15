@@ -59,7 +59,9 @@ MODULE fullchem_RateLawFuncs
   INTEGER,  PRIVATE, PARAMETER :: HOBr_plus_HBr  = 11 ! KHETI_SLA(11)= 0
 
   ! Critical RH [%] for uptake of GLYX, MGLYX, and GLYC:
-  REAL(dp), PRIVATE, PARAMETER :: CRITRH         = 35.0_dp
+  REAL(dp), PRIVATE, PARAMETER :: RH_35_PERCENT         = 35.0_dp
+  ! Critical RH [%] for uptake of SO2:
+  REAL(dp), PRIVATE, PARAMETER :: RH_50_PERCENT  = 50.0_dp
 
   ! Conversion factor from atm to bar
   REAL(dp), PRIVATE, PARAMETER :: CON_ATM_BAR    = 1.0_dp / 1.01325_dp
@@ -1131,7 +1133,7 @@ CONTAINS
     ! BOTE: ClNO3 + Cl- branch ratio = 1.0 - branchBr
     branchBr = k_Br / k_tot
   END SUBROUTINE Gam_ClNO3_Aer
-
+  !
   SUBROUTINE Gam_ClNO3_Ice( H, gamma, brHCl, brHBr, brH2O )
     !
     ! Computes the reactive uptake probability and branching ratio
@@ -1168,7 +1170,150 @@ CONTAINS
     brHBr = g2 / gamma
     brH2O = g3 / gamma
   END SUBROUTINE Gam_ClNO3_Ice
+  !
+  FUNCTION HMSDecomp( H ) RESULT( k )
+    !
+    ! Computes the reaction rate [1/s] for HMS decomposition
+    !
+    TYPE(HetState), INTENT(IN) :: H                 ! HetChem State
+    REAL(dp)                   :: k
+    !
+    k = H%KaqHMS
+    !
+  END FUNCTION HMSDecomp
+  !
+  FUNCTION HMSOxidation( H ) RESULT(k)
+    !
+    ! Computes the reaction rate [1/s] for HMS oxidation
+    !
+    TYPE(HetState), INTENT(IN) :: H                 ! HetChem State
+    REAL(dp)                   :: k
+    !
+    k = H%KaqHMS2
+  END FUNCTION HMSOxidation
+  
+  FUNCTION SO2uptkbyTMIO2( H ) RESULT( k )
+    !
+    ! Computes the reaction rate [1/s] for 1st order uptake
+    ! of SO2 and rx with TMI/O2.
+    !
+    TYPE(HetState), INTENT(IN) :: H                 ! HetChem State
+    REAL(dp)                   :: k                 ! Rxn rate [1/s]
+    !
+    REAL(dp)                   :: gamma, srMw
+    !
+    ! Initialize
+    gamma = H%gamma_SO2_TMI
+    k     = 0.0_dp
+    srMw  = SR_MW(ind_SO2)
+    !
+    ! Uptake by tropospheric sulfate, if RH is above the threshold
+    IF ( RELHUM >= RH_50_PERCENT ) THEN
+       k = k + Ars_L1k( H%xArea(SUL), H%xRadi(SUL), gamma, srMw )
+       k = k + Ars_L1k( H%xArea(ORC), H%xRadi(ORC), gamma, srMw )
+    ENDIF
+    !
+  END FUNCTION SO2uptkbyTMIO2
+  !
+  FUNCTION SO2uptkbyH2O2( H ) RESULT( k )
+    !
+    ! Computes the hydrolysis reaction rate [1/s] of ClNO3 + H2O.
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! Rxn rate [1/s]
+    !
+    REAL(dp)                   :: gamma, srMw
+    !
+    gamma = H%gamma_SO2_H2O2
+    k     = 0.0_dp
+    srMw  = SR_MW(ind_SO2)
+    !
+    ! Uptake by tropospheric sulfate, if RH is above the threshold
+    IF ( RELHUM >= RH_50_PERCENT ) THEN
+       k = k + Ars_L1k( H%xArea(SUL), H%xRadi(SUL), gamma, srMw )
+       k = k + Ars_L1k( H%xArea(ORC), H%xRadi(ORC), gamma, srMw )
+       !
+       ! Assume H2O2 is limiting, so recompute reaction rate accordingly
+       k = kIIR1Ltd( C(ind_H2O2), C(ind_SO2), k )
+    ENDIF
+    !
+  END FUNCTION SO2uptkbyH2O2
 
+  FUNCTION SO2uptkbyNO2( H ) RESULT ( k )
+    !
+    ! Computes the reaction rate [1/s] for 1st order uptake
+    ! of SO2 by NO2.
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! Rxn rate [1/s]
+    !
+    REAL(dp)                   :: gamma, srMw
+    !
+    gamma = H%gamma_SO2_NO2
+    k     = 0.0_dp
+    srMw  = SR_MW(ind_SO2)
+    !
+    ! Uptake by tropospheric sulfate, if RH is above the threshold
+    IF ( RELHUM >= RH_50_PERCENT ) THEN
+       k = k + Ars_L1k( H%xArea(SUL), H%xRadi(SUL), gamma, srMw )
+       k = k + Ars_L1k( H%xArea(ORC), H%xRadi(ORC), gamma, srMw )
+       !
+       ! Assume NO2 is limiting, so recompute reaction rate accordingly
+       k = kIIR1Ltd( C(ind_NO2), C(ind_SO2), k )
+    ENDIF
+    !
+  END FUNCTION SO2uptkbyNO2
+  !
+  FUNCTION SO2uptkbyO3( H ) RESULT (k)
+    !
+    ! Computes the reaction rate [1/s] for 1st order uptake of
+    ! SO2 by O3.
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! HetChem State
+    REAL(dp)                   :: k              ! Rxn rate [1/s]
+    !
+    REAL(dp)                   :: gamma, srmw
+    !
+    gamma = H%gamma_SO2_O3
+    k     = 0.0_dp
+    srMw  = SR_MW(ind_SO2)
+    !
+    ! Uptake by tropospheric sulfate, if RH is above the threshold
+    IF ( RELHUM >= RH_50_PERCENT ) THEN
+       k = k + Ars_L1k( H%xArea(SUL), H%xRadi(SUL), gamma, srMw )
+       k = k + Ars_L1k( H%xArea(ORC), H%xRadi(ORC), gamma, srMw )
+       !
+       ! Assume O3 is limiting, so recompute reaction rate accordingly
+       k = kIIR1Ltd( C(ind_O3), C(ind_SO2), k )
+    ENDIF
+    !
+  END FUNCTION SO2uptkbyO3
+  !
+  FUNCTION SO2uptkbyCH2O( H ) RESULT ( k )
+    !
+    ! Computes the reaction rate [1/s] for 1st order uptake of
+    ! SO2 by CH2O.
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! Rxn rate [1/s]
+    !
+    REAL(dp)                   :: gamma, srMw
+    !
+    gamma = H%gamma_SO2_CH2O
+    k     = 0.0_dp
+    srMw  = SR_MW(ind_SO2)
+    !
+    ! Uptake by tropospheric sulfate, if RH is above the threshold
+    IF ( RELHUM >= RH_50_PERCENT ) THEN
+       k = k + Ars_L1k( H%xArea(SUL), H%xRadi(SUL), gamma, srMw )
+       k = k + Ars_L1k( H%xArea(ORC), H%xRadi(ORC), gamma, srMw )
+       !
+       ! Assume CH2O is limiting, so recompute reaction rate accordingly
+       k = kIIR1Ltd( C(ind_CH2O), C(ind_SO2), k )
+    ENDIF
+    !
+  END FUNCTION SO2uptkbyCH2O
+  !
   FUNCTION ClNO3uptkByH2O( H ) RESULT( k )
     !
     ! Computes the hydrolysis reaction rate [1/s] of ClNO3 + H2O.
@@ -3298,7 +3443,7 @@ CONTAINS
     gamma = 0.0_dp
     !
     ! Uptake by tropospheric sulfate
-    IF ( RELHUM >= CRITRH ) THEN
+    IF ( RELHUM >= RH_35_PERCENT ) THEN
        IF ( SUNCOS > 0.0_dp ) THEN
           gamma = 4.4e-3_dp   ! cf Liggio et al 2005
        ELSE
@@ -3394,7 +3539,7 @@ CONTAINS
     gamma = 0.0_dp
     !
     ! Only consider inorganic aqueous aerosols with RH > 35%.
-    IF ( RELHUM >= CRITRH ) THEN
+    IF ( RELHUM >= RH_35_PERCENT ) THEN
        !
        ! Get GAMMA for IEPOX hydrolysis
        gamma = EpoxUptkGamma( srMw, H )
@@ -3421,7 +3566,7 @@ CONTAINS
     gamma = 0.0_dp
     !
     ! Only consider inorganic aqueous aerosols with RH > 35%.
-    IF ( RELHUM >= CRITRH ) THEN
+    IF ( RELHUM >= RH_35_PERCENT ) THEN
        !
        ! Define gamma for MGLY: Obtained by scaling gamma GLYX by the
        ! ratio of effective Henry's law constants for GLYX (3d7) and
@@ -3445,7 +3590,7 @@ CONTAINS
     k  = 0.0_dp
     !
     ! Only consider inorganic aqueous aerosols with RH > 35%.
-    IF ( RELHUM >= CRITRH ) THEN
+    IF ( RELHUM >= RH_35_PERCENT ) THEN
        k = k + Ars_L1k( H%xArea(SUL), H%xRadi(SUL), gamma, srMw )
        k = k + Ars_L1k( H%xArea(BKC), H%xRadi(BKC), gamma, srMw )
        k = k + Ars_L1k( H%xArea(ORC), H%xRadi(ORC), gamma, srMw )

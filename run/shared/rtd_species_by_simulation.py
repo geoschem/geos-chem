@@ -23,11 +23,15 @@ def read_species_from_eqn_file(simulation_name):
     Reads a geoschem_config.yml template file for a given GEOS-Chem
     simulation and returns the list of transported species
 
-    Args
-    simulation_name     : str : Name of the GEOS-Chem simulation
+    Parameters
+    ----------
+    simulation_name : str
+        Name of the GEOS-Chem simulation
 
-    returns
-    transported_species : list : List of transported species
+    Returns
+    -------
+    transported_species : list
+        List of transported species
     """
     verify_variable_type(simulation_name, str)
 
@@ -52,11 +56,15 @@ def read_transported_species(simulation_name):
     Reads a geoschem_config.yml template file for a given GEOS-Chem
     simulation and returns the list of transported species
 
-    Args
-    simulation_name     : str : Name of the GEOS-Chem simulation
+    Parameters
+    ----------
+    simulation_name : str
+        Name of the GEOS-Chem simulation
 
-    returns
-    transported_species : list : List of transported species
+    Returns
+    -------
+    transported_species : list
+        List of transported species
     """
     verify_variable_type(simulation_name, str)
 
@@ -95,10 +103,12 @@ def read_species_database():
     Reads the GEOS-Chem Species Database.
 
     Returns
-    species_database : dict : GEOS-Chem Species Database object
+    -------
+    species_database : dict
+        GEOS-Chem Species Database object
     """
     count = 0
-    for sim in ["", "_apm", "_hg", "_tomas"]:
+    for sim in ["", "_apm", "_tomas"]:
         filename = os.path.expanduser(SPECIES_DB.replace("XX", sim))
         if count == 0:
             species_database = read_config_file(filename, quiet=True)
@@ -116,12 +126,17 @@ def get_species_metadata(species, species_database):
     Compares a species against the species database and returns
     selected metadata fields.
 
-    Args
-    species          : list : List of species names
-    species_database : dict : GEOS-Chem Species Database
+    Parameters
+    ----------
+    species : list
+        List of species names
+    species_database : dict
+        GEOS-Chem Species Database
 
     Returns
-    metadata         : dict : Selected species metadata fields
+    -------
+    metadata : dict
+        Selected species metadata fields
     """
     verify_variable_type(species, list)
     verify_variable_type(species_database, dict)
@@ -149,13 +164,14 @@ def create_rtd_list_table(metadata, table_file, title=None):
     Creates a ReadTheDocs list table displaying the transported species
     for a given GEOS-Chem simulation.
 
-    Args
-    metadata   : dict : Selected species metadata fields
-    table_file : str  : File where the list table will be written
-
-    Kwargs
-    title      : str  : Table title
-
+    Parameters
+    ----------
+    metadata : dict
+        Selected species metadata fields
+    table_file : str
+        File where the list table will be written
+    title : str, optional
+        Table title
     """
     verify_variable_type(metadata, dict)
     verify_variable_type(table_file, str)
@@ -191,9 +207,12 @@ def main(simulation_name, table_file):
     """
     Main program.  Calls subroutines to create the list table.
 
-    Args
-    simulation_name : str : Name of a GEOS-Chem simulation
-    table_file      : str : File where the list table will be written
+    Parameters
+    ----------
+    simulation_name : str
+        Name of a GEOS-Chem simulation
+    table_file : str
+        File where the list table will be written
     """
     verify_variable_type(simulation_name, str)
     verify_variable_type(table_file, str)

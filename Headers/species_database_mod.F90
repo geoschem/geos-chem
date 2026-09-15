@@ -161,7 +161,7 @@ CONTAINS
     REAL(f4)                    :: wd_rainouteff_luo(3)
 
     ! String arrays
-    CHARACTER(LEN=18)           :: tags(67)
+    CHARACTER(LEN=18)           :: tags(69)
     CHARACTER(LEN=QFYAML_StrLen):: a_str(2)
 
     ! Objects
@@ -211,6 +211,11 @@ CONTAINS
              "Density           ",  &
              "Formula           ",  &
              "FullName          ",  &
+             "Henry_CR          ",  &
+             "Henry_CR_Luo      ",  &
+             "Henry_K0          ",  &
+             "Henry_K0_Luo      ",  &
+             "Henry_pKa         ",  &
              "Is_Aerosol        ",  &
              "Is_DryAlt         ",  &
              "Is_DryDep         ",  &
@@ -223,11 +228,8 @@ CONTAINS
              "Is_RadioNuclide   ",  &
              "Is_Tracer         ",  &
              "Is_WetDep         ",  &
-             "Henry_CR          ",  &
-             "Henry_CR_Luo      ",  &
-             "Henry_K0          ",  &
-             "Henry_K0_Luo      ",  &
-             "Henry_pKa         ",  &
+             "KPP_AbsTol        ",  &
+             "KPP_RelTol        ",  &
              "MP_SizeResAer     ",  &
              "MP_SizeResNum     ",  &
              "MW_g              ",  &

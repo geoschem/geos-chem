@@ -1,7 +1,31 @@
-Notes:
-Also, on AWS with EFA, it might be necessary to turn on WRITE_RESTART_BY_OSERVER and set numbers of O-servers in GCHP.rc to 6 to avoid crashes when writing restart files. See discussion in https://github.com/geoschem/GCHP/issues/493.
+This directory includes two primary run scripts. File gchp.run was developed at WashU
+for running multi-node GCHP runs. It utilizes script execute.sh. File
+gchp.run_from_most_recent_checkpoint_date.run was developed at Harvard for
+running single-node GCHP Jacobian runs with the Integrated Methane Inversion.
+The former assumes a specific AMI. The latter can be used with any AMI that has
+a gchp.env file that loads libraries needed for GCHP.
 
-Contact:
-Yuanjian Zhang at WashU
-yuanjianz @ GitHub
-yuanjian.z@wustl.edu
+File gchp.submit_consecutive_jobs.sh allows submitting multiple GCHP jobs as
+sequential dependencies. This is useful for splitting up a run in time. Edit the
+file to submit the primary run script you wish to use.
+
+Files that start with gchp.build.* are for building GCHP with either the fullchem
+or carbon chemistry mechanism. These scripts are useful for submitting GCHP build
+to an instance with more cores and greater memory than the head node.
+
+File sample_pcluster.yaml is a simple pcluster yaml file for creating a pcluster.
+See GEOS-Chem on AWS documentation for more information, accessible via GC-Classic
+and GCHP ReadTheDocs.
+
+Notes:
+
+Use only physical cores on AWS. Do not use multi-threading. Disable multi-threading
+in yaml file when creating a pcluster.
+
+On AWS with EFA (used for multi-node GCHP runs) it might be necessary to turn on
+WRITE_RESTART_BY_OSERVER and set numbers of O-servers in GCHP.rc to 6 to avoid
+crashes when writing restart files. See discussion in
+https://github.com/geoschem/GCHP/issues/493.
+
+Contacts:
+GEOS-Chem Support Team
