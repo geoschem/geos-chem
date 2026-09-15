@@ -179,7 +179,7 @@ CONTAINS
 !  Met fields updated by AIRQNT:
 !  ========================================================================
 !  (1)  PEDGE     (REAL(fp)) : Moist air pressure at grid box bottom      [hPa]
-!  (2)  PEDGE_DRY (REAL(fp)) : Dry air partial pressure at box bottom     [hPa]
+! ewl: not used !  (2)  PEDGE_DRY (REAL(fp)) : Dry air partial pressure at box bottom     [hPa]
 !  (3)  PMID      (REAL(fp)) : Moist air pressure at grid box centroid    [hPa]
 !  (4)  PMID_DRY  (REAL(fp)) : Dry air partial pressure at box centroid   [hPa]
 !                              (Note that PMID_DRY and PEDGE_DRY represent local partial pressure of dry air 
@@ -480,13 +480,14 @@ CONTAINS
        ! [hPa]. Assume constant humidity across grid box.
        !==============================================================
 
-       ! Partial pressure of dry air at lower edge of grid box [hPa]
-       State_Met%PEDGE_DRY(I,J,L) = State_Met%PEDGE(I,J,L) * ( 1.e+0_fp - XH2O )
-
-       ! Set dry air partial pressure for level State_Grid%NZ+1 lower edge
-       IF ( L == State_Grid%NZ ) THEN
-          State_Met%PEDGE_DRY(I,J,L+1) = Pedge_Top * ( 1.e+0_fp - XH2O )
-       ENDIF
+! ewl: not used
+!       ! Partial pressure of dry air at lower edge of grid box [hPa]
+!       State_Met%PEDGE_DRY(I,J,L) = State_Met%PEDGE(I,J,L) * ( 1.e+0_fp - XH2O )
+!
+!       ! Set dry air partial pressure for level State_Grid%NZ+1 lower edge
+!       IF ( L == State_Grid%NZ ) THEN
+!          State_Met%PEDGE_DRY(I,J,L+1) = Pedge_Top * ( 1.e+0_fp - XH2O )
+!       ENDIF
 
        ! Partial pressure of dry air at box centroid [hPa]
        State_Met%PMID_DRY(I,J,L) = State_Met%PMID(I,J,L) * ( 1.e+0_fp - XH2O )

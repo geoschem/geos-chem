@@ -219,8 +219,8 @@ MODULE State_Met_Mod
      !----------------------------------------------------------------------
      ! Note on pressures: PMID is calculated from PEDGE,
      ! and dry air pressures assume constant RH and T across grid box
-     REAL(fp), POINTER :: PEDGE_DRY     (:,:,:) ! Dry air partial pressure
-                                                !  @ level edges [hPa]
+!ewl: not used     REAL(fp), POINTER :: PEDGE_DRY     (:,:,:) ! Dry air partial pressure
+!ewl: not used                                                !  @ level edges [hPa]
      REAL(fp), POINTER :: PMID          (:,:,:) ! Average wet air pressure [hPa]
                                                 !  defined as arithmetic
                                                 !  average of edge pressures
@@ -484,7 +484,7 @@ CONTAINS
     State_Met%U              => NULL()
     State_Met%UPDVVEL        => NULL()
     State_Met%V              => NULL()
-    State_Met%PEDGE_DRY      => NULL()
+!    State_Met%PEDGE_DRY      => NULL()
     State_Met%PMID           => NULL()
     State_Met%PMID_DRY       => NULL()
     State_Met%THETA          => NULL()
@@ -2459,24 +2459,24 @@ CONTAINS
        RETURN
     ENDIF
 
-    !------------------------------------------------------------------------
-    ! PEDGE_DRY [hPa]
-    !------------------------------------------------------------------------
-    metId = 'PEDGEDRY'
-    CALL Init_and_Register(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Met  = State_Met,                                             &
-         State_Grid = State_Grid,                                            &
-         metId      = metId,                                                 &
-         Ptr2Data   = State_Met%PEDGE_DRY,                                   &
-         onEdges    = .TRUE.,                                                &
-         RC         = RC                                                    )
-
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = TRIM( errMsg_ir ) // TRIM( metId )
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
+!ewl    !------------------------------------------------------------------------
+!ewl    ! PEDGE_DRY [hPa]
+!ewl    !------------------------------------------------------------------------
+!ewl    metId = 'PEDGEDRY'
+!ewl    CALL Init_and_Register(                                                  &
+!ewl         Input_Opt  = Input_Opt,                                             &
+!ewl         State_Met  = State_Met,                                             &
+!ewl         State_Grid = State_Grid,                                            &
+!ewl         metId      = metId,                                                 &
+!ewl         Ptr2Data   = State_Met%PEDGE_DRY,                                   &
+!ewl         onEdges    = .TRUE.,                                                &
+!ewl         RC         = RC                                                    )
+!ewl
+!ewl    IF ( RC /= GC_SUCCESS ) THEN
+!ewl       errMsg = TRIM( errMsg_ir ) // TRIM( metId )
+!ewl       CALL GC_Error( errMsg, RC, thisLoc )
+!ewl       RETURN
+!ewl    ENDIF
 
     !------------------------------------------------------------------------
     ! PFICU [kg m-2 s-1]
@@ -4189,16 +4189,16 @@ CONTAINS
 #endif
     ENDIF
 
-    IF ( ASSOCIATED( State_Met%PEDGE_DRY ) ) THEN
-#if defined( USE_ESMF ) || defined( MODEL_WRF )
-       State_Met%PEDGE_DRY => NULL()
-#else
-       DEALLOCATE( State_Met%PEDGE_DRY, STAT=RC  )
-       CALL GC_CheckVar( 'State_Met%PEDGE_DRY', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Met%PEDGE_DRY => NULL()
-#endif
-    ENDIF
+!ewl    IF ( ASSOCIATED( State_Met%PEDGE_DRY ) ) THEN
+!ewl#if defined( USE_ESMF ) || defined( MODEL_WRF )
+!ewl       State_Met%PEDGE_DRY => NULL()
+!ewl#else
+!ewl       DEALLOCATE( State_Met%PEDGE_DRY, STAT=RC  )
+!ewl       CALL GC_CheckVar( 'State_Met%PEDGE_DRY', 2, RC )
+!ewl       IF ( RC /= GC_SUCCESS ) RETURN
+!ewl       State_Met%PEDGE_DRY => NULL()
+!ewl#endif
+!ewl    ENDIF
 
     IF ( ASSOCIATED( State_Met%PFICU ) ) THEN
 #if defined( USE_ESMF ) || defined( MODEL_WRF )
@@ -5225,11 +5225,11 @@ CONTAINS
           IF ( isRank  ) Rank  = 3
           IF ( isVLoc  ) VLoc  = VLocationEdge
 
-       CASE ( 'PEDGEDRY' )
-          IF ( isDesc  ) Desc  = 'Pressure (w/r/t dry air) at level edges'
-          IF ( isUnits ) Units = 'hPa'
-          IF ( isRank  ) Rank  = 3
-          IF ( isVLoc  ) VLoc  = VLocationEdge
+!ewl       CASE ( 'PEDGEDRY' )
+!ewl          IF ( isDesc  ) Desc  = 'Pressure (w/r/t dry air) at level edges'
+!ewl          IF ( isUnits ) Units = 'hPa'
+!ewl          IF ( isRank  ) Rank  = 3
+!ewl          IF ( isVLoc  ) VLoc  = VLocationEdge
 
        CASE ( 'PFICU' )
           IF ( isDesc  ) Desc  = 'Downward flux of ice precipitation ' // &

@@ -416,7 +416,7 @@ CONTAINS
 !BOC
 
 #if defined( MODEL_GCHP )
-    PEDGE_DRY = EXTERNAL_PEDGEDRY(I,J,L)
+    PEDGE_DRY = EXTERNAL_PEDGEDRY(I,J,L) ! is this needed? this is only called in gc-classic transport...
 #else
     PEDGE_DRY = AP(L) + ( BP(L) * PFLT_DRY(I,J) )
 #endif

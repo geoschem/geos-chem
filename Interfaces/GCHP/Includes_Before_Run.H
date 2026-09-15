@@ -115,7 +115,7 @@
   ! time-interpolation to time after advection. This means PEDGE in
   ! GEOS-Chem represents post-advection pressure.
   State_Met%PEDGE     (:,:,1:State_Grid%NZ+1) = PLE(:,:,State_Grid%NZ:0:-1) / 1d2
-  State_Met%PEDGE_DRY (:,:,1:State_Grid%NZ+1) = DryPLE(:,:,State_Grid%NZ:0:-1) / 1d2
+!ewl - not used?  State_Met%PEDGE_DRY (:,:,1:State_Grid%NZ+1) = DryPLE(:,:,State_Grid%NZ:0:-1) / 1d2
 
   ! These will be set based on PS1_WET and PS2_WET in gchp_chunk_mod.F90
   State_Met%PS1_DRY(:,:) = 0.0d0 
