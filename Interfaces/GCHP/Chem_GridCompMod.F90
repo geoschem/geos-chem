@@ -2741,7 +2741,7 @@ CONTAINS
                 ! Exit with error if the primary species is not found in restart
                 IF ( primarySpcId == IND ) THEN
                    WRITE(*,*) '   ERROR: Cannot find primary species used to initialize ' &
-                        'Jacobian tracers in restart file: ' // trim(primarySpcName)
+                        //'Jacobian tracers in restart file: ' // trim(primarySpcName)
                    STATUS = GC_FAILURE
                    _VERIFY(STATUS)
                 ENDIF
