@@ -43,6 +43,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Changed frequency of SpeciesConcVV and SpeciesConcMND diagnostic update to every chemistry timestep (previously dynamic timestep) to avoid value oscillation for certain species when dynamic timestep is less than chemistry timestep
 
 ### Fixed
+- Removed invalid OpenMP directives from the `MPI_LOAD_BALANCE` block of `GeosCore/fullchem_mod.F90`, which caused GCHP compilation to fail with `-DOMP=ON`
 - Fixed incorrect variable names and removed unused variables in `NcdfUtil/ncdf_mod.F90`
 - Fixed incorrect Arrhenius "A" coefficient (1.97d-12 --> 1.97d-11) in C3H8 + OH = A3O2 rxn
 - Fixed GCHP transport tracers extdata.yaml to include valid_range for CEDS
