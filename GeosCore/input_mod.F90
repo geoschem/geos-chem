@@ -1650,7 +1650,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Use brown carbon aerosols?
     !------------------------------------------------------------------------
-    key    = "aerosols%carbon%use_brown_carbon"
+    key    = "aerosols%carbon%brown_carbon"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
