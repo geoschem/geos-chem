@@ -8,10 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 - Added `Is_DryAlt` flag for SO4, NIT, NH4, SOAS in `run/shared/species_database.yml` to enable the `SpeciesConcALT1` diagnostic for these species
 
+### Changed
+- Updated the Hg0 soil emissions parameterization to improve the response of emissions to light availability 
+
 ### Fixed
 - Fixed parallelization errors in `GeosCore/apm_driv_mod.F90`
 
-### Changed
+### Removed
+- Removed invalid OpenMP directives from the `MPI_LOAD_BALANCE` block of `GeosCore/fullchem_mod.F90`, which caused GCHP compilation to fail with `-DOMP=ON`
 - Removed confusing comments from `KPP/fullchem/fullchem_HetStateFuncs.F90`
 
 ## [14.8.0] - 2026-09-11
@@ -53,7 +57,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Changed frequency of SpeciesConcVV and SpeciesConcMND diagnostic update to every chemistry timestep (previously dynamic timestep) to avoid value oscillation for certain species when dynamic timestep is less than chemistry timestep
 
 ### Fixed
-- Removed invalid OpenMP directives from the `MPI_LOAD_BALANCE` block of `GeosCore/fullchem_mod.F90`, which caused GCHP compilation to fail with `-DOMP=ON`
 - Fixed incorrect variable names and removed unused variables in `NcdfUtil/ncdf_mod.F90`
 - Fixed incorrect Arrhenius "A" coefficient (1.97d-12 --> 1.97d-11) in C3H8 + OH = A3O2 rxn
 - Fixed GCHP transport tracers extdata.yaml to include valid_range for CEDS
