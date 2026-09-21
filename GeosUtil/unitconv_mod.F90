@@ -1109,6 +1109,9 @@ CONTAINS
     ! Scalars
     INTEGER            :: N,      S
 
+    ! Arrays
+    REAL(fp), ALLOCATABLE :: factor(:,:,:)
+
     ! Strings
     CHARACTER(LEN=255) :: errMsg, thisLoc
 
@@ -1140,6 +1143,12 @@ CONTAINS
     !  kg dry air / kg total air  = 1 - specific humidity
     !
     !========================================================================
+
+    ! Compute the conversion factor once here, rather than once per species
+    ! in the loop below (it is the same for all species)
+    ALLOCATE( factor( State_Grid%NX, State_Grid%NY, State_Grid%NZ ) )
+    factor = g0_100 * State_Met%DELP_DRY
+
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
     !$OMP PRIVATE( S, N                                                     )
@@ -1150,12 +1159,12 @@ CONTAINS
 
        ! Convert species concentration units
        State_Chm%Species(N)%Conc =                                           &
-       State_Chm%Species(N)%Conc * ( g0_100 * State_Met%DELP_DRY )
+       State_Chm%Species(N)%Conc * factor
 
 #ifdef ADJOINT
        IF ( isAdjoint ) THEN
           State_Chm%SpeciesAdj(:,:,:,N) =                                    &
-          State_Chm%SpeciesAdj(:,:,:,N) * ( g0_100 * State_Met%DELP_DRY )
+          State_Chm%SpeciesAdj(:,:,:,N) * factor
        ENDIF
 #endif
 
@@ -1164,6 +1173,8 @@ CONTAINS
 
     ENDDO
     !$OMP END PARALLEL DO
+
+    DEALLOCATE( factor )
 
   END SUBROUTINE ConvertSpc_KgKgDry_to_Kgm2
 !EOC
@@ -1211,6 +1222,9 @@ CONTAINS
     ! Scalars
     INTEGER            :: N,      S
 
+    ! Arrays
+    REAL(fp), ALLOCATABLE :: factor(:,:,:)
+
     ! Strings
     CHARACTER(LEN=255) :: errMsg, thisLoc
 
@@ -1243,6 +1257,11 @@ CONTAINS
     !
     !========================================================================
 
+    ! Compute the conversion factor once here, rather than once per species
+    ! in the loop below (it is the same for all species)
+    ALLOCATE( factor( State_Grid%NX, State_Grid%NY, State_Grid%NZ ) )
+    factor = g0_100 * State_Met%DELP_DRY
+
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
     !$OMP PRIVATE( S, N                                                     )
@@ -1253,12 +1272,12 @@ CONTAINS
 
        ! Convert species concentration units
        State_Chm%Species(N)%Conc =                                           &
-       State_Chm%Species(N)%Conc / ( g0_100  * State_Met%DELP_DRY )
+       State_Chm%Species(N)%Conc / factor
 
 #ifdef ADJOINT
        IF ( isAdjoint ) THEN
           State_Chm%SpeciesAdj(:,:,:,N) =                                    &
-          State_Chm%SpeciesAdj(:,:,:,N) / ( g0_100  * State_Met%DELP_DRY )
+          State_Chm%SpeciesAdj(:,:,:,N) / factor
        ENDIF
 #endif
 
@@ -1267,6 +1286,8 @@ CONTAINS
 
     ENDDO
     !$OMP END PARALLEL DO
+
+    DEALLOCATE( factor )
 
   END SUBROUTINE ConvertSpc_Kgm2_to_KgKgDry
 !EOC
