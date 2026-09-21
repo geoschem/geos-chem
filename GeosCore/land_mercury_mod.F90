@@ -552,7 +552,7 @@ CONTAINS
 
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I,          J,    SOIL_EMIS                              )&
+    !$OMP PRIVATE( I,          J,    SOIL_EMIS, LDT                         )&
     !$OMP PRIVATE( DRYSOIL_HG, TAUZ, LIGHTFRAC, AREA_M2, SUNCOSVALUE        )&
     !$OMP PRIVATE( IS_SNOWFREE_LAND, FRAC_SNOWFREE_LAND                     )&
     !$OMP COLLAPSE( 2                                                       )
@@ -620,6 +620,12 @@ CONTAINS
     ENDDO
     ENDDO
     !$OMP END PARALLEL DO
+
+    ! Free pointers
+    IREG    => NULL()
+    ILAND   => NULL()
+    IUSE    => NULL()
+    XLAI    => NULL()
 
   END SUBROUTINE SOILEMIS
 !EOC

@@ -869,6 +869,9 @@ CONTAINS
     Input_Opt%LPREINDHG              = .FALSE.
     Input_Opt%LGTMM                  = .FALSE.
     Input_Opt%GTMM_RST_FILE          = ''
+    Input_Opt%LARCTICRIV             = .FALSE.
+    Input_Opt%LHighSoil              = .FALSE.
+    Input_Opt%LKRedUV                = .FALSE.
 
     !----------------------------------------
     ! CH4 MENU fields
