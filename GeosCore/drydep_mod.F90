@@ -2365,13 +2365,14 @@ CONTAINS
     LOGICAL                :: is_drydep_species
     LOGICAL                :: is_loss_hno3
     LOGICAL                :: is_loss_o3
-    INTEGER                :: I,          J,       L
-    INTEGER                :: N,          D,       NN
-    INTEGER                :: NA,         S,       drydep_id
-    INTEGER                :: drydep_top, pbl_top, previous_units
-    REAL(fp)               :: drydep_dt,  val,     freq
-    REAL(fp)               :: frac,       flux,    area_m2
-    REAL(fp)               :: mw_kg,      denom,   paranox_loss
+    INTEGER                :: I,            J,            L
+    INTEGER                :: N,            D,            NN
+    INTEGER                :: NA,           S,            drydep_id
+    INTEGER                :: drydep_top,   pbl_top,      previous_units
+    REAL(fp)               :: drydep_dt,    val,          freq
+    REAL(fp)               :: frac,         flux_kgm2s,   flux_mcm2s
+    REAL(fp)               :: area_m2,      mw_kg,        denom
+    REAL(fp)               :: paranox_loss, fracNoHg0Dep
 
     ! SAVEd scalars (defined on first call only)
     LOGICAL,       SAVE    :: first = .TRUE.
@@ -2598,25 +2599,13 @@ CONTAINS
 
        !$OMP PARALLEL DO                                                     &
        !$OMP DEFAULT( SHARED                                                )&
-       !$OMP PRIVATE( I,          J,    denom,        found, flux           )&
-       !$OMP PRIVATE( frac,       freq, paranox_loss, val,   pbl_top        )&
-       !$OMP PRIVATE( drydep_top, L,    S                                   )&
+       !$OMP PRIVATE( I,            J,          denom,      found           )&
+       !$OMP PRIVATE( frac,         flux_kgm2s, flux_mcm2s, freq            )&
+       !$OMP PRIVATE( paranox_loss, val,        pbl_top,    drydep_top      )&
+       !$OMP PRIVATE( fracNoHg0Dep, L,          S                           )&
        !$OMP COLLAPSE( 2                                                    )
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
-
-          !-----------------------------------------------------------------
-          ! Define various quantities 
-          !-----------------------------------------------------------------
-
-          ! Initialize loop variables
-          denom        = 0.0_fp
-          found        = .FALSE.
-          flux         = 0.0_fp
-          frac         = 0.0_fp
-          freq         = 0.0_fp
-          paranox_loss = 0.0_fp
-          val          = 0.0_fp
 
           ! Get the level at which the PBL top occurs and the level 
           ! up to which drydep removal will be applied.
@@ -2627,14 +2616,25 @@ CONTAINS
              drydep_top = 1
           ENDIF
 
-          ! Loop over selected vertical levels
+          !------------------------------------------------------------------
+          ! Loop over vertical levels
+          !------------------------------------------------------------------
           DO L = 1, drydep_top
              
+             ! Initialize loop variables
+             denom        = 0.0_fp
+             flux_kgm2s   = 0.0_fp
+             flux_mcm2s   = 0.0_fp
+             found        = .FALSE.
+             frac         = 0.0_fp
+             fracNoHg0Dep = 0.0_fp
+             freq         = 0.0_fp
+             paranox_loss = 0.0_fp
+             val          = 0.0_fp
+
              !--------------------------------------------------------------
              ! Get drydep frequencies
              !--------------------------------------------------------------
-
-             freq = 0.0_fp
 
              ! Start with the drydep frequency [s-1] from drydep_mod.F90.
              IF ( drydep_id > 0 ) THEN
@@ -2670,8 +2670,20 @@ CONTAINS
                 ! Compute fraction of species left after drydep
                 frac = EXP( -freq * drydep_dt )
 
+                ! Suppress Hg0 dry deposition over ocean, snow, and land ice.
+                ! Hg0 exchange with the ocean is handled by ocean_mercury_mod,
+                ! so drydep loss should not be double-counted here for Hg0.
+                IF ( Input_Opt%ITS_A_MERCURY_SIM .and. SpcInfo%Is_Hg0 ) THEN
+                   fracNoHg0Dep = MIN( State_Met%FROCEAN(I,J)  +             &
+                                       State_Met%FRSNOW(I,J)   +             &
+                                       State_Met%FRLANDICE(I,J), 1.0_fp     )
+                   frac = 1.0_fp -                                           &
+                          ( ( 1.0_fp - frac ) * ( 1.0_fp - fracNoHg0Dep ) )
+               ENDIF
+
                 ! Compute drydep flux in kg/m2/s (needed for diagnostics)
-                flux = ( 1.0_fp - frac ) * State_Chm%Species(N)%Conc(I,J,L)
+                flux_kgm2s = ( 1.0_fp - frac )                               &
+                           * State_Chm%Species(N)%Conc(I,J,L)
 
                 ! Compute the species left after dry deposition [kg/m2]
                 State_Chm%Species(N)%Conc(I,J,L) =                           &
@@ -2694,15 +2706,15 @@ CONTAINS
                 !------------------------------------------------------------
                 ! Compute drydep flux for diagnostics in [molec/cm2/s]
                 !------------------------------------------------------------
-                flux = flux + paranox_loss
+                flux_kgm2s = flux_kgm2s + paranox_loss
 
                 ! Convert to [molec/cm2/s]
                 denom = ( mw_kg * drydep_dt * 1.0e+4_fp ) / AVO
-                flux  = Safe_Div( flux, denom, 0.0_fp )
+                flux_mcm2s = Safe_Div( flux_kgm2s, denom, 0.0_fp )
 
                 ! Add drydep flux to the soil drydep 
                 IF ( Input_Opt%LSOILNOX ) THEN
-                   CALL Soil_DryDep( I, J, N, flux, State_Chm )
+                   CALL Soil_DryDep( I, J, N, flux_kgm2s, State_Chm )
                 ENDIF
 
                 !------------------------------------------------------------
@@ -2713,7 +2725,7 @@ CONTAINS
                    IF ( drydep_id > 0 ) THEN
                       S = State_Diag%Map_DryDepFlx%id2slot(drydep_id)
                       IF ( S > 0 ) THEN
-                         State_Diag%DryDepFlx(I,J,S) = flux
+                         State_Diag%DryDepFlx(I,J,S) = flux_mcm2s
                       ENDIF
                    ENDIF
                 ENDIF
@@ -2724,7 +2736,7 @@ CONTAINS
                 IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
                    ! Deposition mass, kg
-                   val = flux * State_Grid%Area_M2(I,J) * drydep_dt
+                   val = flux_kgm2s * State_Grid%Area_M2(I,J) * drydep_dt
 
                    IF ( SpcInfo%Is_Hg2 ) THEN
 
@@ -2833,7 +2845,7 @@ CONTAINS
     !=======================================================================
     ! Dry deposition budget diagnostics - Part 2 of 2
     !=======================================================================
-    IF ( State_Diag%Archive_BudgetEmisDryDep ) THEN
+    IF ( State_Diag%Archive_BudgetDryDep ) THEN
 
        ! Compute change in column masses (after emis/dryd - before emis/dryd)
        ! and store in diagnostic arrays.  Units are [kg/s].
