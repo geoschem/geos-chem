@@ -1215,7 +1215,7 @@ PROGRAM GEOS_Chem
 
        !=====================================================================
        !         *****  B O U N D A R Y  C O N D I T I O N S  *****
-       !=====================================================================
+       !
        ! Applied in nested-grid simulations only.
        !
        ! Even if boundary conditions are only READ via HEMCO at every 3-hours,
@@ -1230,9 +1230,9 @@ PROGRAM GEOS_Chem
        ! same since other operations do not change the species concentrations
        ! in the buffer zone, but putting it after transport allows for outputs
        ! to better reflect the buffer zone's underlying BCs. (hplin, 7/28/23)
+       !=====================================================================
        IF ( State_Grid%NestedGrid .and. notDryRun ) THEN
           CALL Set_Boundary_Conditions( Input_Opt, State_Chm, State_Grid, RC )
-          ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Error encountered in call to "Set_Boundary_Conditions"!'
              CALL Error_Stop( ErrMsg, ThisLoc )
@@ -1241,18 +1241,16 @@ PROGRAM GEOS_Chem
 
        !=====================================================================
        !        ***** C O M P U T E   P B L   H E I G H T  etc. *****
+       !
+       ! Pre-computes several quantities needed for PBL mixing.
+       ! Mixing is done further down in the sequence after emissions.
        !=====================================================================
        IF ( notDryRun ) THEN
           IF ( Input_Opt%useTimers ) THEN
              CALL Timer_Start( "Boundary layer mixing", RC )
           ENDIF
 
-          ! Move this call from the PBL mixing routines because the PBL
-          ! height is used by drydep and some of the emissions routines.
-          ! (ckeller, 3/5/15)
           CALL Compute_PBL_Height( Input_Opt, State_Grid, State_Met, RC )
-
-          ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Error encountered in "Compute_PBL_Height"!'
              CALL Error_Stop( ErrMsg, ThisLoc )
@@ -1267,19 +1265,16 @@ PROGRAM GEOS_Chem
           ENDIF
        ENDIF
 
-       !---------------------------------------------------------------------
-       ! Test for emission timestep
-       ! Now always do emissions here, even for full-mixing
-       ! (ckeller, 3/5/15)
+       !=====================================================================
+       !                  ***** E M I S S I O N S *****
+       !
+       ! Now always do emissions here, even for full-mixing (ckeller, 3/5/15)
        !
        ! Emissions are ALWAYS done, even in dry-run mode. This is
        ! raison d'etre for --dry-run (hplin, 11/1/19)
-       !---------------------------------------------------------------------
+       !=====================================================================
        IF ( ITS_TIME_FOR_EMIS() ) THEN
 
-          !==================================================================
-          !                ***** E M I S S I O N S *****
-          !==================================================================
           IF ( Input_Opt%useTimers ) THEN
              CALL Timer_Start( "HEMCO", RC )
           ENDIF
@@ -1287,14 +1282,14 @@ PROGRAM GEOS_Chem
           ! Is it time for emissions?
           TimeForEmis = ITS_TIME_FOR_EMIS()
 
+          !------------------------------------------------------------------
           ! EMISSIONS_RUN will call HEMCO run phase 2. HEMCO run phase
           ! only calculates emissions. All data has been read to disk
-          ! in phase 1 at the beginning of the time step.
-          ! (ckeller, 4/1/15)
-          CALL Emissions_Run( Input_Opt, State_Chm,   State_Diag, State_Grid, &
-                              State_Met, TimeForEmis, 2,          RC )
-
-          ! Trap potential errors
+          ! in phase 1 at the beginning of the time step. (ckeller, 4/1/15)
+          !------------------------------------------------------------------
+          CALL Emissions_Run( Input_Opt,  State_Chm, State_Diag,             &
+                              State_Grid, State_Met, TimeForEmis,            &
+                              2,          RC                                )
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Error encountered in "Emissions_Run"! after drydep!'
              CALL Error_Stop( ErrMsg, ThisLoc )
@@ -1307,13 +1302,100 @@ PROGRAM GEOS_Chem
           IF ( Input_Opt%useTimers ) THEN
              CALL Timer_End( "HEMCO", RC )
           ENDIF
+       ENDIF
 
-          !==================================================================
-          !            ***** D R Y   D E P O S I T I O N *****
+       !=====================================================================
+       ! Also prescribe methane surface concentrations throughout PBL
+       ! (currently done outside emissions)
+       !=====================================================================
+       IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .and.                             &
+            id_CH4 > 0                     .and.                             &
+            notDryRun                     ) THEN
+
+          IF ( VerboseAndRoot ) THEN
+             CALL DEBUG_MSG( '### MAIN: Setting PBL CH4 conc')
+          ENDIF
+
+          ! Set CH4 concentrations
+          CALL SET_CH4( Input_Opt, State_Chm, State_Diag, State_Grid, &
+                        State_Met, RC )
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in call to "SET_CH4"!'
+             CALL Error_Stop( ErrMsg, ThisLoc )
+          ENDIF
+       ENDIF
+
+       !=====================================================================
+       !           ***** M I X E D   L A Y E R   M I X I N G *****
+       !
+       ! Mixing hapens on the convection timestep = dynamic timestep.
+       !=====================================================================
+       IF ( ITS_TIME_FOR_CONV() .and. notDryRun ) THEN
+
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_Start( "Boundary layer mixing", RC )
+          ENDIF
+
+          ! Only proceed when PBL mixing is turned on
+          IF ( Input_Opt%LTURB ) THEN
+
+             !---------------------------------------------------------------
+             ! %%%%% VDIFF (non-local PBL mixing) %%%%%
+             ! Compute the surface flux for the non-local mixing,
+             ! (which means getting emissions & drydep from HEMCO)
+             ! and store it in State_Chm%Surface_Flux
+             !---------------------------------------------------------------
+             IF ( Input_Opt%LNLPBL ) THEN
+                CALL Compute_Sflx_For_Vdiff( Input_Opt,  State_Chm,          &
+                                             State_Diag, State_Grid,         &
+                                             State_Met,  RC                 )
+                IF ( RC /= GC_SUCCESS ) THEN
+                   ErrMsg = 'Error encountered in "Compute_Sflx_for_Vdiff"!'
+                   CALL Error_Stop( errMsg, thisLoc )
+                ENDIF
+
+                IF ( VerboseAndRoot ) THEN
+                   CALL Debug_Msg( '### MAIN: a Compute_Sflx_For_Vdiff' )
+                ENDIF
+             ENDIF
+          ENDIF
+
+          !------------------------------------------------------------------
+          ! Note: mixing routine expects tracers in v/v.
+          ! DO_MIXING applies the tracer tendencies (dry deposition,
+          ! emission rates) to the tracer arrays and performs PBL mixing.
           !
-          ! NOTE: Need to call this after emissions so that we can get
-          ! the surface deposition from SeaFlux and ParaNOx extensions
-          !==================================================================
+          ! In the non-local PBL scheme, dry deposition and emission
+          ! fluxes below the PBL are handled within the PBL mixing routine.
+          ! Otherwise, tracer concentrations are first updated and the
+          ! full-mixing is then applied. (ckeller, 3/5/15)
+          !------------------------------------------------------------------
+          CALL Do_Mixing( Input_Opt,  State_Chm, State_Diag,                 &
+                          State_Grid, State_Met, RC                         )
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "Do_Mixing"!'
+             CALL Error_Stop( ErrMsg, ThisLoc )
+          ENDIF
+
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_End( "Boundary layer mixing", RC )
+          ENDIF
+
+          IF ( VerboseAndRoot ) CALL Debug_Msg( '### MAIN: a TURBDAY:2' )
+       ENDIF
+
+       !=====================================================================
+       !               ***** D R Y   D E P O S I T I O N *****
+       !
+       ! We need to call drydep after emissions so that we can get
+       ! the surface deposition from SeaFlux and ParaNOx extensions.
+       !
+       ! We also need to call drydep after PBL mixing.  This lets emissions
+       ! get distributed in the PBL before being removed by drydep.
+       !=====================================================================
+       IF ( ITS_TIME_FOR_EMIS() ) THEN
+
+          ! Only proceed if drydep is turned on
           IF ( Input_Opt%LDRYD .and. notDryRun ) THEN
 
              ! Start drydep timer
@@ -1326,8 +1408,6 @@ PROGRAM GEOS_Chem
              !---------------------------------------------------------------
              CALL Do_Drydep( Input_Opt,  State_Chm, State_Diag,              &
                              State_Grid, State_Met, RC                      )
-
-             ! Trap errors
              IF ( RC /= GC_SUCCESS ) THEN
                 ErrMsg = 'Error encountered in "Do_Drydep!"!'
                 CALL Error_Stop( ErrMsg, ThisLoc )
@@ -1345,7 +1425,6 @@ PROGRAM GEOS_Chem
              CALL Set_DryDepVel_Diagnostics( Input_Opt,  State_Chm,       &
                                              State_Diag, State_Grid,      &
                                              State_Met,  RC              )
-
              IF ( RC /= GC_SUCCESS ) THEN
                 ErrMsg = &
                      'Error encountered in "Update_DryDepVel_for_Turbday"!'
@@ -1362,8 +1441,6 @@ PROGRAM GEOS_Chem
              !---------------------------------------------------------------
              CALL Do_DryDep_Removal( Input_Opt,  State_Chm, State_Diag,      &
                                      State_Grid, State_Met, RC              )
-
-             ! Trap potential errors
              IF ( RC /= GC_SUCCESS ) THEN
                 ErrMsg = 'Error encountered in "Do_DryDep_Removal!"!'
                 CALL Error_Stop( ErrMsg, ThisLoc )
@@ -1383,94 +1460,10 @@ PROGRAM GEOS_Chem
        ENDIF
 
        !=====================================================================
-       ! Also prescribe methane surface concentrations throughout PBL
-       ! (currently done outside emissions)
+       !             ***** C L O U D   C O N V E C T I O N *****
        !=====================================================================
-       IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .and.                             &
-            id_CH4 > 0                     .and.                             &
-            notDryRun                     ) THEN
-
-          IF ( VerboseAndRoot ) THEN
-             CALL DEBUG_MSG( '### MAIN: Setting PBL CH4 conc')
-          ENDIF
-
-          ! Set CH4 concentrations
-          CALL SET_CH4( Input_Opt, State_Chm, State_Diag, State_Grid, &
-                        State_Met, RC )
-
-          ! Trap potential errors
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered in call to "SET_CH4"!'
-             CALL Error_Stop( ErrMsg, ThisLoc )
-          ENDIF
-       ENDIF
-
-       !---------------------------------------------------------------------
-       ! Test for convection timestep
-       !---------------------------------------------------------------------
        IF ( ITS_TIME_FOR_CONV() .and. notDryRun ) THEN
 
-          !==================================================================
-          !         ***** M I X E D   L A Y E R   M I X I N G *****
-          !==================================================================
-          IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_Start( "Boundary layer mixing", RC )
-          ENDIF
-
-          IF ( Input_Opt%LTURB ) THEN
-
-             IF ( Input_Opt%LNLPBL ) THEN
-
-                !------------------------------------------------------------
-                ! %%%%% VDIFF (non-local PBL mixing) %%%%%
-                ! Compute the surface flux for the non-local mixing,
-                ! (which means getting emissions & drydep from HEMCO)
-                ! and store it in State_Chm%Surface_Flux
-                !------------------------------------------------------------
-                CALL Compute_Sflx_For_Vdiff( Input_Opt,  State_Chm,          &
-                                             State_Diag, State_Grid,         &
-                                             State_Met,  RC                 )
-
-                IF ( RC /= GC_SUCCESS ) THEN
-                   ErrMsg = 'Error encountered in "Compute_Sflx_for_Vdiff"!'
-                   CALL Error_Stop( errMsg, thisLoc )
-                ENDIF
-
-                IF ( VerboseAndRoot ) THEN
-                   CALL Debug_Msg( '### MAIN: a Compute_Sflx_For_Vdiff' )
-                ENDIF
-
-             ENDIF
-
-          ENDIF
-
-          ! Note: mixing routine expects tracers in v/v
-          ! DO_MIXING applies the tracer tendencies (dry deposition,
-          ! emission rates) to the tracer arrays and performs PBL
-          ! mixing.
-          ! In the non-local PBL scheme, dry deposition and emission
-          ! fluxes below the PBL are handled within the PBL mixing
-          ! routine. Otherwise, tracer concentrations are first updated
-          ! and the full-mixing is then applied.
-          ! (ckeller, 3/5/15)
-          CALL Do_Mixing( Input_Opt,  State_Chm, State_Diag, &
-                          State_Grid, State_Met, RC )
-
-          ! Trap potential errors
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered in "Do_Mixing"!'
-             CALL Error_Stop( ErrMsg, ThisLoc )
-          ENDIF
-
-          IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_End( "Boundary layer mixing", RC )
-          ENDIF
-
-          IF ( VerboseAndRoot ) CALL Debug_Msg( '### MAIN: a TURBDAY:2' )
-
-          !==================================================================
-          !           ***** C L O U D   C O N V E C T I O N *****
-          !==================================================================
           IF ( Input_Opt%LCONV ) THEN
              IF ( Input_Opt%useTimers ) THEN
                 CALL Timer_Start( "Convection", RC )

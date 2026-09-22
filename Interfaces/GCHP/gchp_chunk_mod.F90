@@ -1219,40 +1219,6 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! 3. Dry deposition
-    !
-    ! Calculates the deposition rates in [s-1].  Call after emissions so
-    ! that we'll include the contribution from SeaFlux and PARANOx.
-    !=======================================================================
-    IF ( DoDryDep ) THEN
-       if(Input_Opt%AmIRoot.and.NCALLS<10) THEN
-          write(*,*) ' --- Do drydep now'
-          write(*,*) '     Use FULL PBL: ', Input_Opt%PBL_DRYDEP
-       endif
-       CALL MAPL_TimerOn( STATE, 'GC_DRYDEP' )
-
-       ! Compute dry deposition velocities & frequencies
-       CALL Do_DryDep ( Input_Opt, State_Chm, State_Diag, &
-                        State_Grid, State_Met, RC )
-       _ASSERT(RC==GC_SUCCESS, 'Error calling Do_DryDep')
-
-       ! Update dry-deposition velocities for full PBL mixing
-       ! by adding the sea-air deposition velocity from HEMCO
-       CALL Set_DryDepVel_Diagnostics( Input_Opt,  State_Chm,  State_Diag,   &
-                                       State_Grid, State_Met,  RC           )
-       _ASSERT(RC==GC_SUCCESS, 'Error calling SET_DRYDEPVEL_DIAGNOSTICS')
-
-       ! Apply dry deposition frequencies to species concentrations
-       ! to compute removal of species by dry deposition
-       CALL Do_DryDep_Removal( Input_Opt,  State_Chm, State_Diag,            &
-                               State_Grid, State_Met, RC                    )
-       _ASSERT(RC==GC_SUCCESS, 'Error calling DO_DRYDEP_REMOVAL')
-
-       CALL MAPL_TimerOff( STATE, 'GC_DRYDEP' )
-       if(Input_Opt%AmIRoot.and.NCALLS<10) write(*,*) ' --- Drydep done!'
-    ENDIF
-
-    !=======================================================================
     ! If physics covers turbulence, simply add the emission and dry
     ! deposition fluxes calculated above to the tracer array, without caring
     ! about the vertical distribution. The tracer tendencies are only added
@@ -1287,7 +1253,7 @@ CONTAINS
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     !=======================================================================
-    ! 4. Turbulence
+    ! 3. Turbulence
     !
     ! Call GEOS-Chem internal turbulence routines if turbulence is enabled
     ! in geoschem_config.yml. This should only be done if turbulence is not
@@ -1339,6 +1305,40 @@ CONTAINS
        CALL SET_CH4 ( Input_Opt, State_Chm, State_Diag, &
                       State_Grid, State_Met, RC )
        _ASSERT(RC==GC_SUCCESS, 'Error calling SET_CH4')
+    ENDIF
+
+    !=======================================================================
+    ! 4. Dry deposition
+    !
+    ! Calculates the deposition rates in [s-1].  Call after emissions so
+    ! that we'll include the contribution from SeaFlux and PARANOx.
+    !=======================================================================
+    IF ( DoDryDep ) THEN
+       if(Input_Opt%AmIRoot.and.NCALLS<10) THEN
+          write(*,*) ' --- Do drydep now'
+          write(*,*) '     Use FULL PBL: ', Input_Opt%PBL_DRYDEP
+       endif
+       CALL MAPL_TimerOn( STATE, 'GC_DRYDEP' )
+
+       ! Compute dry deposition velocities & frequencies
+       CALL Do_DryDep ( Input_Opt, State_Chm, State_Diag, &
+                        State_Grid, State_Met, RC )
+       _ASSERT(RC==GC_SUCCESS, 'Error calling Do_DryDep')
+
+       ! Update dry-deposition velocities for full PBL mixing
+       ! by adding the sea-air deposition velocity from HEMCO
+       CALL Set_DryDepVel_Diagnostics( Input_Opt,  State_Chm,  State_Diag,   &
+                                       State_Grid, State_Met,  RC           )
+       _ASSERT(RC==GC_SUCCESS, 'Error calling SET_DRYDEPVEL_DIAGNOSTICS')
+
+       ! Apply dry deposition frequencies to species concentrations
+       ! to compute removal of species by dry deposition
+       CALL Do_DryDep_Removal( Input_Opt,  State_Chm, State_Diag,            &
+                               State_Grid, State_Met, RC                    )
+       _ASSERT(RC==GC_SUCCESS, 'Error calling DO_DRYDEP_REMOVAL')
+
+       CALL MAPL_TimerOff( STATE, 'GC_DRYDEP' )
+       if(Input_Opt%AmIRoot.and.NCALLS<10) write(*,*) ' --- Drydep done!'
     ENDIF
 
     !=======================================================================
