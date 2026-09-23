@@ -864,6 +864,7 @@ CONTAINS
     DoRad    = Input_Opt%LRAD  .AND. IsRadTime    ! radiation time step
 
     ! If Phase is not -1, only do selected processes for given phases:
+    !
     ! Phase 1: disable turbulence, chemistry and wet deposition.
     IF ( Phase == 1 ) THEN
        DoTurb   = .FALSE.
@@ -871,6 +872,12 @@ CONTAINS
        DoWetDep = .FALSE.
 
     ! Phase 2: disable convection, drydep and emissions.
+    !
+    ! NOTE: For two-phase MODEL_GEOS runs, DoDryDep is disabled only in
+    ! Phase 2, so drydep still runs in Phase 1 (before GEOS-5's own
+    ! turbulence, which Phase 1 skips here since GEOS-5 handles it). So
+    ! the emissions -> mixing -> drydep re-sequencing in this branch does
+    ! not apply to two-phase GEOS-5 runs: drydep still precedes turbulence.
     ELSEIF ( Phase == 2 ) THEN
        DoConv   = .FALSE.
        DoDryDep = .FALSE.
@@ -1177,28 +1184,7 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! 2. Dry deposition
-    !
-    ! Calculates the deposition rates in [s-1].
-    !=======================================================================
-    IF ( DoDryDep ) THEN
-       if(Input_Opt%AmIRoot.and.NCALLS<10) THEN
-          write(*,*) ' --- Do drydep now'
-          write(*,*) '     Use FULL PBL: ', Input_Opt%PBL_DRYDEP
-       endif
-       CALL MAPL_TimerOn( STATE, 'GC_DRYDEP' )
-
-       ! Do dry deposition
-       CALL Do_DryDep ( Input_Opt, State_Chm, State_Diag, &
-                        State_Grid, State_Met, RC )
-       _ASSERT(RC==GC_SUCCESS, 'Error calling Do_DryDep')
-
-       CALL MAPL_TimerOff( STATE, 'GC_DRYDEP' )
-       if(Input_Opt%AmIRoot.and.NCALLS<10) write(*,*) ' --- Drydep done!'
-    ENDIF
-
-    !=======================================================================
-    ! 3. Emissions (HEMCO)
+    ! 2. Emissions (HEMCO)
     !
     ! HEMCO must be called on first time step to make sure that the HEMCO
     ! data lists are all properly set up.
@@ -1274,7 +1260,7 @@ CONTAINS
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     !=======================================================================
-    ! 4. Turbulence
+    ! 3. Turbulence
     !
     ! Call GEOS-Chem internal turbulence routines if turbulence is enabled
     ! in geoschem_config.yml. This should only be done if turbulence is not
@@ -1305,12 +1291,6 @@ CONTAINS
 
        ENDIF
 
-       ! Update dry-deposition velocities for full PBL mixing
-       ! by adding the sea-air deposition velocity from HEMCO
-       CALL Set_DryDepVel_Diagnostics( Input_Opt,  State_Chm,  State_Diag,   &
-                                       State_Grid, State_Met,  RC           )
-       _ASSERT(RC==GC_SUCCESS, 'Error calling SET_DRYDEPVEL_DIAGNOSTICS')
-
        ! Do mixing and apply tendencies. This will use the dynamic time step,
        ! which is fine since this call will be executed on every time step.
        CALL DO_MIXING ( Input_Opt, State_Chm, State_Diag,                    &
@@ -1332,6 +1312,40 @@ CONTAINS
        CALL SET_CH4 ( Input_Opt, State_Chm, State_Diag, &
                       State_Grid, State_Met, RC )
        _ASSERT(RC==GC_SUCCESS, 'Error calling SET_CH4')
+    ENDIF
+
+    !=======================================================================
+    ! 4. Dry deposition
+    !
+    ! Calculates the deposition rates in [s-1].  Call after emissions so
+    ! that we'll include the contribution from SeaFlux and PARANOx.
+    !=======================================================================
+    IF ( DoDryDep ) THEN
+       if(Input_Opt%AmIRoot.and.NCALLS<10) THEN
+          write(*,*) ' --- Do drydep now'
+          write(*,*) '     Use FULL PBL: ', Input_Opt%PBL_DRYDEP
+       endif
+       CALL MAPL_TimerOn( STATE, 'GC_DRYDEP' )
+
+       ! Compute dry deposition velocities & frequencies
+       CALL Do_DryDep ( Input_Opt, State_Chm, State_Diag, &
+                        State_Grid, State_Met, RC )
+       _ASSERT(RC==GC_SUCCESS, 'Error calling Do_DryDep')
+
+       ! Update dry-deposition velocities for full PBL mixing
+       ! by adding the sea-air deposition velocity from HEMCO
+       CALL Set_DryDepVel_Diagnostics( Input_Opt,  State_Chm,  State_Diag,   &
+                                       State_Grid, State_Met,  RC           )
+       _ASSERT(RC==GC_SUCCESS, 'Error calling SET_DRYDEPVEL_DIAGNOSTICS')
+
+       ! Apply dry deposition frequencies to species concentrations
+       ! to compute removal of species by dry deposition
+       CALL Do_DryDep_Removal( Input_Opt,  State_Chm, State_Diag,            &
+                               State_Grid, State_Met, RC                    )
+       _ASSERT(RC==GC_SUCCESS, 'Error calling DO_DRYDEP_REMOVAL')
+
+       CALL MAPL_TimerOff( STATE, 'GC_DRYDEP' )
+       if(Input_Opt%AmIRoot.and.NCALLS<10) write(*,*) ' --- Drydep done!'
     ENDIF
 
     !=======================================================================

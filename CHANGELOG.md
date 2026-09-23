@@ -4,6 +4,21 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - TBD
+### Added
+- Added routine `Do_Drydep_Removal` to `GeosCore/drydep_mod.F90` to apply dry deposition loss to species
+
+### Changed
+- Updated `main.F90` and `gchp_chunk_mod.F90` so that dry deposition is done after emissions
+- Added `BudgetDryDep*` History diagnostics
+- Renamed `State_Diag%DryDepMix` to `State_Diag%DryDepFlx` to denote that this field is no longer updated in mixing.
+- Renamed routine `Init_NoRegister_DryDepChemMix` to `Init_NoRegister_DryDepChmFlx`
+- Dry deposition is now done after PBL mixing for both GC-Classic and GCHP
+
+### Removed
+- Removed dry deposition loss code from routine `Do_Tend` (in `GeosCore/mixing_mod.F90`)
+- Removed code that computed surface dry deposition flux `dflx` in `Compute_Sflx_for_Vdiff` (in `GeosCore/hco_interface_gc_mod.F90`)
+
 ## [14.8.0] - 2026-09-11
 ### Added
 - Added PSO4AQ and PH2SO4 as a product to certain reactions; see `KPP/fullchem/CHANGELOG_fullchem.md`
@@ -44,6 +59,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Fixed
 - Fixed incorrect variable names and removed unused variables in `NcdfUtil/ncdf_mod.F90`
+- Fixed the species database entry of `DMS` to use `Is_Gas: true`, as DMS is a gas-phase species and not an aerosol  
 - Fixed incorrect Arrhenius "A" coefficient (1.97d-12 --> 1.97d-11) in C3H8 + OH = A3O2 rxn
 - Fixed GCHP transport tracers extdata.yaml to include valid_range for CEDS
 - Fixed OpenMP parallelization error in `GeosCore/tomas_mod.F90`
@@ -173,7 +189,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Replace hardwired values with constant parameters in routine `Aerosol_Conc` (in `GeosCore/aerosol_mod.F90`
 - Updated species database so that dust species use the anchor `&DSTbin properties` and metals species use `&METALSproperties`
 - Updated call to `ExtData_Set` in `hco_gc_interface_mod.F90` to accept `ExtState%SNOMAS`
-- Upated sample carbon simulation restart file to output generated from 10-year simulation
+- Updated sample carbon simulation restart file to output generated from 10-year simulation
 
 ### Fixed
 - Restored entries for TMB emissions in `HEMCO_Config.rc.fullchem` template files for GCClassic and GCHP

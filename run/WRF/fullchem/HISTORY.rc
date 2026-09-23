@@ -249,7 +249,7 @@ COLLECTIONS: 'SpeciesConc',
   DryDep.duration:            00000000 120000,
   DryDep.mode:                'instantaneous'
   DryDep.fields:              'DryDepVel_?DRY?               ',
-                              'DryDepMix_?DRY?               ',
+                              'DryDepFlx_?DRY?               ',
                               'DryDepChm_?DRY?               ',
                               'DryDep_?DRY?                  ',
 ::
