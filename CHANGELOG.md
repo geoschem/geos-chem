@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Changed
 - Updated the Hg0 soil emissions parameterization to improve the response of emissions to light availability 
 - Converted `GTMM/CMakeLists.txt` line endings from CRLF to LF, per `.gitattributes`
+- Changed `#MINVERSION` to 3.5.0 in `KPP/custom/custom.kpp`, to match the `fullchem`, `carbon`, and `Hg` mechanisms
 
 ### Fixed
 - Fixed parallelization errors in `GeosCore/apm_driv_mod.F90`
