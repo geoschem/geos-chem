@@ -2336,7 +2336,6 @@ CONTAINS
     USE State_Diag_Mod,       ONLY : DgnState
     USE State_Grid_Mod,       ONLY : GrdState
     USE State_Met_Mod,        ONLY : MetState
-    USE Timers_Mod,           ONLY : Timer_End, Timer_Start
     USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
@@ -2358,21 +2357,18 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL                :: found
-#ifdef ADJOINT
-    INTEGER                :: is_adj
-#endif
+    LOGICAL                :: found_air2sea_freq
     LOGICAL                :: is_drydep_species
     LOGICAL                :: is_loss_hno3
     LOGICAL                :: is_loss_o3
-    INTEGER                :: I,            J,            L
-    INTEGER                :: N,            D,            NN
-    INTEGER                :: NA,           S,            drydep_id
+    INTEGER                :: AC,           drydep_id,    I
+    INTEGER                :: J,            L,            N
+    INTEGER                :: NA,           S
     INTEGER                :: drydep_top,   pbl_top,      previous_units
-    REAL(fp)               :: drydep_dt,    val,          freq
-    REAL(fp)               :: frac,         flux_kgm2s,   flux_mcm2s
-    REAL(fp)               :: area_m2,      mw_kg,        denom
-    REAL(fp)               :: paranox_loss, fracNoHg0Dep
+    REAL(fp)               :: air2sea_freq, area_m2,      denom
+    REAL(fp)               :: drydep_dt,    flux_kgm2s,   flux_mcm2s
+    REAL(fp)               :: frac,         fracNoHg0Dep, freq
+    REAL(fp)               :: mass,         mw_kg,        paranox_loss
 
     ! SAVEd scalars (defined on first call only)
     LOGICAL,       SAVE    :: first = .TRUE.
@@ -2408,7 +2404,7 @@ CONTAINS
     SpcInfo           => NULL()
     errMsg            =  ''
     thisLoc           =  &
-      ' -> at Apply_Drydep_Fluxes (in module GeosCore/drydep_mod.F90)'
+      ' -> at Do_DryDep_Removal (in module GeosCore/drydep_mod.F90)'
 
     !========================================================================
     ! Dry deposition budget diagnostics - Part 1 of 2
@@ -2518,7 +2514,12 @@ CONTAINS
          RC             = RC                                                )
 
     IF ( ASSOCIATED( ptr_2d ) ) THEN
-       ALLOCATE( paranox_loss_HNO3( State_Grid%NX, State_Grid%NY ), STAT=RC )
+       ALLOCATE( paranox_loss_HNO3( State_Grid%NX, State_Grid%NY ), STAT=AC )
+       IF ( AC /= GC_SUCCESS ) THEN
+          RC = AC
+          CALL GC_CheckVar( "paranox_loss_hno3", 0, RC )
+          RETURN
+       ENDIF
        paranox_loss_HNO3 = ptr_2d
        is_loss_HNO3      = .TRUE.
     ENDIF
@@ -2535,6 +2536,11 @@ CONTAINS
 
     IF ( ASSOCIATED( ptr_2d ) ) THEN
        ALLOCATE( paranox_loss_o3( State_Grid%NX, State_Grid%NY ), STAT=RC )
+       IF ( AC /= GC_SUCCESS ) THEN
+          RC = AC
+          CALL GC_CheckVar( "paranox_loss_o3", 0, RC )
+          RETURN
+       ENDIF
        paranox_loss_O3 = ptr_2d
        is_loss_O3     = .TRUE.
     ENDIF
@@ -2599,13 +2605,31 @@ CONTAINS
 
        !$OMP PARALLEL DO                                                     &
        !$OMP DEFAULT( SHARED                                                )&
-       !$OMP PRIVATE( I,            J,          denom,      found           )&
-       !$OMP PRIVATE( frac,         flux_kgm2s, flux_mcm2s, freq            )&
-       !$OMP PRIVATE( paranox_loss, val,        pbl_top,    drydep_top      )&
-       !$OMP PRIVATE( fracNoHg0Dep, L,          S                           )&
+       !$OMP PRIVATE( I,            J,            found_air2sea_freq        )&
+       !$OMP PRIVATE( air2sea_freq, pbl_top,      drydep_top                )&
+       !$OMP PRIVATE( L,            denom,        flux_kgm2s                )&
+       !$OMP PRIVATE( flux_mcm2s,   frac,         fracNoHg0Dep              )&
+       !$OMP PRIVATE( freq,         paranox_loss, mass                      )&
        !$OMP COLLAPSE( 2                                                    )
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
+
+          !------------------------------------------------------------------
+          ! Obtain quantities at the surface
+          !------------------------------------------------------------------
+
+          ! Air-to-sea dep freq [s-1] from the HEMCO "SeaFlux" extension
+          found_air2sea_freq = .FALSE.
+          air2sea_freq       = 0.0_fp
+          CALL GetHcoValDep(                                                 &
+               Input_Opt  = Input_Opt,                                       &
+               State_Grid = State_Grid,                                      &
+               I          = I,                                               &
+               J          = J,                                               &
+               L          = 1,                                               &
+               trcId      = N,                                               &
+               found      = found_air2sea_freq,                              &
+               dep        = air2sea_freq                                    )
 
           ! Get the level at which the PBL top occurs and the level 
           ! up to which drydep removal will be applied.
@@ -2625,27 +2649,23 @@ CONTAINS
              denom        = 0.0_fp
              flux_kgm2s   = 0.0_fp
              flux_mcm2s   = 0.0_fp
-             found        = .FALSE.
              frac         = 0.0_fp
              fracNoHg0Dep = 0.0_fp
              freq         = 0.0_fp
+             mass         = 0.0_fp
              paranox_loss = 0.0_fp
-             val          = 0.0_fp
 
              !--------------------------------------------------------------
              ! Get drydep frequencies
              !--------------------------------------------------------------
 
-             ! Start with the drydep frequency [s-1] from drydep_mod.F90.
+             ! Start with the drydep frequency [s-1] from drydep_mod.F90
              IF ( drydep_id > 0 ) THEN
                 freq = State_Chm%DryDepFreq(I,J,drydep_id)
              ENDIF
 
-             ! Start with the air-to-sea deposition frequncy [s-1]
-             ! as computed by the HEMCO "SeaFlux" extension.
-             CALL GetHcoValDep( Input_Opt, State_Grid, N,     I,             &
-                                J,         1,          found, val           )
-             IF ( found ) freq = freq + val
+             ! Then add the air-to-sea dep freq [s-1] from HEMCO
+             IF ( found_air2sea_freq ) freq = freq + air2sea_freq
              
 #ifndef MODEL_CESM
              ! Get PARANOX deposition loss [kg/m2/s], which will be 
@@ -2667,12 +2687,12 @@ CONTAINS
                 ! Perform removal of species by drydep
                 !------------------------------------------------------------
 
-                ! Compute fraction of species left after drydep
+                ! Compute fraction of species left after drydep [1]
                 frac = EXP( -freq * drydep_dt )
 
                 ! Suppress Hg0 dry deposition over ocean, snow, and land ice.
                 ! Hg0 exchange with the ocean is handled by ocean_mercury_mod,
-                ! so drydep loss should not be double-counted here for Hg0.
+                ! so drydep loss for Hg0 should not be double-counted here.
                 IF ( Input_Opt%ITS_A_MERCURY_SIM .and. SpcInfo%Is_Hg0 ) THEN
                    fracNoHg0Dep = MIN( State_Met%FROCEAN(I,J)  +             &
                                        State_Met%FRSNOW(I,J)   +             &
@@ -2681,7 +2701,7 @@ CONTAINS
                           ( ( 1.0_fp - frac ) * ( 1.0_fp - fracNoHg0Dep ) )
                ENDIF
 
-                ! Compute drydep flux in kg/m2/s (needed for diagnostics)
+                ! Compute drydep flux [kg/m2/s]
                 flux_kgm2s = ( 1.0_fp - frac )                               &
                            * State_Chm%Species(N)%Conc(I,J,L)
 
@@ -2709,10 +2729,10 @@ CONTAINS
                 flux_kgm2s = flux_kgm2s + paranox_loss
 
                 ! Convert to [molec/cm2/s]
-                denom = ( mw_kg * drydep_dt * 1.0e+4_fp ) / AVO
+                denom      = ( mw_kg * drydep_dt * 1.0e+4_fp ) / AVO
                 flux_mcm2s = Safe_Div( flux_kgm2s, denom, 0.0_fp )
 
-                ! Add drydep flux to the soil drydep 
+                ! Add drydep flux [kg/m2/s] to the soil drydep tracker
                 IF ( Input_Opt%LSOILNOX ) THEN
                    CALL Soil_DryDep( I, J, N, flux_kgm2s, State_Chm )
                 ENDIF
@@ -2736,53 +2756,27 @@ CONTAINS
                 IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
                    ! Deposition mass, kg
-                   val = flux_kgm2s * State_Grid%Area_M2(I,J) * drydep_dt
+                   mass = flux_kgm2s * State_Grid%Area_M2(I,J) * drydep_dt
 
                    IF ( SpcInfo%Is_Hg2 ) THEN
 
                       ! Archive dry-deposited Hg2
-                      CALL ADD_Hg2_DD( I, J, val                            )
+                      CALL ADD_Hg2_DD( I, J, mass                            )
                       CALL ADD_Hg2_SNOWPACK( I,         J,                   &
-                                             val,       State_Met,           & 
+                                             mass,      State_Met,           &
                                              State_Chm, State_Diag          )
 
                    ELSE IF ( SpcInfo%Is_HgP ) THEN
 
                       ! Archive dry-deposited HgP
-                      CALL ADD_HgP_DD( I, J, val                            )
+                      CALL ADD_HgP_DD( I, J, mass                            )
                       CALL ADD_Hg2_SNOWPACK( I,         J,                   & 
-                                             val,       State_Met,           &
+                                             mass,      State_Met,           &
                                              State_Chm, State_Diag          )
 
                    ENDIF
                 ENDIF
              ENDIF
-
-!             !---------------------------------------------------------------
-!             ! Check for negative concentrations
-!             !---------------------------------------------------------------
-!             IF ( State_Chm%Species(N)%Conc(I,J,L) < 0.0_fp ) THEN
-!#ifdef TOMAS
-!                ! For TOMAS simulations only, look for negative and reset
-!                ! to small positive.  This prevents the run from dying,
-!                ! while we look for the root cause of the issue.
-!                !  -- Betty Croft, Bob Yantosca (21 Jan 2022)
-!                print *, 'Found negative ', N, State_Chm%Species(N)%Conc(I,J,L)
-!                State_Chm%Species(N)%Conc(I,J,L) = 1e-26_fp
-!#else
-!                
-!                IF ( N /= id_CO2 ) THEN
-!                   Print*, 'WARNING: Negative concentration for species ',   &
-!                        TRIM( SpcInfo%Name), ' at (I,J,L) = ', I, J, L
-!                   ErrorMsg =                                                &
-!                       'Negative species concentations encountered.'      // &
-!                       ' This may be fixed by increasing the'             // &
-!                       ' background concentration or by shortening'       // &
-!                       ' the transport time step.'
-!                   RC = GC_FAILURE
-!                ENDIF
-!#endif
-!             ENDIF
           ENDDO
        ENDDO
        ENDDO
