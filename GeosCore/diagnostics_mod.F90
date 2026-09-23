@@ -382,7 +382,7 @@ CONTAINS
     !---------------------
     IF ( Input_Opt%LDRYD ) THEN
 
-       ! Initialize the DryDepMix and DryDepChm diagnostic arrays for the
+       ! Initialize the DryDepFlx and DryDepChm diagnostic arrays for the
        ! History diagnostics.  This will prevent leftover values from being
        ! carried over to this timestep. (For example, if on the last
        ! iteration, the PBL height was higher than it is now, then we will
