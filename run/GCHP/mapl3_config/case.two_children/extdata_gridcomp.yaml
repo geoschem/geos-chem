@@ -267,7 +267,7 @@ Exports:
     collection: MERRA2.A3dyn.05x0625
     regrid: CONSERVE
     sample: offset_1hr30min_nointerp_noextrap
-    variable: U;V
+    variable: [U,V]
 
   #===================================================================
   # Fields from MERRA2.I3.05x0625:

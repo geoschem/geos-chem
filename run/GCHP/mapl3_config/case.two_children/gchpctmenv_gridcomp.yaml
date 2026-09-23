@@ -1,5 +1,9 @@
 RUN_DT: 600
 
 mapl:
+  setServices:
+    sharedObj: libGCHPctmEnv_GridComp
+    userRoutine: gchpctmenv_setservices_
+
   misc:
     activate_all_exports: true

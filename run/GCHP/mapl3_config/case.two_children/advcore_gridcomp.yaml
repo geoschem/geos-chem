@@ -12,6 +12,9 @@ fix_mass: false                     # default:
 check_mass: false                   # default:
 ADIABATIC: true                     # default: false
 
+# Debugging
+#DYCORE: ADV
+
 #AGCM.STREATCH_FACTOR               # default: 1.0
 #FIXED_LATS                         # default:
 #ADJUST_SPLITS                      # default: false
@@ -36,6 +39,10 @@ geometry:
     num_levels: 72
 
 mapl:
+  setServices:
+    sharedObj: libFVdycoreCubed_GridComp
+    userRoutine: advcore_setservices_
+
   misc:
     checkpoint:
       export: true
@@ -52,3 +59,5 @@ mapl:
       standard_name: air_pressure
       units: hPa
       num_levels: 72
+      field_edge: PLE
+      field_center: PE

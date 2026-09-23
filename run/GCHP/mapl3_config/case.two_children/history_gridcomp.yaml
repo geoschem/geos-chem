@@ -37,23 +37,6 @@ time_specs:
     frequency: P1M
     mode: instantaneous
 
-collections:
-  GCHPctmEnv:
-    template: "OutputDir/%c.%y4%m2%d2_%h2%n2z.nc4"
-    time_spec: *inst_dt
-    var_list:
-      SPHU0:           {source: GCHPctmEnv.SPHU0}
-      SPHU1:           {source: GCHPctmEnv.SPHU1}
-      PLE0:            {source: GCHPctmEnv.PLE0}
-      PLE1:            {source: GCHPctmEnv.PLE1}
-      DryPLE0:         {source: GCHPctmEnv.DryPLE0}
-      DryPLE1:         {source: GCHPctmEnv.DryPLE1}
-      MFX:             {source: GCHPctmEnv.MFX}
-      MFY:             {source: GCHPctmEnv.MFY}
-      CX:              {source: GCHPctmEnv.CX}
-      CY:              {source: GCHPctmEnv.CY}
-      UpwardsMassFlux: {source: GCHPctmEnv.UpwardsMassFlux}
-
 geoms:
   PE24x144-CF:
     class: CubedSphere
@@ -70,4 +53,27 @@ geoms:
     jm_world: 40
     lon_range: [0.0, 80.0]
     lat_range: [-30.0, 10.0]
+
+collections:
+  GCHPctmEnv:
+    template: "OutputDir/%c.%y4%m2%d2_%h2%n2z.nc4"
+    time_spec: *inst_dt
+    var_list:
+      SPHU0:           {source: GCHPctmEnv.SPHU0}
+#      SPHU0_r4:        {source: GCHPctmEnv.SPHU0_r4}
+#      SPHU1:           {source: GCHPctmEnv.SPHU1}
+#      PLE0:            {source: GCHPctmEnv.PLE0}
+#      PLE1:            {source: GCHPctmEnv.PLE1}
+#      DryPLE0:         {source: GCHPctmEnv.DryPLE0}
+#      DryPLE1:         {source: GCHPctmEnv.DryPLE1}
+#      MFX:             {source: GCHPctmEnv.MFX}
+#      MFY:             {source: GCHPctmEnv.MFY}
+#      CX:              {source: GCHPctmEnv.CX}
+#      CY:              {source: GCHPctmEnv.CY}
+#      UA:              {source: GCHPctmEnv.UA}
+#      VA:              {source: GCHPctmEnv.VA}
+#      UC:              {source: GCHPctmEnv.UC}
+#      VC:              {source: GCHPctmEnv.VC}
+#      UpwardsMassFlux: {source: GCHPctmEnv.UpwardsMassFlux}
+#      AREA:            {source: AdvCore.AREA}
 

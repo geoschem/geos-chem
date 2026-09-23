@@ -6,15 +6,15 @@ mapl:
     kind: from_child
     provider: AdvCore
 
+  setServices:
+    sharedObj: libGCHP_GridComp
+    userRoutine: gchp_setservices_
+
   children:
     GCHPctmEnv:
-      dso: libGCHPctmEnv_GridComp
-      config_file: gchpctmenv.yaml
-      setservices: gchpctmenv_setservices_
+      config_file: gchpctmenv_gridcomp.yaml
     AdvCore:
-      dso: libFVdycoreCubed_GridComp
-      config_file: advcore.yaml
-      setservices: advcore_setservices_
+      config_file: advcore_gridcomp.yaml
 
   connections:
     - src_name: PLE0
