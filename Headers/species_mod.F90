@@ -164,6 +164,14 @@ MODULE Species_Mod
      REAL(fp)           :: WD_RainoutEff(3) ! Temperature-dependent scale
                                             !  factors for rainout efficiency
 
+     ! Wetdep parameters, aerosol-phase species: only organic aerosol
+     ! yumin 24/07/24
+     LOGICAL            :: WD_Is_OCPO       ! Flag to denote OCPO wetdep
+     LOGICAL            :: WD_Is_OCPI       ! Flag to denote OCPI wetdep
+     LOGICAL            :: WD_Is_BSOA       ! Flag to denote BSOA wetdep
+     LOGICAL            :: WD_Is_ASOA       ! Flag to denote ASOA wetdep
+
+
      ! TransportTracers parameters
      CHARACTER(LEN=80)  :: Snk_Horiz        ! Where to apply sink horizontally?
      REAL(fp)           :: Snk_LatMin       ! Minimum latitude for applying sink
@@ -405,6 +413,11 @@ CONTAINS
     Spc%WD_Is_HNO3      = MISSING_BOOL
     Spc%WD_Is_SO2       = MISSING_BOOL
     Spc%WD_LiqAndGas    = MISSING_BOOL
+    ! yumin
+    Spc%WD_Is_OCPO      = MISSING_BOOL
+    Spc%WD_Is_OCPI      = MISSING_BOOL
+    Spc%WD_Is_BSOA      = MISSING_BOOL
+    Spc%WD_Is_ASOA      = MISSING_BOOL
 
     ! Integers
     Spc%AdvectId        = MISSING_INT
@@ -688,6 +701,23 @@ CONTAINS
           IF ( ThisSpc%WD_Is_SO2 ) THEN
              WRITE( 6, 130 ) "WD_Is_SO2      ",  ThisSpc%WD_Is_SO2
           ENDIF
+
+          IF ( ThisSpc%WD_Is_OCPO ) THEN
+             WRITE( 6, 130 ) "WD_Is_OCPO     ",  ThisSpc%WD_Is_OCPO
+          ENDIF
+          
+          IF ( ThisSpc%WD_Is_OCPI ) THEN
+             WRITE( 6, 130 ) "WD_Is_OCPI     ",  ThisSpc%WD_Is_OCPI
+          ENDIF
+
+          IF ( ThisSpc%WD_Is_BSOA ) THEN
+             WRITE( 6, 130 ) "WD_Is_BSOA     ",  ThisSpc%WD_Is_BSOA
+          ENDIF
+
+          IF ( ThisSpc%WD_Is_ASOA ) THEN
+             WRITE( 6, 130 ) "WD_Is_ASOA     ",  ThisSpc%WD_Is_ASOA
+          ENDIF
+
        ENDIF
 
        !--------------------------------------------------------------------

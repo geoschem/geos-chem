@@ -656,6 +656,51 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: TotalBiogenicOA(:,:,:)
      LOGICAL                     :: Archive_TotalBiogenicOA
 
+     !%%%%% Aerosol phase %%%%% Yumin Li
+     REAL(f4),           POINTER :: TgBOCPO(:,:,:)
+     LOGICAL                     :: Archive_TgBOCPO
+
+     REAL(f4),           POINTER :: TgBOCPI(:,:,:)
+     LOGICAL                     :: Archive_TgBOCPI
+
+     REAL(f4),           POINTER :: TgAOCPO(:,:,:)
+     LOGICAL                     :: Archive_TgAOCPO
+
+     REAL(f4),           POINTER :: TgAOCPI(:,:,:)
+     LOGICAL                     :: Archive_TgAOCPI
+
+     REAL(f4),           POINTER :: TgBSOA(:,:,:)
+     LOGICAL                     :: Archive_TgBSOA
+
+     REAL(f4),           POINTER :: TgASOA(:,:,:)
+     LOGICAL                     :: Archive_TgASOA
+
+     REAL(f4),           POINTER :: TgMEAN(:,:,:)
+     LOGICAL                     :: Archive_TgMEAN
+
+     REAL(f4),           POINTER :: ViscosityBOCPO(:,:,:)
+     LOGICAL                     :: Archive_ViscosityBOCPO
+
+     REAL(f4),           POINTER :: ViscosityBOCPI(:,:,:)
+     LOGICAL                     :: Archive_ViscosityBOCPI
+
+     REAL(f4),           POINTER :: ViscosityAOCPO(:,:,:)
+     LOGICAL                     :: Archive_ViscosityAOCPO
+
+     REAL(f4),           POINTER :: ViscosityAOCPI(:,:,:)
+     LOGICAL                     :: Archive_ViscosityAOCPI
+
+     REAL(f4),           POINTER :: ViscosityBSOA(:,:,:)
+     LOGICAL                     :: Archive_ViscosityBSOA
+
+     REAL(f4),           POINTER :: ViscosityASOA(:,:,:)
+     LOGICAL                     :: Archive_ViscosityASOA
+
+     REAL(f4),           POINTER :: ViscosityMEAN(:,:,:)
+     LOGICAL                     :: Archive_ViscosityMEAN
+
+     LOGICAL                     :: Archive_Phase
+
      !%%%%% Advection %%%%%
 
      REAL(f4),           POINTER :: AdvFluxZonal(:,:,:,:)
@@ -2068,6 +2113,51 @@ CONTAINS
 
     State_Diag%TotalBiogenicOA                     => NULL()
     State_Diag%Archive_TotalBiogenicOA             = .FALSE.
+
+    !%%%%% Aerosol phase %%%%% Yumin Li
+    State_Diag%TgBOCPO                             => NULL()
+    State_Diag%Archive_TgBOCPO                     = .FALSE.
+
+    State_Diag%TgBOCPI                             => NULL()
+    State_Diag%Archive_TgBOCPI                     = .FALSE.
+
+    State_Diag%TgAOCPO                             => NULL()
+    State_Diag%Archive_TgAOCPO                     = .FALSE.
+
+    State_Diag%TgAOCPI                             => NULL()
+    State_Diag%Archive_TgAOCPI                     = .FALSE.
+
+    State_Diag%TgBSOA                              => NULL()
+    State_Diag%Archive_TgBSOA                      = .FALSE.
+
+    State_Diag%TgASOA                              => NULL()
+    State_Diag%Archive_TgASOA                      = .FALSE.
+
+    State_Diag%TgMEAN                              => NULL()
+    State_Diag%Archive_TgMEAN                      = .FALSE.
+
+    State_Diag%ViscosityBOCPO                      => NULL()
+    State_Diag%Archive_ViscosityBOCPO              = .FALSE.
+
+    State_Diag%ViscosityBOCPI                      => NULL()
+    State_Diag%Archive_ViscosityBOCPI              = .FALSE.
+
+    State_Diag%ViscosityAOCPO                      => NULL()
+    State_Diag%Archive_ViscosityAOCPO              = .FALSE.
+
+    State_Diag%ViscosityAOCPI                      => NULL()
+    State_Diag%Archive_ViscosityAOCPI              = .FALSE.
+
+    State_Diag%ViscosityBSOA                       => NULL()
+    State_Diag%Archive_ViscosityBSOA               = .FALSE.
+
+    State_Diag%ViscosityASOA                       => NULL()
+    State_Diag%Archive_ViscosityASOA               = .FALSE.
+
+    State_Diag%ViscosityMEAN                       => NULL()
+    State_Diag%Archive_ViscosityMEAN               = .FALSE.
+
+    State_Diag%Archive_Phase                       = .FALSE.
 
     !%%%%% Transport diagnostics %%%%%
     State_Diag%AdvFluxZonal                        => NULL()
@@ -9472,8 +9562,314 @@ CONTAINS
           CALL GC_Error( errMsg, RC, thisLoc )
           RETURN
        ENDIF
-    ELSE
 
+       !%%%%% Aerosol phase %%%%% Yumin Li
+       !-------------------------------------------------------------------
+       ! Tg for biomass burning hydrophobic OA [K]
+       !-------------------------------------------------------------------
+       diagID  = 'TgBOCPO'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TgBOCPO,                             &
+            archiveData    = State_Diag%Archive_TgBOCPO,                     &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Tg for biomass burning hydrophilic OA [K]
+       !-------------------------------------------------------------------
+       diagID  = 'TgBOCPI'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TgBOCPI,                             &
+            archiveData    = State_Diag%Archive_TgBOCPI,                     &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Tg for anthropogenic hydrophobic OA [K]
+       !-------------------------------------------------------------------
+       diagID  = 'TgAOCPO'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TgAOCPO,                             &
+            archiveData    = State_Diag%Archive_TgAOCPO,                     &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Tg for anthropogenic hydrophilic OA [K]
+       !-------------------------------------------------------------------
+       diagID  = 'TgAOCPI'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TgAOCPI,                             &
+            archiveData    = State_Diag%Archive_TgAOCPI,                     &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+       !-------------------------------------------------------------------
+       ! Tg for biogenic SOA [K]
+       !-------------------------------------------------------------------
+       diagID  = 'TgBSOA'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TgBSOA,                              &
+            archiveData    = State_Diag%Archive_TgBSOA,                      &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Tg for anthropogenic SOA [K]
+       !-------------------------------------------------------------------
+       diagID  = 'TgASOA'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TgASOA,                              &
+            archiveData    = State_Diag%Archive_TgASOA,                      &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+       !-------------------------------------------------------------------
+       ! Tg for well mixing all OA [K]
+       !-------------------------------------------------------------------
+       diagID  = 'TgMEAN'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TgMEAN,                              &
+            archiveData    = State_Diag%Archive_TgMEAN,                      &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+       !-------------------------------------------------------------------
+       ! Viscosity for biomass burning hydrophobic OA [K]
+       !-------------------------------------------------------------------
+       diagID  = 'ViscosityBOCPO'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ViscosityBOCPO,                      &
+            archiveData    = State_Diag%Archive_ViscosityBOCPO,              &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Viscosity for biomass burning hydrophilic OA [K]
+       !-------------------------------------------------------------------
+       diagID  = 'ViscosityBOCPI'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ViscosityBOCPI,                      &
+            archiveData    = State_Diag%Archive_ViscosityBOCPI,              &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Viscosity for anthropogenic hydrophobic OA [K]
+       !-------------------------------------------------------------------
+       diagID  = 'ViscosityAOCPO'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ViscosityAOCPO,                      &
+            archiveData    = State_Diag%Archive_ViscosityAOCPO,              &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Viscosity for anthropogenic hydrophilic OA [K]
+       !-------------------------------------------------------------------
+       diagID  = 'ViscosityAOCPI'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ViscosityAOCPI,                      &
+            archiveData    = State_Diag%Archive_ViscosityAOCPI,              &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Viscosity for biogenic SOA [K]
+       !-------------------------------------------------------------------
+       diagID  = 'ViscosityBSOA'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ViscosityBSOA,                       &
+            archiveData    = State_Diag%Archive_ViscosityBSOA,               &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Viscosity for anthropogenic SOA [K]
+       !-------------------------------------------------------------------
+       diagID  = 'ViscosityASOA'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ViscosityASOA,                       &
+            archiveData    = State_Diag%Archive_ViscosityASOA,               &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+       !-------------------------------------------------------------------
+       ! Viscosity for well mixing OA [K]
+       !-------------------------------------------------------------------
+       diagID  = 'ViscosityMEAN'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ViscosityMEAN,                       &
+            archiveData    = State_Diag%Archive_ViscosityMEAN,               &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+
+    ELSE
        !-------------------------------------------------------------------
        ! Halt with an error message if any of the following quantities
        ! have been requested as diagnostics in simulations other than
@@ -12035,6 +12431,23 @@ CONTAINS
          State_Diag%Archive_OHwgtByAirMassColumnFull                    .or. &
          State_Diag%Archive_OHwgtByAirMassColumnTrop                        )
 
+
+    State_Diag%Archive_Phase = (                                             &
+         State_Diag%Archive_TgBOCPO                                     .or. &
+         State_Diag%Archive_TgBOCPI                                     .or. &
+         State_Diag%Archive_TgAOCPO                                     .or. &
+         State_Diag%Archive_TgAOCPI                                     .or. &
+         State_Diag%Archive_TgBSOA                                      .or. &
+         State_Diag%Archive_TgASOA                                      .or. &
+         State_Diag%Archive_TgMEAN                                      .or. &
+         State_Diag%Archive_ViscosityBOCPO                              .or. &
+         State_Diag%Archive_ViscosityBOCPI                              .or. &
+         State_Diag%Archive_ViscosityAOCPO                              .or. &
+         State_Diag%Archive_ViscosityAOCPI                              .or. &
+         State_Diag%Archive_ViscosityBSOA                               .or. &
+         State_Diag%Archive_ViscosityASOA                               .or. &
+         State_Diag%Archive_ViscosityMEAN                                   )
+
     !========================================================================
     ! Work array used to to calculate budget diagnostics, if needed
     ! 4th dimension is column region: Full, Trop, PBL respectively
@@ -13335,6 +13748,80 @@ CONTAINS
                    Ptr2Data = State_Diag%TotalOC,                            &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
+
+!Yumin
+    CALL Finalize( diagId   = 'TgBOCPO',                                     &
+                   Ptr2Data = State_Diag%TgBOCPO,                            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TgBOCPI',                                     &
+                   Ptr2Data = State_Diag%TgBOCPI,                            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TgAOCPO',                                     &
+                   Ptr2Data = State_Diag%TgAOCPO,                            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TgAOCPI',                                     &
+                   Ptr2Data = State_Diag%TgAOCPI,                            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TgBSOA',                                      &
+                   Ptr2Data = State_Diag%TgBSOA,                             &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TgASOA',                                      &
+                   Ptr2Data = State_Diag%TgASOA,                             &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TgMEAN',                                      &
+                   Ptr2Data = State_Diag%TgMEAN,                             &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ViscosityBOCPO',                             &
+                   Ptr2Data = State_Diag%ViscosityBOCPO,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ViscosityBOCPI',                             &
+                   Ptr2Data = State_Diag%ViscosityBOCPI,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ViscosityAOCPO',                             &
+                   Ptr2Data = State_Diag%ViscosityAOCPO,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ViscosityAOCPI',                             &
+                   Ptr2Data = State_Diag%ViscosityAOCPI,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ViscosityBSOA',                              &
+                   Ptr2Data = State_Diag%ViscosityBSOA,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ViscosityASOA',                              &
+                   Ptr2Data = State_Diag%ViscosityASOA,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ViscosityMEAN',                              &
+                   Ptr2Data = State_Diag%ViscosityMEAN,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+
+!----------------------------------------------------------------------------------
 
     CALL Finalize( diagId   = 'LossPOPPOCPObyGasPhase',                      &
                    Ptr2Data = State_Diag%LossPOPPOCPObyGasPhase,             &
@@ -15263,6 +15750,76 @@ CONTAINS
     ELSE IF ( TRIM( Name_AllCaps ) == 'PM10' ) THEN
        IF ( isDesc    ) Desc  = 'Particulate matter with radii < 10 um'
        IF ( isUnits   ) Units = 'ug m-3'
+       IF ( isRank    ) Rank  =  3
+!Yumin
+    ELSE IF ( TRIM( Name_AllCaps ) == 'TGBOCPO' ) THEN
+       IF ( isDesc    ) Desc  = 'Tg for biomass burning hydrophobic OA'
+       IF ( isUnits   ) Units = 'K'
+       IF ( isRank    ) Rank  =  3
+    
+    ELSE IF ( TRIM( Name_AllCaps ) == 'TGBOCPI' ) THEN
+       IF ( isDesc    ) Desc  = 'Tg for biomass burning hydrophilic OA'
+       IF ( isUnits   ) Units = 'K'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'TGAOCPO' ) THEN
+       IF ( isDesc    ) Desc  = 'Tg for anthropogenic hydrophobic OA'
+       IF ( isUnits   ) Units = 'K'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'TGAOCPI' ) THEN
+       IF ( isDesc    ) Desc  = 'Tg for anthropogenic hydrophilic OA'
+       IF ( isUnits   ) Units = 'K'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'TGBSOA' ) THEN
+       IF ( isDesc    ) Desc  = 'Tg for biogenic SOA'
+       IF ( isUnits   ) Units = 'K'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'TGASOA' ) THEN
+       IF ( isDesc    ) Desc  = 'Tg for anthropogenic SOA'
+       IF ( isUnits   ) Units = 'K'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'TGMEAN' ) THEN
+       IF ( isDesc    ) Desc  = 'Tg for well mixing OA'
+       IF ( isUnits   ) Units = 'K'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'VISCOSITYBOCPO' ) THEN
+       IF ( isDesc    ) Desc  = 'Viscosity for biomass burning hydrophobic OA'
+       IF ( isUnits   ) Units = 'unitless'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'VISCOSITYBOCPI' ) THEN
+       IF ( isDesc    ) Desc  = 'Viscosity for biomass burning hydrophilic OA'
+       IF ( isUnits   ) Units = 'unitless'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'VISCOSITYAOCPO' ) THEN
+       IF ( isDesc    ) Desc  = 'Viscosity for anthropogenic hydrophobic OA'
+       IF ( isUnits   ) Units = 'unitless'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'VISCOSITYAOCPI' ) THEN
+       IF ( isDesc    ) Desc  = 'Viscosity for anthropogenic hydrophilic OA'
+       IF ( isUnits   ) Units = 'unitless'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'VISCOSITYBSOA' ) THEN
+       IF ( isDesc    ) Desc  = 'Viscosity for biogenic SOA'
+       IF ( isUnits   ) Units = 'unitless'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'VISCOSITYASOA' ) THEN
+       IF ( isDesc    ) Desc  = 'Viscosity for anthropogenic SOA'
+       IF ( isUnits   ) Units = 'unitless'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'VISCOSITYMEAN' ) THEN
+       IF ( isDesc    ) Desc  = 'Viscosity for well mixing OA'
+       IF ( isUnits   ) Units = 'unitless'
        IF ( isRank    ) Rank  =  3
 
 #ifdef MODEL_GEOS

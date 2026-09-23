@@ -1755,6 +1755,46 @@ CONTAINS
     Input_Opt%LSVPOA = v_bool
 
     !------------------------------------------------------------------------
+    ! Use online phase state caculation?
+    !------------------------------------------------------------------------
+    key    = "aerosols%phase%activate"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%LPHASE = v_bool
+
+    !------------------------------------------------------------------------
+    ! Use online phase state dependent G-P partition?
+    !------------------------------------------------------------------------
+    key    = "aerosols%phase%new_GP"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%LNEWGP = v_bool
+
+
+    !------------------------------------------------------------------------
+    ! Use online phase state dependent pah caculation?
+    !------------------------------------------------------------------------
+    key    = "aerosols%pah%phase_pah"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%LPPAH = v_bool
+
+    !------------------------------------------------------------------------
     ! Use online dust aerosols ?
     !------------------------------------------------------------------------
     key    = "aerosols%dust%activate"
@@ -1972,6 +2012,7 @@ CONTAINS
        Input_Opt%LBRC         = .FALSE.
        Input_Opt%LSOA         = .FALSE.
        Input_Opt%LDUST        = .FALSE.
+       Input_Opt%LPHASE       = .FALSE.
        Input_Opt%LSSALT       = .FALSE.
        Input_Opt%LMPOA        = .FALSE.
        Input_Opt%LSVPOA       = .FALSE.
@@ -1996,6 +2037,8 @@ CONTAINS
        WRITE( 6, 105 ) 'Hydrophobic BC AE factor    : ', Input_Opt%BCAE_2
        WRITE( 6, 100 ) 'Online COMPLEX SOA?         : ', Input_Opt%LSOA
        WRITE( 6, 100 ) 'Semivolatile POA?           : ', Input_Opt%LSVPOA
+       WRITE( 6, 100 ) 'Online Phase State?         : ', Input_Opt%LPHASE
+       WRITE( 6, 100 ) 'Online Phase State dependent G-P ?: ', Input_Opt%LNEWGP
        WRITE( 6, 100 ) 'Online DUST AEROSOLS?       : ', Input_Opt%LDUST
        WRITE( 6, 100 ) 'Acid uptake on dust?        : ', Input_Opt%LDSTUP
        WRITE( 6, 100 ) 'Online SEA SALT AEROSOLS?   : ', Input_Opt%LSSALT
@@ -3492,6 +3535,19 @@ CONTAINS
     ENDIF
     Input_Opt%LWETD = v_bool
 
+    !------------------------------------------------------------------------
+    ! Turn on phase state dependent wet deposition?
+    !------------------------------------------------------------------------
+    key    = "operations%wet_deposition%phase"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%LWETDP = v_bool
+
     !========================================================================
     ! Error check settings
     !========================================================================
@@ -3532,6 +3588,7 @@ CONTAINS
        WRITE( 6, 90  ) 'WET DEPOSITION SETTINGS'
        WRITE( 6, 95  ) '-----------------------'
        WRITE( 6, 100 ) 'Turn on wet deposition?     : ', Input_Opt%LWETD
+       WRITE( 6, 100 ) 'Turn on phase dependent wet deposition?     : ', Input_Opt%LWETDP
     ENDIF
 
     ! FORMAT statements

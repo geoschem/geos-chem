@@ -14,9 +14,7 @@ FILE HISTORY
 Version: 14.2.0
 
 Please see "CHANGELOG_fullchem.md" in this folder for the revision history
-of the fullchem mechanism, which the "custom" mechanism is based on.
-
-You may list updates specific to the "custom" mechanism below:
+of the fullchem mechanism.
 
 ===============================================================================
 DEVELOPERS (initials and email/GitHub)
@@ -1502,26 +1500,26 @@ IEPOXA = SOAIE :               IEPOXuptk1stOrd( SR_MW(ind_IEPOXA), .FALSE., Stat
 IEPOXB = SOAIE :               IEPOXuptk1stOrd( SR_MW(ind_IEPOXB), .FALSE., State_Het );                    {2017/06/15; Marais2016, EAM}
 IEPOXD = SOAIE :               IEPOXuptk1stOrd( SR_MW(ind_IEPOXD), .FALSE., State_Het );                    {2017/06/15; Marais2016, EAM}
 LVOC = LVOCOA :                VOCuptk1stOrd( SR_MW(ind_LVOC), 1.0_dp, State_Het );                         {2017/06/15; Marais2016, EAM}
-MVKN = IONITA :                VOCuptk1stOrd( SR_MW(ind_MVKN), 5.0E-3_dp, State_Het );                      {2017/06/15; Marais2016, EAM}
-R4N2 = IONITA :                VOCuptk1stOrd( SR_MW(ind_R4N2), 5.0E-3_dp, State_Het );                      {2017/06/15; Marais2016, EAM}
-MONITS = MONITA :              VOCuptk1stOrd( SR_MW(ind_MONITS), 1.0E-2_dp, State_Het );                    {2017/07/14; Fisher2016; KRT,JAF,CCM,EAM,KHB,RHS}
-MONITU = MONITA :              VOCuptk1stOrd( SR_MW(ind_MONITU), 1.0E-2_dp, State_Het );                    {2017/07/14; Fisher2016; KRT,JAF,CCM,EAM,KHB,RHS}
-HONIT = MONITA :               VOCuptk1stOrd( SR_MW(ind_HONIT), 1.0E-2_dp, State_Het );                     {2017/07/14; Fisher2016; KRT,JAF,CCM,EAM,KHB,RHS}
+MVKN = IONITA :                VOCuptk1stOrdB( SR_MW(ind_MVKN), 5.0E-3_dp, HENRY_K0(ind_MVKN),HENRY_CR(ind_MVKN), State_Het );                      {2017/06/15; Marais2016, EAM}
+R4N2 = IONITA :                VOCuptk1stOrdB( SR_MW(ind_R4N2), 5.0E-3_dp, HENRY_K0(ind_R4N2),HENRY_CR(ind_R4N2), State_Het );                      {2017/06/15; Marais2016, EAM}
+MONITS = MONITA :              VOCuptk1stOrdB( SR_MW(ind_MONITS), 1.0E-2_dp, HENRY_K0(ind_MONITS),HENRY_CR(ind_MONITS), State_Het );                {2017/07/14; Fisher2016; KRT,JAF,CCM,EAM,KHB,RHS}
+MONITU = MONITA :              VOCuptk1stOrdB( SR_MW(ind_MONITU), 1.0E-2_dp, HENRY_K0(ind_MONITU),HENRY_CR(ind_MONITU), State_Het );                {2017/07/14; Fisher2016; KRT,JAF,CCM,EAM,KHB,RHS}
+HONIT = MONITA :               VOCuptk1stOrdB( SR_MW(ind_HONIT), 1.0E-2_dp, HENRY_K0(ind_HONIT),HENRY_CR(ind_HONIT), State_Het );                   {2017/07/14; Fisher2016; KRT,JAF,CCM,EAM,KHB,RHS}
 PYAC = 1.500SOAGX :            MGLYuptk1stOrd( SR_MW(ind_PYAC), State_Het );                                {2019/11/06; Bates2019; KHB; 2023/04/18; Bates2023; KHB}
 HMML = 0.800SOAIE :            IEPOXuptk1stOrd( SR_MW(ind_HMML), .TRUE., State_Het);                        {2019/11/06; Bates2019; KHB; 2023/04/18; Bates2023; KHB}
-IHN1 = IONITA :                VOCuptk1stOrd( SR_MW(ind_IHN1), 5.0E-3_dp, State_Het );                      {2019/11/06; Bates2019; KHB}
-IHN2 = IONITA :                VOCuptk1stOrd( SR_MW(ind_IHN2), 5.0E-2_dp, State_Het );                      {2019/11/06; Bates2019; KHB}
-IHN3 = IONITA :                VOCuptk1stOrd( SR_MW(ind_IHN3), 5.0E-3_dp, State_Het );                      {2019/11/06; Bates2019; KHB}
-IHN4 = IONITA :                VOCuptk1stOrd( SR_MW(ind_IHN4), 5.0E-3_dp, State_Het );                      {2019/11/06; Bates2019; KHB}
+IHN1 = IONITA :                VOCuptk1stOrdB( SR_MW(ind_IHN1), 5.0E-3_dp, HENRY_K0(ind_IHN1),HENRY_CR(ind_IHN1), State_Het );                      {2019/11/06; Bates2019; KHB}
+IHN2 = IONITA :                VOCuptk1stOrdB( SR_MW(ind_IHN2), 5.0E-2_dp, HENRY_K0(ind_IHN2),HENRY_CR(ind_IHN2), State_Het );                      {2019/11/06; Bates2019; KHB}
+IHN3 = IONITA :                VOCuptk1stOrdB( SR_MW(ind_IHN3), 5.0E-3_dp, HENRY_K0(ind_IHN3),HENRY_CR(ind_IHN3), State_Het );                      {2019/11/06; Bates2019; KHB}
+IHN4 = IONITA :                VOCuptk1stOrdB( SR_MW(ind_IHN4), 5.0E-3_dp, HENRY_K0(ind_IHN4),HENRY_CR(ind_IHN4), State_Het );                      {2019/11/06; Bates2019; KHB}
 ICHE = SOAIE :                 IEPOXuptk1stOrd( SR_MW(ind_ICHE), .FALSE., State_Het );                      {2019/11/06; Bates2019; KHB}
-INPD = IONITA :                VOCuptk1stOrd( SR_MW(ind_INPD), 5.0E-3_dp, State_Het );                      {2019/11/06; Bates2019; KHB}
-INPB = IONITA :                VOCuptk1stOrd( SR_MW(ind_INPB), 5.0E-3_dp, State_Het );                      {2019/11/06; Bates2019; KHB}
-IDN = IONITA :                 VOCuptk1stOrd( SR_MW(ind_IDN), 5.0E-3_dp, State_Het );                       {2019/11/06; Bates2019; KHB}
-ITCN = IONITA :                VOCuptk1stOrd( SR_MW(ind_ITCN), 5.0E-3_dp, State_Het );                      {2019/11/06; Bates2019; KHB}
-ITHN = IONITA :                VOCuptk1stOrd( SR_MW(ind_ITHN), 5.0E-3_dp, State_Het );                      {2019/11/06; Bates2019; KHB}
-MCRHNB = IONITA :              VOCuptk1stOrd( SR_MW(ind_MCRHNB), 5.0E-3_dp, State_Het );                    {2019/11/06; Bates2019; KHB}
-MCRHN = IONITA :               VOCuptk1stOrd( SR_MW(ind_MCRHN), 5.0E-3_dp, State_Het );                     {2019/11/06; Bates2019; KHB}
-NPHEN = AONITA :               VOCuptk1stOrd( SR_MW(ind_NPHEN), 1.0E-2_dp, State_Het );                     {2021/09/29; Bates2021b; KHB,MSL}
+INPD = IONITA :                VOCuptk1stOrdB( SR_MW(ind_INPD), 5.0E-3_dp, HENRY_K0(ind_INPD),HENRY_CR(ind_INPD), State_Het );                      {2019/11/06; Bates2019; KHB}
+INPB = IONITA :                VOCuptk1stOrdB( SR_MW(ind_INPB), 5.0E-3_dp, HENRY_K0(ind_INPB),HENRY_CR(ind_INPB), State_Het );                      {2019/11/06; Bates2019; KHB}
+IDN = IONITA :                 VOCuptk1stOrdB( SR_MW(ind_IDN), 5.0E-3_dp, HENRY_K0(ind_IDN),HENRY_CR(ind_IDN), State_Het );                         {2019/11/06; Bates2019; KHB}
+ITCN = IONITA :                VOCuptk1stOrdB( SR_MW(ind_ITCN), 5.0E-3_dp, HENRY_K0(ind_ITCN),HENRY_CR(ind_ITCN), State_Het );                      {2019/11/06; Bates2019; KHB}
+ITHN = IONITA :                VOCuptk1stOrdB( SR_MW(ind_ITHN), 5.0E-3_dp, HENRY_K0(ind_ITHN),HENRY_CR(ind_ITHN), State_Het );                      {2019/11/06; Bates2019; KHB}
+MCRHNB = IONITA :              VOCuptk1stOrdB( SR_MW(ind_MCRHNB), 5.0E-3_dp, HENRY_K0(ind_MCRHNB),HENRY_CR(ind_MCRHNB), State_Het );                {2019/11/06; Bates2019; KHB}
+MCRHN = IONITA :               VOCuptk1stOrdB( SR_MW(ind_MCRHN), 5.0E-3_dp, HENRY_K0(ind_MCRHN),HENRY_CR(ind_MCRHN), State_Het );                   {2019/11/06; Bates2019; KHB}
+NPHEN = AONITA :               VOCuptk1stOrdA( SR_MW(ind_NPHEN), 1.0E-2_dp, State_Het );                     {2021/09/29; Bates2021b; KHB,MSL}
 //
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 // %%%%% Photolysis reactions                                            %%%%%

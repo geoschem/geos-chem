@@ -417,6 +417,7 @@ CONTAINS
     USE Aerosol_Mod,        ONLY : Init_Aerosol
     USE Carbon_Mod,         ONLY : Init_Carbon
     USE Carbon_Gases_Mod,   ONLY : Init_Carbon_Gases
+    USE Phase_Mod,          ONLY : Init_Phase
     USE CO2_Mod,            ONLY : Init_CO2
     USE Depo_Mercury_Mod,   ONLY : Init_Depo_Mercury
     USE DiagList_Mod,       ONLY : DgnList
@@ -598,6 +599,19 @@ CONTAINS
           RETURN
        ENDIF
     ENDIF
+
+    !-----------------------------------------------------------------
+    ! Initialize "phase_mod.F90"
+    !-----------------------------------------------------------------
+    IF ( Input_Opt%LPHASE ) THEN
+       CALL Init_Phase( Input_Opt, State_Chm, State_Diag, State_Grid, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "Init_Phase"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
 
     !-----------------------------------------------------------------
     ! Initialize "dust_mod.F90"

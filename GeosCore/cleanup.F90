@@ -17,6 +17,7 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
 !
   USE CARBON_MOD,              ONLY : CLEANUP_CARBON
   USE Carbon_Gases_Mod,        ONLY : Cleanup_Carbon_Gases
+  USE PHASE_MOD,               ONLY : CLEANUP_PHASE 
   USE CO2_MOD,                 ONLY : CLEANUP_CO2
   USE DEPO_MERCURY_MOD,        ONLY : CLEANUP_DEPO_MERCURY
   USE DRYDEP_MOD,              ONLY : CLEANUP_DRYDEP
@@ -127,6 +128,7 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
   ! Call cleanup routines from individual F90 modules
   !=================================================================
   CALL CLEANUP_CARBON()
+  CALL CLEANUP_PHASE()
   CALL CLEANUP_CO2()
   CALL CLEANUP_DRYDEP()
   CALL CLEANUP_DUST()

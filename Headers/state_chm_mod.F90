@@ -162,6 +162,8 @@ MODULE State_Chm_Mod
      REAL(fp), POINTER :: QLxpHCloud   (:,:,:)  !
      REAL(fp), POINTER :: SoilDust   (:,:,:,:)  ! Soil dust [kg/m3]
      REAL(fp), POINTER :: ORVCsesq     (:,:,:)  ! Sesquiterpenes mass [kg/box]
+     REAL(fp), POINTER :: Tg         (:,:,:,:)  ! Glass transition temperature Tg for OA species [K]  Yumin
+     REAL(fp), POINTER :: Viscosity  (:,:,:,:)  ! Viscosity for OA species [unitless]  Yumin
 
      !-----------------------------------------------------------------------
      ! Fields for nitrogen deposition
@@ -564,6 +566,9 @@ CONTAINS
     State_Chm%NOXCOEFF          => NULL()
     State_Chm%NOXLAT            => NULL()
 
+    State_Chm%Tg                => NULL()  !Yumin
+    State_Chm%Viscosity         => NULL()  !Yumin
+
     ! Emissions and drydep quantities
     State_Chm%Iodide            => NULL()
     State_Chm%Salinity          => NULL()
@@ -669,7 +674,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE CharPak_Mod,          ONLY : To_UpperCase
-    USE CMN_Size_Mod,         ONLY : NDUST, NAER
+    USE CMN_Size_Mod,         ONLY : NDUST, NAER, NPHASE
     USE GCKPP_Parameters,     ONLY : NSPEC
     USE Input_Opt_Mod,        ONLY : OptInput
     USE Species_Database_Mod, ONLY : Init_Species_Database
@@ -1150,6 +1155,68 @@ CONTAINS
                chmId      = TRIM( fieldId(N) ),                              &
                Ptr2Data   = State_Chm%WetAeroRadi,                           &
                nSlots     = State_Chm%nAeroType,                             &
+               nCat       = N,                                               &
+               RC         = RC                                              )
+
+          IF ( RC /= GC_SUCCESS ) THEN
+             errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+             CALL GC_Error( errMsg, RC, thisLoc )
+             RETURN
+          ENDIF
+       ENDDO
+
+       !---------------------------------------------------------------------
+       ! Tg   Yumin
+       !---------------------------------------------------------------------
+       fieldId(1) = 'TgBOCPO'
+       fieldId(2) = 'TgBOCPI'
+       fieldId(3) = 'TgAOCPO'
+       fieldId(4) = 'TgAOCPI'
+       fieldId(5) = 'TgBSOA'
+       fieldId(6) = 'TgASOA'
+       fieldId(7) = 'TgMEAN'
+
+       
+
+       ! Allocate and register each field individually
+       DO N = 1, NPHASE
+          CALL Init_and_Register(                                            &
+               Input_Opt  = Input_Opt,                                       &
+               State_Chm  = State_Chm,                                       &
+               State_Grid = State_Grid,                                      &
+               chmId      = TRIM( fieldId(N) ),                              &
+               Ptr2Data   = State_Chm%Tg,                                    &
+               nSlots     = NPHASE,                                          &
+               nCat       = N,                                               &
+               RC         = RC                                              )
+
+          IF ( RC /= GC_SUCCESS ) THEN
+             errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+             CALL GC_Error( errMsg, RC, thisLoc )
+             RETURN
+          ENDIF
+       ENDDO
+
+       !---------------------------------------------------------------------
+       ! Viscosity   Yumin
+       !---------------------------------------------------------------------
+       fieldId(1) = 'ViscosityBOCPO'
+       fieldId(2) = 'ViscosityBOCPI'
+       fieldId(3) = 'ViscosityAOCPO'
+       fieldId(4) = 'ViscosityAOCPI'
+       fieldId(5) = 'ViscosityBSOA'
+       fieldId(6) = 'ViscosityASOA'
+       fieldId(7) = 'ViscosityMEAN'
+
+       ! Allocate and register each field individually
+       DO N = 1, NPHASE
+          CALL Init_and_Register(                                            &
+               Input_Opt  = Input_Opt,                                       &
+               State_Chm  = State_Chm,                                       &
+               State_Grid = State_Grid,                                      &
+               chmId      = TRIM( fieldId(N) ),                              &
+               Ptr2Data   = State_Chm%Viscosity,                              &
+               nSlots     = NPHASE,                             &
                nCat       = N,                                               &
                RC         = RC                                              )
 
@@ -3294,6 +3361,20 @@ CONTAINS
        State_Chm%WetAeroRadi => NULL()
     ENDIF
 
+    IF ( ASSOCIATED( State_Chm%Tg ) ) THEN
+       DEALLOCATE( State_Chm%Tg, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%Tg', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%Tg => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%Viscosity ) ) THEN
+       DEALLOCATE( State_Chm%Viscosity, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%Viscosity', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%Viscosity => NULL()
+    ENDIF
+
     IF ( ASSOCIATED( State_Chm%AeroH2O ) ) THEN
        DEALLOCATE( State_Chm%AeroH2O, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%AeroH2O', 2, RC )
@@ -4304,6 +4385,77 @@ CONTAINS
           IF ( isDesc  ) Desc  = 'Wet aerosol radius for sea salt, coarse mode'
           IF ( isUnits ) Units = 'cm'
           IF ( isRank  ) Rank  = 3
+
+       CASE ( 'TGBOCPO' )
+          IF ( isDesc  ) Desc  = 'Tg for biomass burning OCPO'
+          IF ( isUnits ) Units = 'K'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'TGBOCPI' )
+          IF ( isDesc  ) Desc  = 'Tg for biomass burning OCPI'
+          IF ( isUnits ) Units = 'K'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'TGAOCPO' )
+          IF ( isDesc  ) Desc  = 'Tg for anthropogenic OCPO'
+          IF ( isUnits ) Units = 'K'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'TGAOCPI' )
+          IF ( isDesc  ) Desc  = 'Tg for anthropogenic OCPI'
+          IF ( isUnits ) Units = 'K'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'TGBSOA' )
+          IF ( isDesc  ) Desc  = 'Tg for biogenic SOA'
+          IF ( isUnits ) Units = 'K'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'TGASOA' )
+          IF ( isDesc  ) Desc  = 'Tg for anthropogenic SOA'
+          IF ( isUnits ) Units = 'K'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'TGMEAN' )
+          IF ( isDesc  ) Desc  = 'Tg for all OA mix'
+          IF ( isUnits ) Units = 'K'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'VISCOSITYBOCPO' )
+          IF ( isDesc  ) Desc  = 'Viscosity for biomass burning OCPO'
+          IF ( isUnits ) Units = 'unitless'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'VISCOSITYBOCPI' )
+          IF ( isDesc  ) Desc  = 'Viscosity for biomass burning OCPI'
+          IF ( isUnits ) Units = 'unitless'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'VISCOSITYAOCPO' )
+          IF ( isDesc  ) Desc  = 'Viscosity for anthropogenic OCPO'
+          IF ( isUnits ) Units = 'unitless'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'VISCOSITYAOCPI' )
+          IF ( isDesc  ) Desc  = 'Viscosity for anthropogenic OCPI'
+          IF ( isUnits ) Units = 'unitless'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'VISCOSITYBSOA' )
+          IF ( isDesc  ) Desc  = 'Viscosity for biogenic SOA'
+          IF ( isUnits ) Units = 'unitless'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'VISCOSITYASOA' )
+          IF ( isDesc  ) Desc  = 'Viscosity for anthropogenic SOA'
+          IF ( isUnits ) Units = 'unitless'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'VISCOSITYMEAN' )
+          IF ( isDesc  ) Desc  = 'Viscosity all mix OA'
+          IF ( isUnits ) Units = 'unitless'
+          IF ( isRank  ) Rank  = 3
+
 
 !       CASE ( 'WETAERORADINITS' )
 !          IF ( isDesc  ) Desc  = 'Wet aerosol radius for inorganic nitrates on' &

@@ -3379,6 +3379,42 @@ CONTAINS
     IF ( gamma <  0.0_dp   ) gamma = 0.0_dp
   END FUNCTION EpoxUptkGamma
 
+! Yumin Li 22/07/2024
+  FUNCTION ShellGamma(srMw, Rp, viscosity, Horg, H ) RESULT( gamma )
+  ! caculate the gamma based on following assumptions:
+  ! In core-shell structure
+  ! The core in liquid phase
+  ! SOA/OA coating (change viscosity)
+  ! The shell thickness is 0.1 of the radius
+  ! input: Rp, viscosity, Horg
+  ! output: Γorg 
+  ! this is only for OA coating effect
+    REAL(dp),       INTENT(IN) :: srMw           ! sqrt( mol wt )
+    REAL(dp)                   :: Rp
+    REAL(dp)                   :: viscosity
+    REAL(dp)                   :: Horg
+    TYPE(HetState), INTENT(IN) :: H              ! HetChem State
+
+    REAL(dp)                   :: gamma          ! Uptake prob [1]
+    REAL(dp)  :: xmms, Diff ! local vars
+
+
+
+    ! Initialize
+    gamma  = 0.0_dp
+
+    ! Calculate mean molecular speed [cm/s]:
+    xmms = SQRT( ( 2.117e+8_dp * TEMP ) / ( srMw * srMw ) )
+    ! Calculate diffusion coefficient [cm2/s]:
+    Diff = 1 !!!!!! change later
+    !  
+    ! Radius H%xRadi(SUL)
+    ! Caculate gamma
+
+  END FUNCTION ShellGamma
+
+! Yumin Li 22/07/2024
+
   FUNCTION IEPOXuptk1stOrd( srMw, doScale, H ) RESULT( k )
     !
     ! Sets the heterogenous chemistry rate for first-order

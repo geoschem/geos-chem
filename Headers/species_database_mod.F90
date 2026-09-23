@@ -157,7 +157,7 @@ CONTAINS
     REAL(f4)                    :: wd_rainouteff_luo(3)
 
     ! String arrays
-    CHARACTER(LEN=17)           :: tags(64)
+    CHARACTER(LEN=17)           :: tags(68)  ! yumin
     CHARACTER(LEN=QFYAML_StrLen):: a_str(2)
 
     ! Objects
@@ -258,7 +258,11 @@ CONTAINS
              "WD_RainoutEff    ",  &
              "WD_RainoutEff_Luo",  &
              "WD_RetFactor     ",  &
-             "WD_RetFactor_Luo "   /)
+             "WD_RetFactor_Luo ",  &
+             "WD_Is_OCPO       ",  & ! yumin 24/07/24
+             "WD_Is_OCPI       ",  &
+             "WD_Is_BSOA       ",  &
+             "WD_Is_ASOA       "   /)
 
     !=======================================================================
     ! Store the list unique GEOS-Chem species names in work arrays for use
@@ -766,6 +770,30 @@ CONTAINS
              CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%WD_Is_SO2 = v_bool
+
+!-------------------------------------------------------------------------
+! yumin for solid state OA
+!--------------------------------------------------------------------------
+          ELSE IF ( INDEX( key, "%WD_Is_OCPO" ) > 0 ) THEN
+             CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             IF ( RC /= GC_SUCCESS ) GOTO 999
+             ThisSpc%WD_Is_OCPO = v_bool
+
+          ELSE IF ( INDEX( key, "%WD_Is_OCPI" ) > 0 ) THEN
+             CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             IF ( RC /= GC_SUCCESS ) GOTO 999
+             ThisSpc%WD_Is_OCPI = v_bool
+
+          ELSE IF ( INDEX( key, "%WD_Is_BSOA" ) > 0 ) THEN
+             CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             IF ( RC /= GC_SUCCESS ) GOTO 999
+             ThisSpc%WD_Is_BSOA = v_bool
+
+          ELSE IF ( INDEX( key, "%WD_Is_ASOA" ) > 0 ) THEN
+             CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             IF ( RC /= GC_SUCCESS ) GOTO 999
+             ThisSpc%WD_Is_ASOA = v_bool
+!---------------------------------------------------------------------------
 
           ELSE IF ( INDEX( key, "%WD_LiqAndGas" ) > 0 .and. no_luo ) THEN
              CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )

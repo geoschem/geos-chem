@@ -362,6 +362,7 @@ CONTAINS
     ! Scalars
     LOGICAL            :: IT_IS_AN_AEROSOL_SIM
     LOGICAL            :: LSOA
+    LOGICAL            :: LNEWGP                  !yumin
     LOGICAL            :: LEMIS
     LOGICAL            :: FND
     REAL(fp)           :: NEWSOA
@@ -397,6 +398,7 @@ CONTAINS
 
     ! Copy fields from INPUT_OPT to local variables for use below
     LSOA                 = Input_Opt%LSOA
+    LNEWGP               = Input_Opt%LNEWGP
     LEMIS                = Input_Opt%DoEmissions
     IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
 
@@ -1480,6 +1482,8 @@ CONTAINS
    USE State_Chm_Mod,  ONLY : ChmState
    USE State_Diag_Mod, ONLY : DgnState
    USE State_Grid_Mod, ONLY : GrdState
+   USE TIME_MOD,       ONLY : GET_TS_CHEM
+
 #ifdef APM
    USE APM_INIT_MOD,   ONLY : APMIDS
    USE APM_INIT_MOD,   ONLY : NGCOND,NSO4,NSEA,NBCOC
@@ -1670,8 +1674,21 @@ CONTAINS
    REAL(fp)        :: fORGS,   fORGN
    REAL(fp)        :: DELDIOL, DELORGS, DELORGN
 
+   ! yumin
+   REAL(fp)             :: DTCHEM, PLIFE, PK            ! partition lifetime; partition rate 
+   REAL(fp)             :: DIFF                         ! diffusion coefficients of OA
+   REAL(fp)             :: KB                           ! Boltzmann constant 1.380649 × 10-23 m2 kg s-2 K-1 
+   REAL(fp)             :: CNEW, CNEW_E, EFF, CNEW_G    ! chem convert 
+   REAL(fp)             :: PKE, COLD_G, Ratio, LRatio
+   REAL(fp), PARAMETER  :: SMALLNUM   = 1e-20_fp
+   LOGICAL              :: LNEWGP                       !yumin logic for the new G-P partition scheme
+
+
    ! Pointers
    TYPE(SpcConc), POINTER :: Spc(:)
+   REAL(fp),      POINTER :: Viscosity(:,:,:,:)
+   REAL(fp),      POINTER :: WERADIUS (:,:,:,:)
+
 
    ! Debug
    Integer           :: IIDebug, JJDebug
@@ -1685,9 +1702,19 @@ CONTAINS
    !=================================================================
    ! SOA_CHEMISTRY begins here!
    !=================================================================
+   print*, 'SOA_CHEM start'
+   
+   ! yumin
+   LNEWGP               = Input_Opt%LNEWGP
 
+  
    ! Point to chemical species array [kg]
-   Spc          => State_Chm%Species
+   Spc          => State_Chm%Species 
+   Viscosity    => State_Chm%Viscosity
+   WERADIUS    => State_Chm%WetAeroRadi ! Wet Aerosol Radius [cm]
+ 
+   DTCHEM    =  GET_TS_CHEM()
+   KB        =  1.380649e-23_fp       ! N.m s-2 K-1
 
    ! Zero some diagnostics (hotp 5/17/10)
    GLOB_POGRXN  = 0e+0_fp
@@ -1803,7 +1830,9 @@ CONTAINS
    !$OMP PRIVATE( VOL,      FAC,       RTEMP,  KO3,   KOH,   KNO3, CAIR     )&
    !$OMP PRIVATE( VALUE,    UPPER,     LOWER,  MNEW,  TOL                   )&
    !$OMP PRIVATE( ORG_AER,  ORG_GAS,   KOM,    MPOC                         )&
-   !$OMP PRIVATE( KRO2NO,   KRO2HO2,   JSV                                  )
+   !$OMP PRIVATE( KRO2NO,   KRO2HO2,   JSV                                  )&
+   !$OMP PRIVATE( PLIFE,    PK,        DIFF                                 ) 
+
    DO L = 1, State_Grid%MaxChemLev
    DO J = 1, State_Grid%NY
    DO I = 1, State_Grid%NX
@@ -1857,7 +1886,7 @@ CONTAINS
       ! add RO2+NO,HO2 rate constants (hotp 5/7/10)
       CALL CHEM_NVOC( I,          J,         L,          &
                       KO3,        KOH,       KNO3,       &
-                      GM0,        KRO2NO,    KRO2HO2,    &
+                      GM0,   AM0, KRO2NO,    KRO2HO2,    &  ! add AM0
                       Input_Opt,  State_Chm, State_Diag, &
                       State_Grid, State_Met, RC          )
 
@@ -2058,6 +2087,7 @@ CONTAINS
          ENDDO
          ENDDO
 
+
          LOWER = MPOC
          TOL   = 1.e-9_fp*MPOC
          MNEW  = ZEROIN(LOWER,UPPER,TOL,MPOC,ORG_AER,ORG_GAS,KOM)
@@ -2070,10 +2100,245 @@ CONTAINS
       !==============================================================
       IF ( MNEW > 0.e+0_fp ) THEN
 
+
+      IF (I ==58 .AND. J ==31 .AND. L ==1) print*, 'MNEW>0'
+
+!===================================================================
+! yumin 25/11/2024 for semivolPOA not consider phase state effect
+!===================================================================
+!     IF ( id_POA1 > 0 ) THEN
+!
+!         JHC = PARENTPOA
+!         JSV = IDSV(JHC)
+!
+!         DO IPR = 1, NPROD(JSV)
+!            ORG_AER(IPR,JSV) = KOM(IPR,JSV)*MNEW / &
+!                               (1.e+0_fp + KOM(IPR,JSV) * MNEW ) * &
+!                               (ORG_AER(IPR,JSV) + ORG_GAS(IPR,JSV))
+!
+!            IF ( KOM(IPR,JSV).NE.0e+0_fp ) THEN
+!               ORG_GAS(IPR,JSV) = ORG_AER(IPR,JSV) * 1.e+8_fp / &
+!                                  ( KOM(IPR,JSV) * MNEW * 1.e+8_fp)
+!            ELSE
+!               ORG_GAS(IPR,JSV) = 0.e+0_fp
+!            ENDIF
+!
+!         ENDDO
+!     ENDIF
+!
+!     IF  ( id_OPOA1 > 0 ) THEN
+!
+!         JHC = PARENTOPOA
+!         JSV = IDSV(JHC)
+!
+!         DO IPR = 1, NPROD(JSV)
+!            ORG_AER(IPR,JSV) = KOM(IPR,JSV)*MNEW / &
+!                               (1.e+0_fp + KOM(IPR,JSV) * MNEW ) * &
+!                               (ORG_AER(IPR,JSV) + ORG_GAS(IPR,JSV))
+!
+!            IF ( KOM(IPR,JSV).NE.0e+0_fp ) THEN
+!               ORG_GAS(IPR,JSV) = ORG_AER(IPR,JSV) * 1.e+8_fp / &
+!                                  ( KOM(IPR,JSV) * MNEW * 1.e+8_fp)
+!            ELSE
+!               ORG_GAS(IPR,JSV) = 0.e+0_fp
+!            ENDIF
+!
+!         ENDDO
+!      ENDIF
+
+
+!====================================================================
+! yumin 16/06/2024 consider phase state effect
+!====================================================================
          ! Use actual number of HC (hotp 8/24/09)
          ! Now use SV (hotp 5/13/10)
          ! updated dims (hotp 7/28/1)
-         DO JSV = 1, MAXSIMSV
+    PLIFE = 0.e+0_fp
+    PK    = 0.e+0_fp
+    DIFF  = 0.e+0_fp
+!   PKE   = 0.e+0_fp  
+!   EFF   = 0.e+0_fp
+!   CNEW  = 0.e+0_fp
+!   CNEW_E= 0.e+0_fp
+!   CNEW_G= 0.e+0_fp  
+!   COLD_G= 0.e+0_fp
+!   Ratio = 0.e+0_fp   
+!   LRatio= 0.e+0_fp
+!---------------------------------------
+   ! SEMIVOLATILE 1: MTPA, LIMO, MTPO, SESQ
+   ! hotp 5/21/10
+   !---------------------------------------
+   JHC = PARENTMTPA
+   JSV = IDSV(JHC)
+
+
+   IF ( LNEWGP ) THEN
+
+
+   IF ( Viscosity(I,J,L,5) < 2.e+0_fp) THEN
+
+       DO IPR = 1, NPROD(JSV)
+          ORG_AER(IPR,JSV) = KOM(IPR,JSV)*MNEW / &
+                            (1.e+0_fp + KOM(IPR,JSV) * MNEW ) * &
+                            (ORG_AER(IPR,JSV) + ORG_GAS(IPR,JSV))
+
+          IF ( KOM(IPR,JSV).NE.0e+0_fp ) THEN
+              ORG_GAS(IPR,JSV) = ORG_AER(IPR,JSV) * 1.e+8_fp / &
+                                 ( KOM(IPR,JSV) * MNEW * 1.e+8_fp)
+          ELSE
+              ORG_GAS(IPR,JSV) = 0.e+0_fp
+          ENDIF
+
+      ENDDO
+
+      ! IF (I ==58 .AND. J ==31 .AND. L ==1) print*, 'E_Vis:',Viscosity(I,J,L,5)
+
+   
+   ELSE 
+       
+
+
+
+       ! diff in cm2 s-1
+       DIFF  = RTEMP * KB * 1e+6_fp /       &   ! Bz in N.m k-1
+               1.0e-8_fp/   &         ! effective r in cm
+               (6.e+0_fp * 3.14159 * 10 ** ( Viscosity(I,J,L,5) )  )
+
+
+       ! e-folding lifetime in s
+       PLIFE = ( WERADIUS (I,J,L,10) )**2 / & ! r in cm
+                (3.14159 * 3.14159 * DIFF)
+
+       ! PK in s-1
+       PK  = (1.e+0_fp * 86400e+0_fp ) / ( 86400e+0_fp * PLIFE )
+      
+      ! IF (I ==58 .AND. J ==31 .AND. L ==1) print*, 'E_Vis:',Viscosity(I,J,L,5)
+      ! IF (I ==58 .AND. J ==31 .AND. L ==1) print*, 'PLIFE:',PLIFE
+      ! IF (I ==58 .AND. J ==31 .AND. L ==1) print*, 'PK:',PK
+      ! IF (I ==58 .AND. J ==31 .AND. L ==1) print*, 'DIFF:',DIFF
+
+      !$OMP PARALLEL DO       &
+      !$OMP DEFAULT( SHARED ) &
+      !$OMP PRIVATE( PKE, Ratio, LRatio, CNEW, CNEW_E, CNEW_G, COLD_G,EFF) 
+
+      DO IPR = 1, NPROD(JSV)
+        
+
+       ! IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR, 'PK:',PK
+       ! IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR, 'AER:',ORG_AER(IPR,JSV)
+       ! IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR, 'GAS:',ORG_GAS(IPR,JSV)
+
+          CNEW_E    = KOM(IPR,JSV)*MNEW / &
+                            (1.e+0_fp + KOM(IPR,JSV) * MNEW ) * &
+                            (ORG_AER(IPR,JSV) + ORG_GAS(IPR,JSV))
+
+          COLD_G    = ORG_GAS(IPR,JSV)
+
+       ! IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR,'AER_E:',CNEW_E
+       ! IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR,'GAS:',COLD_G
+
+   
+          IF ( KOM(IPR,JSV).NE.0e+0_fp ) THEN
+               CNEW_G  = CNEW_E * 1.e+8_fp / &
+                         ( KOM(IPR,JSV) * MNEW * 1.e+8_fp)
+          ELSE
+               CNEW_G = 0.e+0_fp
+          ENDIF
+
+       ! IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR,'GAS_E:',CNEW_G
+ 
+          EFF = 1e+0_fp
+               
+          IF (COLD_G < CNEW_G) THEN
+         
+             EFF = -1e+0_fp
+          ENDIF
+
+          PKE = PK * EFF * DTCHEM
+
+       ! IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR, 'PK:',PK
+       ! IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR, 'PKE:',PKE
+
+
+          Ratio = (COLD_G * 1.e+8_fp )/(CNEW_G * 1.e+8_fp)
+
+
+          CNEW =  COLD_G * EXP(-PKE )
+            
+       ! IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR, 'CNEW:',CNEW, 'GAS:', COLD_G
+       ! IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR, 'Ratio:',Ratio, 'logR:', LRatio
+     
+          ! Prevent underflow condition
+          IF ( CNEW < SMALLNUM ) CNEW = 0e+0_fp
+          
+          ! Prevent overflow condition
+
+             IF  (EFF > 0e+0_fp ) THEN
+
+                 IF ( CNEW <= CNEW_G )   CNEW = CNEW_G
+!                  CNEW = CNEW_G
+
+             ELSEIF ( EFF < 0e+0_fp)  THEN
+                 IF ( CNEW > CNEW_G )   CNEW = CNEW_G
+
+             ENDIF
+       
+        IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR, 'CNEW:',CNEW
+           
+             ! add concentration back
+ 
+            ORG_AER(IPR,JSV) = ORG_AER(IPR,JSV) + ORG_GAS(IPR,JSV) - CNEW 
+                         
+            ORG_GAS(IPR,JSV) = CNEW 
+
+      !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR,'AER_F:',ORG_AER(IPR,JSV)
+      !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR,'GAS_F:',ORG_GAS(IPR,JSV)
+      !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR,'KOM:',  KOM(IPR,JSV)
+      !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR,'MNEW:', MNEW
+      !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*,'___________________________   '
+
+
+      ENDDO
+      !$OMP END PARALLEL DO
+
+
+     ! ---------------for test and check ---------------------------------
+     !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, 'E_Vis:',Viscosity(I,J,L,5)
+     !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, 'PLIFE:',PLIFE
+     !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, 'PK:',PK
+     !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, 'DIFF:',DIFF
+
+
+   ENDIF
+
+   ELSE
+!!! Old G-P partion scheme
+
+      DO IPR = 1, NPROD(JSV)
+          ORG_AER(IPR,JSV) = KOM(IPR,JSV)*MNEW / &
+                            (1.e+0_fp + KOM(IPR,JSV) * MNEW ) * &
+                            (ORG_AER(IPR,JSV) + ORG_GAS(IPR,JSV))
+
+          IF ( KOM(IPR,JSV).NE.0e+0_fp ) THEN
+              ORG_GAS(IPR,JSV) = ORG_AER(IPR,JSV) * 1.e+8_fp / &
+                                 ( KOM(IPR,JSV) * MNEW * 1.e+8_fp)
+          ELSE
+              ORG_GAS(IPR,JSV) = 0.e+0_fp
+          ENDIF
+
+      ENDDO
+
+   ENDIF
+
+! AROM
+
+   JHC = PARENTBENZ
+   JSV = IDSV(JHC)
+
+   IF (LNEWGP) THEN
+
+   IF ( Viscosity(I,J,L,6) < 2.e+0_fp) THEN
+
          DO IPR = 1, NPROD(JSV)
             ORG_AER(IPR,JSV) = KOM(IPR,JSV)*MNEW / &
                                (1.e+0_fp + KOM(IPR,JSV) * MNEW ) * &
@@ -2083,11 +2348,494 @@ CONTAINS
                ORG_GAS(IPR,JSV) = ORG_AER(IPR,JSV) * 1.e+8_fp / &
                                   ( KOM(IPR,JSV) * MNEW * 1.e+8_fp)
             ELSE
-               ORG_GAS(IPR,JSV) = 0.e+0_fp
+                ORG_GAS(IPR,JSV) = 0.e+0_fp
             ENDIF
 
          ENDDO
+
+     !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, 'E_Vis:',Viscosity(I,J,L,6)
+
+
+   ELSE
+
+
+       ! diff in cm2 s-1
+       DIFF  = RTEMP * KB * 1e+6_fp /       &   ! Bz in N.m k-1
+               1.0e-8_fp/   &                   ! effective r in cm
+               (6.e+0_fp * 3.14159 * 10 ** ( Viscosity(I,J,L,6) )  )
+
+
+       ! lifetime in s
+       PLIFE = ( WERADIUS (I,J,L,10) )**2 / & ! r in cm
+                (3.14159 * 3.14159 * DIFF)
+
+       ! PK in s-1
+       PK  = (1.e+0_fp * 86400e+0_fp ) / ( 86400e+0_fp * PLIFE )
+
+     !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, 'E_Vis:',Viscosity(I,J,L,6)
+     !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, 'PLIFE:',PLIFE
+     !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, 'PK:',PK
+     !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, 'DIFF:',DIFF
+
+      !$OMP PARALLEL DO       &
+      !$OMP DEFAULT( SHARED ) &
+      !$OMP PRIVATE( PKE, Ratio, LRatio, CNEW, CNEW_E, CNEW_G, COLD_G,EFF)
+
+      DO IPR = 1, NPROD(JSV)
+
+
+     !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR, 'PK:',PK
+     !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR, 'AER:',ORG_AER(IPR,JSV)
+     !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR, 'GAS:',ORG_GAS(IPR,JSV)
+
+          CNEW_E    = KOM(IPR,JSV)*MNEW / &
+                            (1.e+0_fp + KOM(IPR,JSV) * MNEW ) * &
+                            (ORG_AER(IPR,JSV) + ORG_GAS(IPR,JSV))
+
+          COLD_G    = ORG_GAS(IPR,JSV)
+
+     !   IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR,'AER_E:',CNEW_E
+     !   IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR,'GAS:',COLD_G
+
+
+          IF ( KOM(IPR,JSV).NE.0e+0_fp ) THEN
+               CNEW_G  = CNEW_E * 1.e+8_fp / &
+                         ( KOM(IPR,JSV) * MNEW * 1.e+8_fp)
+          ELSE
+               CNEW_G = 0.e+0_fp
+          ENDIF
+
+
+       ! Prevent overflow condition 
+    !   IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR,'GAS_E:',CNEW_G
+
+          EFF = 1e+0_fp
+
+          IF (COLD_G < CNEW_G) THEN
+
+             EFF = -1e+0_fp
+          ENDIF
+
+          PKE = PK * EFF * DTCHEM
+
+     !   IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR, 'PK:',PK
+     !   IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR, 'PKE:',PKE
+
+
+          Ratio = (COLD_G * 1.e+8_fp )/(CNEW_G * 1.e+8_fp)
+
+
+          CNEW =  COLD_G * EXP(-PKE )
+
+     !   IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR, 'CNEW:',CNEW, 'GAS:', COLD_G
+     !   IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR, 'Ratio:',Ratio, 'logR:', LRatio
+
+          ! Prevent underflow condition
+          IF ( CNEW < SMALLNUM ) CNEW = 0e+0_fp
+
+
+          ! Prevent overflow condition
+
+             IF  (EFF > 0e+0_fp ) THEN
+
+                 IF ( CNEW <= CNEW_G )   CNEW = CNEW_G
+!                  CNEW = CNEW_G
+
+             ELSEIF ( EFF < 0e+0_fp)  THEN
+                 IF ( CNEW > CNEW_G )   CNEW = CNEW_G
+
+             ENDIF
+
+      !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR, 'CNEW:',CNEW
+
+             ! add concentration back
+
+            ORG_AER(IPR,JSV) = ORG_AER(IPR,JSV) + ORG_GAS(IPR,JSV) - CNEW
+
+            ORG_GAS(IPR,JSV) = CNEW
+
+      !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR,'AER_F:',ORG_AER(IPR,JSV)
+      !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR,'GAS_F:',ORG_GAS(IPR,JSV)
+      !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR,'KOM:',  KOM(IPR,JSV)
+      !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR,'MNEW:', MNEW
+      !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*,'___________________________'
+
+
+      ENDDO
+      !$OMP END PARALLEL DO
+
+
+     !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, 'E_Vis:',Viscosity(I,J,L,6)
+     !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, 'PLIFE:',PLIFE
+     !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, 'PK:',PK
+     !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, 'DIFF:',DIFF
+
+
+   ENDIF
+
+   ELSE
+ 
+!!!! old G-P partition scheme
+         DO IPR = 1, NPROD(JSV)
+            ORG_AER(IPR,JSV) = KOM(IPR,JSV)*MNEW / &
+                               (1.e+0_fp + KOM(IPR,JSV) * MNEW ) * &
+                               (ORG_AER(IPR,JSV) + ORG_GAS(IPR,JSV))
+
+            IF ( KOM(IPR,JSV).NE.0e+0_fp ) THEN
+               ORG_GAS(IPR,JSV) = ORG_AER(IPR,JSV) * 1.e+8_fp / &
+                                  ( KOM(IPR,JSV) * MNEW * 1.e+8_fp)
+            ELSE
+                ORG_GAS(IPR,JSV) = 0.e+0_fp
+            ENDIF
+
          ENDDO
+
+   ENDIF
+
+! EPOA
+
+   JHC = PARENTPOA
+   JSV = IDSV(JHC)
+
+
+   IF ( LNEWGP ) THEN
+
+   IF ( Viscosity(I,J,L,1) < 2.e+0_fp) THEN
+
+       DO IPR = 1, NPROD(JSV)
+          ORG_AER(IPR,JSV) = KOM(IPR,JSV)*MNEW / &
+                            (1.e+0_fp + KOM(IPR,JSV) * MNEW ) * &
+                            (ORG_AER(IPR,JSV) + ORG_GAS(IPR,JSV))
+
+          IF ( KOM(IPR,JSV).NE.0e+0_fp ) THEN
+              ORG_GAS(IPR,JSV) = ORG_AER(IPR,JSV) * 1.e+8_fp / &
+                                 ( KOM(IPR,JSV) * MNEW * 1.e+8_fp)
+          ELSE
+              ORG_GAS(IPR,JSV) = 0.e+0_fp
+          ENDIF
+
+      ENDDO
+
+     !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, 'E_Vis:',Viscosity(I,J,L,1)
+
+
+   ELSE
+
+       ! diff in cm2 s-1
+       DIFF  = RTEMP * KB * 1e+6_fp /       &   ! Bz in N.m k-1
+               1.0e-8_fp/   &         ! effective r in cm
+               (6.e+0_fp * 3.14159 * 10 ** ( Viscosity(I,J,L,1) )  )
+
+
+       ! lifetime in s
+       PLIFE = ( WERADIUS (I,J,L,10) )**2 / & ! r in cm
+                (3.14159 * 3.14159 * DIFF)
+
+       ! PK in s-1
+       PK  = (1.e+0_fp * 86400e+0_fp ) / ( 86400e+0_fp * PLIFE )
+
+      ! IF (I ==58 .AND. J ==31 .AND. L ==1) print*, 'E_Vis:',Viscosity(I,J,L,1)
+      ! IF (I ==58 .AND. J ==31 .AND. L ==1) print*, 'PLIFE:',PLIFE
+      ! IF (I ==58 .AND. J ==31 .AND. L ==1) print*, 'PK:',PK
+      ! IF (I ==58 .AND. J ==31 .AND. L ==1) print*, 'DIFF:',DIFF
+
+
+      !$OMP PARALLEL DO       &
+      !$OMP DEFAULT( SHARED ) &
+      !$OMP PRIVATE( PKE, Ratio, LRatio, CNEW, CNEW_E, CNEW_G, COLD_G,EFF)
+
+      DO IPR = 1, NPROD(JSV)
+
+
+      !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR, 'PK:',PK
+      !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR, 'AER:',ORG_AER(IPR,JSV)
+      !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR, 'GAS:',ORG_GAS(IPR,JSV)
+
+          CNEW_E    = KOM(IPR,JSV)*MNEW / &
+                            (1.e+0_fp + KOM(IPR,JSV) * MNEW ) * &
+                            (ORG_AER(IPR,JSV) + ORG_GAS(IPR,JSV))
+
+          COLD_G    = ORG_GAS(IPR,JSV)
+
+      !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR,'AER_E:',CNEW_E
+      !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR,'GAS:',COLD_G
+
+
+          IF ( KOM(IPR,JSV).NE.0e+0_fp ) THEN
+               CNEW_G  = CNEW_E * 1.e+8_fp / &
+                         ( KOM(IPR,JSV) * MNEW * 1.e+8_fp)
+          ELSE
+               CNEW_G = 0.e+0_fp
+          ENDIF
+
+      !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR,'GAS_E:',CNEW_G
+
+          EFF = 1e+0_fp
+
+          IF (COLD_G < CNEW_G) THEN
+
+             EFF = -1e+0_fp
+          ENDIF
+
+          PKE = PK * EFF * DTCHEM
+
+      !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR, 'PK:',PK
+      !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR, 'PKE:',PKE
+
+
+          Ratio = (COLD_G * 1.e+8_fp )/(CNEW_G * 1.e+8_fp)
+
+
+          CNEW =  COLD_G * EXP(-PKE )
+
+      !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR, 'CNEW:',CNEW, 'GAS:', COLD_G
+      !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR, 'Ratio:',Ratio, 'logR:', LRatio
+
+          ! Prevent underflow condition
+          IF ( CNEW < SMALLNUM ) CNEW = 0e+0_fp
+
+          ! Prevent overflow condition
+
+             IF  (EFF > 0e+0_fp ) THEN
+
+                 IF ( CNEW <= CNEW_G )   CNEW = CNEW_G
+!                  CNEW = CNEW_G
+
+             ELSEIF ( EFF < 0e+0_fp)  THEN
+                 IF ( CNEW > CNEW_G )   CNEW = CNEW_G
+
+             ENDIF
+
+      !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR, 'CNEW:',CNEW
+
+             ! add concentration back
+
+            ORG_AER(IPR,JSV) = ORG_AER(IPR,JSV) + ORG_GAS(IPR,JSV) - CNEW
+
+            ORG_GAS(IPR,JSV) = CNEW
+
+       ! IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR,'AER_F:',ORG_AER(IPR,JSV)
+       ! IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR,'GAS_F:',ORG_GAS(IPR,JSV)
+       ! IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR,'KOM:',  KOM(IPR,JSV)
+       ! IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR,'MNEW:', MNEW
+       ! IF (I ==58 .AND. J ==31 .AND. L ==1) print*,'___________________________   '
+
+
+      ENDDO
+      !$OMP END PARALLEL DO
+
+
+     !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, 'E_Vis:',Viscosity(I,J,L,1)
+     !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, 'PLIFE:',PLIFE
+     !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, 'PK:',PK
+     !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, 'DIFF:',DIFF
+
+
+   ENDIF
+
+   ELSE
+!!! Old G-P partion scheme
+
+      DO IPR = 1, NPROD(JSV)
+          ORG_AER(IPR,JSV) = KOM(IPR,JSV)*MNEW / &
+                            (1.e+0_fp + KOM(IPR,JSV) * MNEW ) * &
+                            (ORG_AER(IPR,JSV) + ORG_GAS(IPR,JSV))
+
+          IF ( KOM(IPR,JSV).NE.0e+0_fp ) THEN
+              ORG_GAS(IPR,JSV) = ORG_AER(IPR,JSV) * 1.e+8_fp / &
+                                 ( KOM(IPR,JSV) * MNEW * 1.e+8_fp)
+          ELSE
+              ORG_GAS(IPR,JSV) = 0.e+0_fp
+          ENDIF
+
+      ENDDO
+
+   ENDIF
+
+! OPOA
+
+   JHC = PARENTOPOA
+   JSV = IDSV(JHC)
+
+
+   IF ( LNEWGP ) THEN
+
+   IF ( Viscosity(I,J,L,2) < 2.e+0_fp) THEN
+
+       DO IPR = 1, NPROD(JSV)
+          ORG_AER(IPR,JSV) = KOM(IPR,JSV)*MNEW / &
+                            (1.e+0_fp + KOM(IPR,JSV) * MNEW ) * &
+                            (ORG_AER(IPR,JSV) + ORG_GAS(IPR,JSV))
+
+          IF ( KOM(IPR,JSV).NE.0e+0_fp ) THEN
+              ORG_GAS(IPR,JSV) = ORG_AER(IPR,JSV) * 1.e+8_fp / &
+                                 ( KOM(IPR,JSV) * MNEW * 1.e+8_fp)
+          ELSE
+              ORG_GAS(IPR,JSV) = 0.e+0_fp
+          ENDIF
+
+      ENDDO
+
+     !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, 'E_Vis:',Viscosity(I,J,L,2)
+
+
+   ELSE
+
+       ! diff in cm2 s-1
+       DIFF  = RTEMP * KB * 1e+6_fp /       &   ! Bz in N.m k-1
+               1.0e-8_fp/   &         ! effective r in cm
+               (6.e+0_fp * 3.14159 * 10 ** ( Viscosity(I,J,L,2) )  )
+
+
+       ! lifetime in s
+       PLIFE = ( WERADIUS (I,J,L,10) )**2 / & ! r in cm
+                (3.14159 * 3.14159 * DIFF)
+
+       ! PK in s-1
+       PK  = (1.e+0_fp * 86400e+0_fp ) / ( 86400e+0_fp * PLIFE )
+
+     !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, 'E_Vis:',Viscosity(I,J,L,2)
+     !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, 'PLIFE:',PLIFE
+     !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, 'PK:',PK
+     !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, 'DIFF:',DIFF
+
+
+      !$OMP PARALLEL DO       &
+      !$OMP DEFAULT( SHARED ) &
+      !$OMP PRIVATE( PKE, Ratio, LRatio, CNEW, CNEW_E, CNEW_G, COLD_G,EFF)
+
+      DO IPR = 1, NPROD(JSV)
+
+
+      !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR, 'PK:',PK
+      !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR, 'AER:',ORG_AER(IPR,JSV)
+      !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR, 'GAS:',ORG_GAS(IPR,JSV)
+
+          CNEW_E    = KOM(IPR,JSV)*MNEW / &
+                            (1.e+0_fp + KOM(IPR,JSV) * MNEW ) * &
+                            (ORG_AER(IPR,JSV) + ORG_GAS(IPR,JSV))
+
+          COLD_G    = ORG_GAS(IPR,JSV)
+
+      !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR,'AER_E:',CNEW_E
+      !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR,'GAS:',COLD_G
+
+
+          IF ( KOM(IPR,JSV).NE.0e+0_fp ) THEN
+               CNEW_G  = CNEW_E * 1.e+8_fp / &
+                         ( KOM(IPR,JSV) * MNEW * 1.e+8_fp)
+          ELSE
+               CNEW_G = 0.e+0_fp
+          ENDIF
+
+      !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR,'GAS_E:',CNEW_G
+
+          EFF = 1e+0_fp
+
+          IF (COLD_G < CNEW_G) THEN
+
+             EFF = -1e+0_fp
+          ENDIF
+
+          PKE = PK * EFF * DTCHEM
+
+      !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR, 'PK:',PK
+      !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR, 'PKE:',PKE
+
+
+          Ratio = (COLD_G * 1.e+8_fp )/(CNEW_G * 1.e+8_fp)
+
+
+          CNEW =  COLD_G * EXP(-PKE )
+
+      !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR, 'CNEW:',CNEW, 'GAS:', COLD_G
+      !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR, 'Ratio:',Ratio, 'logR:', LRatio
+
+          ! Prevent underflow condition
+          IF ( CNEW < SMALLNUM ) CNEW = 0e+0_fp
+
+          ! Prevent overflow condition
+
+             IF  (EFF > 0e+0_fp ) THEN
+
+                 IF ( CNEW <= CNEW_G )   CNEW = CNEW_G
+!                  CNEW = CNEW_G
+
+             ELSEIF ( EFF < 0e+0_fp)  THEN
+                 IF ( CNEW > CNEW_G )   CNEW = CNEW_G
+
+             ENDIF
+
+      !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR, 'CNEW:',CNEW
+
+             ! add concentration back
+
+            ORG_AER(IPR,JSV) = ORG_AER(IPR,JSV) + ORG_GAS(IPR,JSV) - CNEW
+
+            ORG_GAS(IPR,JSV) = CNEW
+
+      !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR,'AER_F:',ORG_AER(IPR,JSV)
+      !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR,'GAS_F:',ORG_GAS(IPR,JSV)
+      !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR,'KOM:',  KOM(IPR,JSV)
+      !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR,'MNEW:', MNEW
+      !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*,'___________________________   '
+
+
+      ENDDO
+      !$OMP END PARALLEL DO
+
+
+     !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, 'E_Vis:',Viscosity(I,J,L,2)
+     !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, 'PLIFE:',PLIFE
+     !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, 'PK:',PK
+     !  IF (I ==58 .AND. J ==31 .AND. L ==1) print*, 'DIFF:',DIFF
+
+
+   ENDIF
+
+   ELSE
+!!! Old G-P partion scheme
+
+      DO IPR = 1, NPROD(JSV)
+          ORG_AER(IPR,JSV) = KOM(IPR,JSV)*MNEW / &
+                            (1.e+0_fp + KOM(IPR,JSV) * MNEW ) * &
+                            (ORG_AER(IPR,JSV) + ORG_GAS(IPR,JSV))
+
+          IF ( KOM(IPR,JSV).NE.0e+0_fp ) THEN
+              ORG_GAS(IPR,JSV) = ORG_AER(IPR,JSV) * 1.e+8_fp / &
+                                 ( KOM(IPR,JSV) * MNEW * 1.e+8_fp)
+          ELSE
+              ORG_GAS(IPR,JSV) = 0.e+0_fp
+          ENDIF
+
+      ENDDO
+
+   ENDIF
+
+
+
+!!!! org start here
+!         DO JSV = 1, MAXSIMSV
+!         DO IPR = 1, NPROD(JSV)
+!            ORG_AER(IPR,JSV) = KOM(IPR,JSV)*MNEW / &
+!                               (1.e+0_fp + KOM(IPR,JSV) * MNEW ) * &
+!                               (ORG_AER(IPR,JSV) + ORG_GAS(IPR,JSV))
+!
+!            IF ( KOM(IPR,JSV).NE.0e+0_fp ) THEN
+!               ORG_GAS(IPR,JSV) = ORG_AER(IPR,JSV) * 1.e+8_fp / &
+!                                  ( KOM(IPR,JSV) * MNEW * 1.e+8_fp)
+!            ELSE
+!               ORG_GAS(IPR,JSV) = 0.e+0_fp
+!            ENDIF
+!
+!         ENDDO
+!         ENDDO
+
+!!!! org finish here
+
+!===================================================================
+! Finish here
+!====================================================================
 
          ! semivolpoa2: remove OA mass from POA (hotp 3/2/09)
          ! Check if POA defined (hotp 8/24/09)
@@ -2127,6 +2875,8 @@ CONTAINS
       !==============================================================
       ELSE
 
+      IF (I ==58 .AND. J ==31 .AND. L ==1) print*, 'MNEW=0'
+
          ! Use actual number of HC for sim (hotp 8/24/09)
          ! Change to SV (hotp 5/13/10)
          DO JSV = 1, MAXSIMSV
@@ -2159,12 +2909,13 @@ CONTAINS
       ! Comment out for now.  This produces a lot of excess debug output.
       ! (bmy, 5/5/20)
       !! Check equilibrium (hotp 5/18/10)
-      !IF ( Input_Opt%Verbose ) THEN
-      !   ! IDSV for lumped arom/IVOC is hardwired (=3) (hotp 5/20/10)
-      !   ! Low NOX (non-volatile) aromatic product is IPR=4
-      !   CALL CHECK_EQLB( I, J, L, KOM, FAC, MNEW, LOWER, TOL, &
-      !                    ORG_GAS(4,3), ORG_AER(4,3), MPOC, State_Chm )
-      !ENDIF
+     !  yumin remote the comment for debuge
+     ! IF ( Input_Opt%Verbose ) THEN
+         ! IDSV for lumped arom/IVOC is hardwired (=3) (hotp 5/20/10)
+         ! Low NOX (non-volatile) aromatic product is IPR=4
+     !    CALL CHECK_EQLB( I, J, L, KOM, FAC, MNEW, LOWER, TOL, &
+     !                     ORG_GAS(4,3), ORG_AER(4,3), MPOC, State_Chm )
+     ! ENDIF
       !--------------------------------------------------------------------
 
 
@@ -2174,10 +2925,10 @@ CONTAINS
    !$OMP END PARALLEL DO
 
    ! Debug: check mass balance (hotp 5/18/10)
-   IF ( Input_Opt%Verbose ) THEN
-      CALL CHECK_MB( Input_Opt,State_Chm, State_Grid, State_Met )
-   ENDIF
-
+!   IF ( Input_Opt%Verbose ) THEN
+!      CALL CHECK_MB( Input_Opt,State_Chm, State_Grid, State_Met )
+!   ENDIF
+! yumin
    !------------------------------------------------------------------------
    !### Now only print when ND70 is turned on (bmy, 4/21/10)
    IF ( Input_Opt%Verbose ) THEN
@@ -2297,6 +3048,9 @@ CONTAINS
 
    ! Free pointer
    Spc => NULL()
+   Viscosity=> NULL()
+   WERADIUS=> NULL()
+
 
  END SUBROUTINE SOA_CHEMISTRY
 !EOC
@@ -3224,6 +3978,7 @@ CONTAINS
    ! semivolpoa2: alphas for POA (hotp 2/27/09)
    ! based on Shrivastava et al. 2006 ES&T
    ! Only 2 products (wood smoke)
+   NOX =1 !yumin
    ALPHA(1,1,PARENTPOA) = 0.49e+0_fp
    ALPHA(1,2,PARENTPOA) = 0.51e+0_fp
    ! No high NOx parameters
@@ -3237,6 +3992,7 @@ CONTAINS
    ! remove semivolpoa3 changes (hotp 3/27/09)
    ! biomass burning
    ! (note that this is the carbon yield)
+   NOX = 1 !yumin
    ALPHA(1,1,PARENTOPOA) = 1.e+0_fp
    ALPHA(1,2,PARENTOPOA) = 1.e+0_fp
    ! anthropogenic
@@ -3366,10 +4122,10 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
- SUBROUTINE CHEM_NVOC( I, J, L, KO3, KOH, KNO3, GM0, KNO, KHO2, &
+ SUBROUTINE CHEM_NVOC( I, J, L, KO3, KOH, KNO3, GM0, AM0, KNO, KHO2, &
                        Input_Opt,  State_Chm, State_Diag,       &
                        State_Grid, State_Met, RC )
-!
+! yumin add AM0
 ! !USES:
 !
    USE ErrCode_Mod
@@ -3403,6 +4159,7 @@ CONTAINS
 !
    REAL(fp),       INTENT(INOUT) :: GM0(MPROD,MSV)! Gas mass for HCs and
                                                   !  oxidation products [kg]
+   REAL(fp),       INTENT(INOUT) :: AM0(MPROD,MSV)
    TYPE(ChmState), INTENT(INOUT) :: State_Chm     ! Chemistry State object
    TYPE(DgnState), INTENT(INOUT) :: State_Diag    ! Diagnostics State object
 !
@@ -3697,26 +4454,38 @@ CONTAINS
          ! here we oxidize gas phase POA (POG) to OPOG by reaction with OH
          ! use constant KOH = 2e-11 for now (hotp 3/18/09)
          OHMC = GET_OH( I, J, L, Input_Opt, State_Chm, State_Met )
-         RK   = 2.e-11_fp * OHMC
+         RK   = 2.e-11_fp * OHMC    ! yumin 2025/02/21 decrease/increase OH oxidation rate
 
          ! Identify IDSV (hotp 5/14/10)
          JSV = IDSV(JHC)
 
          DO IPR = 1, NPROD(JSV)
-         DO NOX = 1, NNOX(JSV)
+         DO NOX = 1, NNOX(JSV)  !yumin
             ! compute loss of POG due to conversion to OPOG
             DOH = GM0(IPR,IDSV(PARENTPOA)) * (1.e+0_fp - EXP( -RK * DTCHEM) )
             DOH = MAX( DOH, 1.e-32_fp )
+            
+            IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR,'DOH',DOH
+            IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR,'POG0',GM0(IPR,IDSV(PARENTPOA))
+            IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR,'POG0',Spc(id_POG1)%Conc(I,J,L)
+            IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR,'OPOA0',AM0(IPR,JSV)
+            IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR,'OPOA0',Spc(id_OPOA1)%Conc(I,J,L)
 
             ! add OPOG mass and update GM0 (ALPHA=1)
-            GM0(IPR,JSV) = GM0(IPR,JSV) + ALPHA(NOX,IPR,JHC) * DOH
-
+           !!! GM0(IPR,JSV) = GM0(IPR,JSV) + ALPHA(NOX,IPR,JHC) * DOH
+            AM0(IPR,JSV) = AM0(IPR,JSV) + ALPHA(NOX,IPR,JHC) * DOH
+            ! yumin add the mass in aerosol phase AM0 first because of the low C*
             ! update POG mass
             GM0(IPR,IDSV(PARENTPOA)) = GM0(IPR,IDSV(PARENTPOA)) - DOH
 
             ! check (hotp 10/11/09)
             GM0(IPR,IDSV(PARENTPOA)) = MAX( GM0(IPR,IDSV(PARENTPOA)), 1e-32_fp)
-
+            
+            IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR,'POGn', GM0(IPR,IDSV(PARENTPOA))
+            IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR,'POGn', Spc(id_POG1)%Conc(I,J,L)
+            IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR,'OPOAn',AM0(IPR,JSV)
+            IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR,'OPOAn',Spc(id_OPOA1)%Conc(I,J,L)
+           
             ! diagnostic information (hotp 3/28/09)
             GLOB_POGRXN(I,J,L,IPR) = DOH
 
@@ -3725,7 +4494,9 @@ CONTAINS
             ! IPR here
             DELTASOGSAVE(I,J,L,IPR,JHC) = DOH
 
-         ENDDO
+
+
+         ENDDO  !yumin
          ENDDO
       ENDIF
    ENDDO  ! JHC
@@ -3742,7 +4513,13 @@ CONTAINS
       DO NOX = 1, NNOX(JSV)   ! update dims (hotp 5/22/10)
          ! DELHC is now emission of SVOC (POG1 + POG2)
          DELHC(IPR)   = POAEMISS(I,J,L,1) + POAEMISS(I,J,L,2)
-         GM0(IPR,JSV) = GM0(IPR,JSV) + ALPHA(NOX,IPR,JHC)*DELHC(IPR)
+         GM0(IPR,JSV) = GM0(IPR,JSV) + ALPHA(1,IPR,JHC)*DELHC(IPR) * 2.e-0_fp ! yumin
+   
+   !      IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR,'DELHC(IPR)',DELHC(IPR)
+   !      IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR,'EMISS', ALPHA(NOX,IPR,JHC)*DELHC(IPR)
+   !      IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR,'JSV', JSV 
+   !      IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR,'NOX', NOX
+   !      IF (I ==58 .AND. J ==31 .AND. L ==1) print*, IPR,'GM0(IPR,JSV)', GM0(IPR,JSV)
 
          ! Total SOG production diagnostic (hotp 5/18/10)
          ! Caution: the 4th index is actually NOX, but we use
@@ -3750,7 +4527,7 @@ CONTAINS
          DELTASOGSAVE(I,J,L,IPR,JHC) = DELHC(IPR)
 
       ENDDO
-      ENDDO
+      ENDDO    !yumin
    ENDIF
 
    !=================================================================
@@ -4894,6 +5671,7 @@ CONTAINS
    ! Reset SVOC emissions to zero to make sure that they are
    ! not double-counted (when doing PBL mixing)
    IF ( HCOPOG1>0) HcoState%Spc(HCOPOG1)%Emis%Val = 0.0d0
+   IF ( HCOPOG2>0) HcoState%Spc(HCOPOG2)%Emis%Val = 0.0d0   !yumin
 
  END SUBROUTINE EMISSCARBON
 !EOC
@@ -6059,7 +6837,9 @@ CONTAINS
 
          DARO2 = State_Chm%Species(id_LARO2)%Conc(I,J,L) &
                  * ( AVO / LARO2_MW_kg ) &
-                 / ( AVO / AROM_MW_kg  ) * ARO2CARB
+                 / ( AVO / AROM_MW_kg  )  ! yumin 2025/01/14
+            !     / ( AVO / AROM_MW_kg  ) * ARO2CARB  wrong we not need 
+             
 
       ELSE
 

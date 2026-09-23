@@ -57,6 +57,7 @@ CONTAINS
     USE AEROSOL_MOD,      ONLY : AEROSOL_CONC
     USE AEROSOL_MOD,      ONLY : RDAER
     USE CARBON_MOD,       ONLY : CHEMCARBON
+    USE PHASE_MOD,        ONLY : CALCPHASE
     USE Carbon_Gases_Mod, ONLY : Chem_Carbon_Gases
     USE Diagnostics_Mod,  ONLY : Compute_Budget_Diagnostics
     USE DUST_MOD,         ONLY : CHEMDUST
@@ -583,6 +584,26 @@ CONTAINS
           ENDIF
 
           !------------------------------------------------------------------
+          ! Do OA phase calculation
+          !------------------------------------------------------------------
+          IF ( Input_Opt%LPHASE ) THEN
+             CALL CALCPHASE(  Input_Opt  = Input_Opt,                        &
+                              State_Chm  = State_Chm,                        &
+                              State_Diag = State_Diag,                       &
+                              State_Grid = State_Grid,                       &
+                              State_Met  = State_Met,                        &
+                              RC         = RC                               )
+
+             ! Trap potential errors
+             IF ( RC /= GC_SUCCESS ) THEN
+                ErrMsg = 'Error encountered in "CALCPHASE"!'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
+             ENDIF
+          ENDIF
+
+
+          !------------------------------------------------------------------
           ! Do dust aerosol chemistry/removal
           !------------------------------------------------------------------
           IF ( Input_Opt%LDUST .AND. id_DST1 > 0 ) THEN
@@ -812,6 +833,25 @@ CONTAINS
              ! Trap potential errors
              IF ( RC /= GC_SUCCESS ) THEN
                 ErrMsg = 'Error encountered in ""!'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
+             ENDIF
+          ENDIF
+
+          !------------------------------------------------------------------
+          ! OA phase state calculation
+          !------------------------------------------------------------------
+          IF ( Input_Opt%LPHASE ) THEN
+             CALL CALCPHASE(  Input_Opt  = Input_Opt,                        &
+                              State_Chm  = State_Chm,                        &
+                              State_Diag = State_Diag,                       &
+                              State_Grid = State_Grid,                       &
+                              State_Met  = State_Met,                        &
+                              RC         = RC                               )
+
+             ! Trap potential errors
+             IF ( RC /= GC_SUCCESS ) THEN
+                ErrMsg = 'Error encountered in "CALCPHASE "!'
                 CALL GC_Error( ErrMsg, RC, ThisLoc )
                 RETURN
              ENDIF

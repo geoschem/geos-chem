@@ -663,6 +663,8 @@ CONTAINS
     REAL(fp),      POINTER   :: p_pHcloud
 #endif
 
+    ! yumin
+    REAL(fp),      POINTER   :: Viscosity(:,:,:,:)
     ! Objects
     TYPE(Species), POINTER   :: SpcInfo
 !
@@ -670,6 +672,7 @@ CONTAINS
 !
     ! Kc is the conversion rate from cloud condensate to precip [s^-1]
     REAL(fp),      PARAMETER :: Kc = 5e-3_fp
+    LOGICAL                  :: LWETDP
 
     !=================================================================
     ! COMPUTE_F begins here!
@@ -677,6 +680,9 @@ CONTAINS
 
     ! Assume success
     RC         =  GC_SUCCESS
+
+    ! yumin
+    LWETDP               = Input_Opt%LWETDP
 
     ! Initialize
     F          =  0.0_fp
@@ -687,6 +693,9 @@ CONTAINS
     H2O2s      => State_Chm%H2O2AfterChem
     SO2s       => State_Chm%SO2AfterChem
     SpcInfo    => State_Chm%SpcData(N)%Info
+!   yumin
+    Viscosity  => State_Chm%Viscosity
+
 
     ! ISOL is the wetdep ID (will be -999 if not a wetdep species)
     ISOL       =  SpcInfo%WetDepId
@@ -908,6 +917,81 @@ CONTAINS
     ! including the special case of HNO3 as well as H2SO4
     ! if using TOMAS microphysics
     !-----------------------------------------------------------
+
+    !-----------------------------------------------------------
+    ! yumin simulation for solid OA
+    !-----------------------------------------------------------
+
+   ELSE IF (SpcInfo%WD_Is_OCPO) THEN
+       
+        IF ( Input_Opt%LWETDP ) THEN 
+     !    print*, 'New OA wet scavenging OCPO: yumin'   
+         CALL F_AEROSOL_SOLID( KC, 1, KcScale, Input_Opt, State_Grid, State_Met, State_Chm, F )
+        ELSE
+     !    print*, 'Old OA wet scavenging OCPO: yumin'
+         CALL F_AEROSOL( KC, KcScale, Input_Opt, State_Grid, State_Met, F )
+        ENDIF
+         ! Multiply by the aerosol scavenging efficiency
+         ! For most species this is 1.0
+         ! For SOA species this is usually 0.8
+        IF ( SpcInfo%WD_AerScavEff > 0.0_fp ) THEN
+            F = F * SpcInfo%WD_AerScavEff
+        ENDIF
+
+
+   ELSE IF (SpcInfo%WD_Is_OCPI) THEN
+
+        IF ( Input_Opt%LWETDP ) THEN
+    !     print*, 'New OA wet scavenging OCPI: yumin'
+         CALL F_AEROSOL_SOLID( KC, 2, KcScale, Input_Opt, State_Grid, State_Met, State_Chm, F )
+        ELSE
+    !     print*, 'Old OA wet scavenging OCPI: yumin'
+         CALL F_AEROSOL( KC, KcScale, Input_Opt, State_Grid, State_Met, F )
+        ENDIF
+         ! Multiply by the aerosol scavenging efficiency
+         ! For most species this is 1.0
+         ! For SOA species this is usually 0.8
+        IF ( SpcInfo%WD_AerScavEff > 0.0_fp ) THEN
+            F = F * SpcInfo%WD_AerScavEff
+        ENDIF
+
+
+   ELSE IF (SpcInfo%WD_Is_BSOA) THEN
+
+        IF ( Input_Opt%LWETDP ) THEN
+     !    print*, 'New OA wet scavenging BSOA: yumin'
+         CALL F_AEROSOL_SOLID( KC, 5, KcScale, Input_Opt, State_Grid, State_Met, State_Chm, F )
+        ELSE
+     !    print*, 'Old OA wet scavenging BSOA: yumin'
+         CALL F_AEROSOL( KC, KcScale, Input_Opt, State_Grid, State_Met, F )
+        ENDIF
+         ! Multiply by the aerosol scavenging efficiency
+         ! For most species this is 1.0
+         ! For SOA species this is usually 0.8
+        IF ( SpcInfo%WD_AerScavEff > 0.0_fp ) THEN
+            F = F * SpcInfo%WD_AerScavEff
+        ENDIF
+
+
+   ELSE IF (SpcInfo%WD_Is_ASOA) THEN
+
+        IF ( Input_Opt%LWETDP ) THEN
+     !    print*, 'New OA wet scavenging ASOA: yumin'
+         CALL F_AEROSOL_SOLID( KC, 6, KcScale, Input_Opt, State_Grid, State_Met, State_Chm, F )
+        ELSE
+     !    print*, 'Old OA wet scavenging ASOA: yumin'
+         CALL F_AEROSOL( KC, KcScale, Input_Opt, State_Grid, State_Met, F )
+        ENDIF
+         ! Multiply by the aerosol scavenging efficiency
+         ! For most species this is 1.0
+         ! For SOA species this is usually 0.8
+        IF ( SpcInfo%WD_AerScavEff > 0.0_fp ) THEN
+            F = F * SpcInfo%WD_AerScavEff
+        ENDIF
+    !-------------------------------------------------------------
+    ! solid state caculation end here
+    !-------------------------------------------------------------
+
     ELSE
 
        ! Get the fraction of species scavenged in updrafts
@@ -932,6 +1016,7 @@ CONTAINS
     H2O2s     => NULL()
     SO2s      => NULL()
     SpcInfo   => NULL()
+    Viscosity => NULL()
 
   END SUBROUTINE COMPUTE_F
 !EOC
@@ -1181,6 +1266,139 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: f_aerosol_solid
+!
+! !DESCRIPTION: Subroutine F_AEROSOL_SOLID returns the fraction of aerosol
+!  scavenged in updrafts with solid OA
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE F_AEROSOL_SOLID( KC, ID, KcScale, Input_Opt, State_Grid, State_Met, State_Chm, F )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,      ONLY: OptInput
+    USE State_Grid_Mod,     ONLY: GrdState
+    USE State_Met_Mod,      ONLY: MetState
+    USE State_Chm_Mod,      ONLY: ChmState
+    USE Species_Mod,        ONLY : Species
+
+!  
+!
+! !INPUT PARAMETERS:
+!
+    REAL(fp),       INTENT(IN)  :: KC                   ! Cloud condensate to
+                                                        !  precipitation rate
+                                                        !  [1/s]
+    REAL(fp),       INTENT(IN)  :: KcScale(3)           ! Scale factors for Kc
+                                                        !  for 3 temperature
+                                                        !  regimes
+    INTEGER,        INTENT(IN)  :: ID                   !  the number identify the OA
+                                                        !  1 for OCPO
+                                                        !  2 for OCPI
+                                                        !  5 for BSOA
+                                                        !  6 for ASOA
+    TYPE(OptInput), INTENT(IN)  :: Input_Opt            ! Input Options object
+    TYPE(GrdState), INTENT(IN)  :: State_Grid           ! Grid State Object
+    TYPE(MetState), INTENT(IN)  :: State_Met            ! Meteorology State
+    TYPE(ChmState), INTENT(IN)  :: State_Chm            ! Chemistry State object
+
+!
+! !OUTPUT PARAMETERS:
+!
+    ! Fraction of aerosol scavenged in convective updrafts
+    REAL(fp),       INTENT(OUT) :: F(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
+!
+! !REVISION HISTORY:
+! 22 July 2024 Yumin Li write for solid state OA
+!  
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER  :: I, J, L
+    REAL(fp) :: TMP, FF, Scaled_KC
+    REAL(fp),      POINTER  :: Viscosity(:,:,:,:)
+
+
+    !=================================================================
+    ! F_AEROSOL_SOLID begins here!
+    !
+    ! Aerosol species are 100% in the cloud condensate phase, so
+    ! we set K = Kc, and compute F accordingly (cf Jacob et al 2000 )
+    !=================================================================
+
+    ! Initialize pointers
+    Viscosity            => State_Chm%Viscosity
+
+
+    ! Turn off scavenging in the first level by setting F = 0
+    F(:,:,1) = 0.0_fp
+
+    ! Apply scavenging in levels 2 and higher
+    DO L = 2, State_Grid%NZ
+    DO J = 1, State_Grid%NY
+    DO I = 1, State_Grid%NX
+
+       ! Apply temperature-dependent scale factors to the KC rate for ..
+       IF ( State_Met%T(I,J,L) < 237.0_fp ) THEN
+
+          IF (ID==1 .AND.Viscosity(I,J,L,ID) >= 12.e+0_fp) THEN
+
+       !   Scaled_KC = KC * 1.0_fp  ! solid OCPO can serve as INPs in below -40°C 
+          Scaled_KC = KC * KcScale(1)  ! change to can not 20250612 yumili
+
+          ELSE
+          ! Ice: T < 237 K:
+          Scaled_KC = KC * KcScale(1)
+          ENDIF
+
+       ELSE IF ( State_Met%T(I,J,L) >= 237.0_fp  .and. &
+                 State_Met%T(I,J,L) <  258.0_fp ) THEN
+
+         IF (Viscosity(I,J,L,ID) >= 12.e+0_fp) THEN
+         ! Snow: 237 K <= T < 258 K
+          Scaled_KC = KC * KcScale(3)    ! solid OA can service as heterogenous INPs yumin
+         ELSE
+          Scaled_KC = KC* KcScale(2)   
+         ENDIF
+
+       ELSE
+
+         IF (Viscosity(I,J,L,ID) >= 12.e+0_fp) THEN
+          ! Rain: T > 258 K
+          Scaled_KC = KC * KcScale(3)
+         ELSE
+          Scaled_KC = KC* KcScale(3)
+         ENDIF
+
+       ENDIF
+
+       ! (Eq. 2, Jacob et al, 2000, with K = Kc)
+       ! Kc now has been scaled for impaction scavenging (bmy, 9/24/15)
+       F(I,J,L) = GET_F( Input_Opt, State_Met, I, J, L, Scaled_KC )
+
+      ! IF (I ==58 .AND. J ==31 .AND. L ==10) print*, ID,'logV:', Viscosity(I,J,L,ID), 'T:', State_Met%T(I,J,L), 'Scale:', Scaled_KC/KC
+
+    ENDDO
+    ENDDO
+    ENDDO
+
+   ! Free pointers
+
+   Viscosity=> NULL()
+
+  END SUBROUTINE F_AEROSOL_SOLID
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: rainout
 !
 ! !DESCRIPTION: Subroutine RAINOUT computes RAINFRAC, the fraction of soluble
@@ -1251,8 +1469,14 @@ CONTAINS
     REAL(fp),      POINTER :: H2O2s(:,:,:)
     REAL(fp),      POINTER :: SO2s(:,:,:)
 
+    ! yumin
+    REAL(fp),      POINTER :: Viscosity(:,:,:,:)
+    REAL(fp)               :: RAINFRAC0
+
     ! Objects
     TYPE(Species), POINTER :: SpcInfo
+
+    LOGICAL                  :: LWETDP
 
     !==================================================================
     ! RAINOUT begins here!
@@ -1264,6 +1488,10 @@ CONTAINS
     ! Initialize
     RC       =  GC_SUCCESS
 
+    ! yumin
+    LWETDP               = Input_Opt%LWETDP
+
+
     ! Set pointers
     p_C_H2O   => State_Met%C_H2O(I,J,L)
     p_CLDICE  => State_Met%CLDICE(I,J,L)
@@ -1272,6 +1500,9 @@ CONTAINS
     H2O2s     => State_Chm%H2O2AfterChem
     SO2s      => State_Chm%SO2AfterChem
     SpcInfo   => State_Chm%SpcData(N)%Info
+
+    ! yumin
+    Viscosity => State_Chm%Viscosity
 
 #ifdef LUO_WETDEP
     ! Set pointer
@@ -1417,6 +1648,107 @@ CONTAINS
     ! Compute rainout fraction for aerosol species
     ! (including HNO3 and H2SO4 which scavenge like aerosols)
     !=================================================================
+
+    !-----------------------------------------------------------------
+    ! yumin simulation for solid OA
+    !-----------------------------------------------------------------
+
+    ELSE IF (SpcInfo%WD_Is_OCPO) THEN
+
+         ! Compute rainout fraction for aerosol tracres
+         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+         RAINFRAC0 = RAINFRAC
+
+         ! Apply temperature-dependent rainout efficiencies
+         ! This accounts for impaction scavenging of certain aerosols
+      IF ( Input_Opt%LWETDP ) THEN
+
+         IF (Viscosity(I,J,L,1)>=12.0_fp) THEN
+         CALL APPLY_RAINOUT_EFF_SOLID(p_T, SpcInfo, RAINFRAC )
+         ELSE
+         CALL APPLY_RAINOUT_EFF( p_T, SpcInfo, RAINFRAC )
+         ENDIF
+       
+    !    IF (I ==58 .AND. J ==31 ) print*, 'OA new rainout OCPO: yumin', 'L:', L 
+    !    IF (I ==58 .AND. J ==31 ) print*, '1 ','logV:', Viscosity(I,J,L,1), 'T:', p_T, 'Rainfrac:', RAINFRAC/RAINFRAC0
+    !    IF (I ==58 .AND. J ==31 ) print*, '-------------------------------------------'
+      ELSE
+         CALL APPLY_RAINOUT_EFF( p_T, SpcInfo, RAINFRAC )
+    !    IF (I ==58 .AND. J ==31 ) print*, 'OA old rainout OCPO: yumin', 'L:', L
+      ENDIF
+      
+    ELSE IF (SpcInfo%WD_Is_OCPI) THEN
+
+         ! Compute rainout fraction for aerosol tracres
+         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+         RAINFRAC0 = RAINFRAC
+
+         ! Apply temperature-dependent rainout efficiencies
+         ! This accounts for impaction scavenging of certain aerosols
+      IF ( Input_Opt%LWETDP ) THEN
+
+         IF (Viscosity(I,J,L,2)>=12.0_fp) THEN
+         CALL APPLY_RAINOUT_EFF_SOLID( p_T, SpcInfo, RAINFRAC )
+         ELSE
+         CALL APPLY_RAINOUT_EFF( p_T, SpcInfo, RAINFRAC )
+         ENDIF
+    !     IF (I ==58 .AND. J ==31 ) print*, 'OA new rainout OCPI: yumin', 'L:', L
+    !     IF (I ==58 .AND. J ==31 ) print*, '2 ','logV:', Viscosity(I,J,L,2), 'T:', p_T, 'Rainfrac:', RAINFRAC/RAINFRAC0
+    !     IF (I ==58 .AND. J ==31 ) print*, '-------------------------------------------'
+      ELSE
+         CALL APPLY_RAINOUT_EFF( p_T, SpcInfo, RAINFRAC )
+    !    IF (I ==58 .AND. J ==31 ) print*, 'OA old rainout OCPI: yumin', 'L:', L
+      ENDIF
+
+    ELSE IF (SpcInfo%WD_Is_BSOA) THEN
+
+        ! Compute rainout fraction for aerosol tracres
+        RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+        RAINFRAC0 = RAINFRAC
+
+        ! Apply temperature-dependent rainout efficiencies
+        ! This accounts for impaction scavenging of certain aerosols
+      IF ( Input_Opt%LWETDP ) THEN
+
+        IF (Viscosity(I,J,L,5)>=12.0_fp) THEN
+        CALL APPLY_RAINOUT_EFF_SOLID( p_T, SpcInfo, RAINFRAC )
+        ELSE
+        CALL APPLY_RAINOUT_EFF( p_T, SpcInfo, RAINFRAC )
+        ENDIF
+    !    IF (I ==58 .AND. J ==31 ) print*, 'OA new rainout BSOA: yumin', 'L:', L
+    !    IF (I ==58 .AND. J ==31 ) print*, '5 ','logV:', Viscosity(I,J,L,5), 'T:', p_T, 'Rainfrac:', RAINFRAC/RAINFRAC0
+    !    IF (I ==58 .AND. J ==31 ) print*, '-------------------------------------------'
+      ELSE
+        CALL APPLY_RAINOUT_EFF( p_T, SpcInfo, RAINFRAC )
+    !    IF (I ==58 .AND. J ==31 ) print*, 'OA old rainout BSOA: yumin', 'L:', L
+      ENDIF
+
+    ELSE IF (SpcInfo%WD_Is_ASOA) THEN
+
+        ! Compute rainout fraction for aerosol tracres
+        RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+        RAINFRAC0 = RAINFRAC
+
+        ! Apply temperature-dependent rainout efficiencies
+        ! This accounts for impaction scavenging of certain aerosols
+      IF ( Input_Opt%LWETDP ) THEN
+
+        IF (Viscosity(I,J,L,6)>=12.0_fp) THEN
+        CALL APPLY_RAINOUT_EFF_SOLID( p_T, SpcInfo, RAINFRAC )
+        ELSE
+        CALL APPLY_RAINOUT_EFF( p_T, SpcInfo, RAINFRAC )
+        ENDIF
+    !    IF (I ==58 .AND. J ==31 ) print*, 'OA new rainout ASOA: yumin', 'L:', L
+    !    IF (I ==58 .AND. J ==31 ) print*, '6 ','logV:', Viscosity(I,J,L,6), 'T:', p_T, 'Rainfrac:', RAINFRAC/RAINFRAC0
+    !    IF (I ==58 .AND. J ==31 ) print*, '-------------------------------------------'
+      ELSE
+        CALL APPLY_RAINOUT_EFF( p_T, SpcInfo, RAINFRAC )
+    !    IF (I ==58 .AND. J ==31 ) print*, 'OA old rainout ASOA: yumin', 'L:', L
+      ENDIF
+    !------------------------------------------------------------------
+    ! solid state caculation end here
+    !------------------------------------------------------------------
+
     ELSE
 
        ! Compute rainout fraction for aerosol tracres
@@ -1437,7 +1769,10 @@ CONTAINS
     H2O2s   => NULL()
     SO2s    => NULL()
     SpcInfo  => NULL()
+    ! yumin
+    Viscosity => NULL()
 
+  
   END SUBROUTINE RAINOUT
 !EOC
 !------------------------------------------------------------------------------
@@ -1518,6 +1853,74 @@ CONTAINS
 
   END SUBROUTINE APPLY_RAINOUT_EFF
 !EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: apply_rainout_eff_solid
+!
+! !DESCRIPTION: Subroutine APPLY\_RAINOUT\_EFF\_SOLID multiplies the rainout 
+!  fraction computed by RAINOUT with the rainout efficiency for one of 3 temperature
+!  ranges for solid state OA: (1) T < 237 K; (2) 237 K <= T < 258 K; (3) T > 258 K.
+!  The rainout efficiencies for each solid state species are 0 for rain and 1 for snow
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE APPLY_RAINOUT_EFF_SOLID( TK, SpcInfo, RainFrac )
+!
+! !USES:
+!
+    USE Species_Mod, ONLY : Species
+!
+! !INPUT PARAMETERS:
+!
+    REAL(fp),      INTENT(IN)    :: TK         ! Temperature [K]
+    TYPE(Species), INTENT(IN)    :: SpcInfo    ! Species Database object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    REAL(fp),      INTENT(INOUT) :: RainFrac   ! Rainout fraction
+
+!
+! !REVISION HISTORY:
+!  22 July 2024 Yumin Li write for solid state OA
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Apply temperature-dependent rainout efficiencies
+    ! This accounts for impaction scavenging of certain aerosols
+    IF ( TK < 237.0_fp ) THEN
+      
+       IF (SpcInfo%WD_Is_OCPO) THEN
+    !   RainFrac = 1.0_fp                   ! OCPO can serve as INPs in -40 °C
+       RainFrac = RainFrac * SpcInfo%WD_RainoutEff(1)  ! change back to cannot yumili 20250612
+
+       ELSE
+       ! Ice: T < 237 K
+       RainFrac = RainFrac * SpcInfo%WD_RainoutEff(1)
+       ENDIF
+
+    ELSE IF ( TK >= 237.0_fp .and. TK < 258.0_fp ) THEN
+
+       ! Snow: 237 K <= T < 258 K
+       RainFrac = RainFrac * SpcInfo%WD_RainoutEff(3) ! solid OA can service as heterogenous INPs
+
+    ELSE
+
+       ! Liquid rain: T > 258 K      
+       RainFrac = RainFrac * SpcInfo%WD_RainoutEff(3)
+
+    ENDIF
+
+  END SUBROUTINE APPLY_RAINOUT_EFF_SOLID
+!EOP
+!------------------------------------------------------------------------------
+
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------

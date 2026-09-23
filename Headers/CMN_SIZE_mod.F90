@@ -54,6 +54,10 @@ MODULE CMN_SIZE_MOD
   ! NRH -- number of relative humidity bins (rvm, bmy, 2/27/02)
   INTEGER,  PARAMETER :: NRH = 5
 
+  ! Number of OA phase states (Yumin Li, 07/052024)
+  ! (Yumin Li , 09/24/24 change from 6 to 7)
+  INTEGER,  PARAMETER :: NPHASE = 7
+
   ! Number of dust size bins for transport (tdf, bmy, 3/31/04)
 #if defined(TOMAS)
 #if defined(TOMAS40)

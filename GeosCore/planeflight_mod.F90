@@ -415,6 +415,10 @@ CONTAINS
     ! Number of advected species
     nAdvect     = State_Chm%nAdvect
 
+    ! Phase state    yumin
+!    Tg                   => State_Chm%Tg
+!    Viscosity            => State_Chm%Viscosity
+
     ! Initialize pointer
     SpcInfo => NULL()
 
@@ -645,6 +649,22 @@ CONTAINS
           IF ( LINE == 'AQAER_RAD'  ) PVAR(N) = 7001
           ! Aqueous aerosol surface area (cm2/cm3):
           IF ( LINE == 'AQAER_SURF' ) PVAR(N) = 7002
+
+       !===========================================================
+       ! Output for phase state (yumin 20241031)
+       !===========================================================
+       CASE ( 'PHAS' )
+
+          IF ( LINE == 'PHAS_TOCPO'   ) PVAR(N) = 7003
+          IF ( LINE == 'PHAS_TOCPI'   ) PVAR(N) = 7004
+          IF ( LINE == 'PHAS_TBSOA'   ) PVAR(N) = 7005
+          IF ( LINE == 'PHAS_TASOA'   ) PVAR(N) = 7006
+          IF ( LINE == 'PHAS_TMEAN'   ) PVAR(N) = 7007
+          IF ( LINE == 'PHAS_VOCPO'   ) PVAR(N) = 7008
+          IF ( LINE == 'PHAS_VOCPI'   ) PVAR(N) = 7009
+          IF ( LINE == 'PHAS_VBSOA'   ) PVAR(N) = 7010
+          IF ( LINE == 'PHAS_VASOA'   ) PVAR(N) = 7011
+          IF ( LINE == 'PHAS_VMEAN'   ) PVAR(N) = 7012
 
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
        ! This code needs to be updated to work with FlexChem (mps, 6/13/17)
@@ -2213,7 +2233,41 @@ CONTAINS
                 IF ( XRH .gt. CRITRH ) THEN
                    VARI(V) = State_Chm%AeroArea(I,J,L,8)
                 ENDIF
+             !-------------------------------------------------------------------
+             ! yumin phase state 20241031
+             !-------------------------------------------------------------------
+             CASE( 7003 )
+                ! Tg (K):OCPO
+                VARI(V) = State_Chm%Tg(I,J,L,1)
+             CASE( 7004 )
+                ! Tg (K):OCPI
+                VARI(V) = State_Chm%Tg(I,J,L,2)
+             CASE( 7005 )
+                ! Tg (K):BSOA
+                VARI(V) = State_Chm%Tg(I,J,L,5)
+             CASE( 7006 )
+                ! Tg (K):ASOA
+                VARI(V) = State_Chm%Tg(I,J,L,6)
+             CASE( 7007 )
+                ! Tg (K):MEAN
+                VARI(V) = State_Chm%Tg(I,J,L,7)
 
+             CASE( 7008 )
+                ! logViscosity
+                VARI(V) = State_Chm%Viscosity(I,J,L,1)
+             CASE( 7009 )
+                ! logViscosity
+                VARI(V) = State_Chm%Viscosity(I,J,L,2)
+             CASE( 7010 )
+                ! logViscosity
+                VARI(V) = State_Chm%Viscosity(I,J,L,5)
+             CASE( 7011 )
+                ! logViscosity
+                VARI(V) = State_Chm%Viscosity(I,J,L,6)
+             CASE( 7012 )
+                ! logViscosity
+                VARI(V) = State_Chm%Viscosity(I,J,L,7)
+   
              !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
              ! This code needs to be updated to work with FlexChem (mps,6/13/17)
              !!--------------------------

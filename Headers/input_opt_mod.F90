@@ -130,6 +130,10 @@ MODULE Input_Opt_Mod
      REAL(fp)                    :: JNITChanA
      REAL(fp)                    :: JNITChanB
 
+     ! for phase state caculation, (Yumin Li 06/05/2024)
+     LOGICAL                     :: LPHASE
+     LOGICAL                     :: LNEWGP
+     LOGICAL                     :: LPPAH
      !----------------------------------------
      ! EMISSIONS fields
      !----------------------------------------
@@ -246,7 +250,8 @@ MODULE Input_Opt_Mod
      ! DEPOSITION MENU fields
      !----------------------------------------
      LOGICAL                     :: LDRYD
-     LOGICAL                     :: LWETD
+     LOGICAL                     :: LWETD        
+     LOGICAL                     :: LWETDP           ! yumin
      REAL(fp)                    :: WETD_CONV_SCAL
      LOGICAL                     :: PBL_DRYDEP
      LOGICAL                     :: CO2_EFFECT
@@ -638,6 +643,9 @@ CONTAINS
     Input_Opt%LSULF                  = .FALSE.
     Input_Opt%LMETALCATSO2           = .FALSE.
     Input_Opt%LCARB                  = .FALSE.
+    Input_Opt%LPHASE                 = .FALSE.
+    Input_Opt%LNEWGP                 = .FALSE.
+    Input_Opt%LPPAH                  = .FALSE.
     Input_Opt%LBRC                   = .FALSE.
     Input_Opt%LSOA                   = .FALSE.
     Input_Opt%LMPOA                  = .FALSE.
@@ -797,6 +805,7 @@ CONTAINS
     !----------------------------------------
     Input_Opt%LDRYD                  = .FALSE.
     Input_Opt%LWETD                  = .FALSE.
+    Input_Opt%LWETDP                 = .FALSE.   !yumin
     Input_Opt%WETD_CONV_SCAL         = 1.0_fp
     Input_Opt%PBL_DRYDEP             = .FALSE.
     Input_Opt%CO2_LEVEL              = 390.0_fp
