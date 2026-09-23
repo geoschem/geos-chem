@@ -1328,7 +1328,7 @@ PROGRAM GEOS_Chem
        !=====================================================================
        !           ***** M I X E D   L A Y E R   M I X I N G *****
        !
-       ! Mixing hapens on the convection timestep = dynamic timestep.
+       ! Mixing happens on the convection timestep = dynamic timestep.
        !=====================================================================
        IF ( ITS_TIME_FOR_CONV() .and. notDryRun ) THEN
 
@@ -1361,14 +1361,10 @@ PROGRAM GEOS_Chem
           ENDIF
 
           !------------------------------------------------------------------
-          ! Note: mixing routine expects tracers in v/v.
-          ! DO_MIXING applies the tracer tendencies (dry deposition,
-          ! emission rates) to the tracer arrays and performs PBL mixing.
+          ! Emissions and dry deposition tendencies are no longer applied
+          ! in PBL mixing.  The order is now:
           !
-          ! In the non-local PBL scheme, dry deposition and emission
-          ! fluxes below the PBL are handled within the PBL mixing routine.
-          ! Otherwise, tracer concentrations are first updated and the
-          ! full-mixing is then applied. (ckeller, 3/5/15)
+          !    Emissions -> PBL Mixing -> Dry Deposition (+removal)
           !------------------------------------------------------------------
           CALL Do_Mixing( Input_Opt,  State_Chm, State_Diag,                 &
                           State_Grid, State_Met, RC                         )

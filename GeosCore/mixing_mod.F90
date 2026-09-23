@@ -72,9 +72,9 @@ CONTAINS
     INTEGER,          INTENT(INOUT)  :: RC          ! Failure or success
 !
 ! !REMARKS
-!  (A) While all dry deposition rates are calculated either in
-!      DO_PBL_MIX2 or DO_TEND, settling of aerosols is still
-!      computed in the dust/seasalt modules.
+!  (A) While all dry deposition rates are calculated in DO_PBL_MIX2 or
+!      DO_DRYDEP_REMOVAL, settling of aerosols is still computed in
+!      the dust and seasalt modules.
 !
 ! !REVISION HISTORY:
 !  04 Mar 2015 - C. Keller   - Initial version
@@ -99,25 +99,12 @@ CONTAINS
     ThisLoc = ' -> at DO_MIXING (in module GeosCore/mixing_mod.F90)'
 
     !-----------------------------------------------------------------------
-    ! Do non-local PBL mixing. This will apply the species tendencies
-    ! (emission fluxes and dry deposition rates) below the PBL.
-    ! This is done for all species with defined emissions / dry
-    ! deposition rates, including dust.
+    ! Do non-local PBL mixing.
     !
     ! Set OnlyAbovePBL flag (used below by DO_TEND) to indicate that
     ! fluxes within the PBL have already been applied.
     ! ----------------------------------------------------------------------
     IF ( Input_Opt%LTURB .AND. Input_Opt%LNLPBL ) THEN
-
-       !--------------------------------------------------------------------
-       ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
-       !
-       ! Initialize the diagnostic array for the History Component.  This will
-       ! prevent leftover values from being carried over to this timestep.
-       ! (For example, if on the last iteration, the PBL height was higher than
-       ! it is now, then we will have stored drydep fluxes up to that height,
-       ! so we need to zero these out.)
-       !--------------------------------------------------------------------
 
        ! Non-local mixing
        CALL Do_Vdiff( Input_Opt,  State_Chm, State_Diag,                     &
@@ -203,21 +190,16 @@ CONTAINS
 !
     USE Diagnostics_Mod,      ONLY : Compute_Budget_Diagnostics
     USE ErrCode_Mod
-    USE ERROR_MOD,            ONLY : SAFE_DIV
-    USE GET_NDEP_MOD,         ONLY : SOIL_DRYDEP
-    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_GetDiagn
-    USE HCO_Utilities_GC_Mod, ONLY : GetHcoValEmis, GetHcoValDep, InquireHco
-    USE HCO_Utilities_GC_Mod, ONLY : LoadHcoValEmis, LoadHcoValDep
+    USE HCO_Utilities_GC_Mod, ONLY : GetHcoValEmis, InquireHco, LoadHcoValEmis
     USE Input_Opt_Mod,        ONLY : OptInput
-    USE PhysConstants,        ONLY : AVO
     USE Species_Mod,          ONLY : Species
     USE State_Chm_Mod,        ONLY : ChmState
     USE State_Chm_Mod,        ONLY : Ind_
     USE State_Diag_Mod,       ONLY : DgnState
     USE State_Grid_Mod,       ONLY : GrdState
     USE State_Met_Mod,        ONLY : MetState
-    USE TIME_MOD,             ONLY : GET_TS_DYN, GET_TS_CONV, GET_TS_CHEM
-    USE Timers_Mod,           ONLY : Timer_End, Timer_Start
+    USE TIME_MOD,             ONLY : Get_Ts_Dyn
+    USE Timers_Mod,           ONLY : Timer_End,  Timer_Start
     USE UnitConv_Mod
 #ifdef MODEL_CLASSIC
     use hco_utilities_gc_mod, only: TMP_MDL ! danger
@@ -247,27 +229,20 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL                 :: ChemGridOnly,   EmisSpec,  FND
-    INTEGER                 :: I,              J,         L
-    INTEGER                 :: L1,             L2,        N
-    INTEGER                 :: NN,             NA,        S
+    LOGICAL                 :: ChemGridOnly,   EmisSpec, FND
+    INTEGER                 :: EMIS_TOP,       I,        J
+    INTEGER                 :: L,              L1,       L2
+    INTEGER                 :: N,              NA,       PBL_TOP
     INTEGER                 :: previous_units
-    INTEGER                 :: PBL_TOP,        EMIS_TOP,  TS
-    REAL(fp)                :: TMP,            FLUX
-    REAL(fp)                :: MWkg,           DENOM
+    REAL(fp)                :: FLUX,           TS,       TMP
     REAL(f8)                :: DT_Tend
-
-    ! PARANOX loss fluxes (kg/m2/s). These are obtained from the
-    ! HEMCO PARANOX extension via the diagnostics module.
-    REAL(f4), POINTER       :: Ptr2D        (:,:) => NULL()
 
     ! SAVEd scalars (defined on first call only)
     LOGICAL,           SAVE :: FIRST = .TRUE.
-    INTEGER,           SAVE :: id_MACR,  id_RCHO,  id_ACET, id_ALD2
-    INTEGER,           SAVE :: id_ALK4,  id_C2H6,  id_C3H8, id_CH2O
-    INTEGER,           SAVE :: id_PRPE,  id_O3,    id_HNO3, id_BrO
-    INTEGER,           SAVE :: id_Br2,   id_Br,    id_HOBr, id_HBr
-    INTEGER,           SAVE :: id_BrNO3, id_CO2
+    INTEGER,           SAVE :: id_MACR,  id_RCHO, id_ACET,  id_ALD2
+    INTEGER,           SAVE :: id_ALK4,  id_C2H6, id_C3H8,  id_CH2O
+    INTEGER,           SAVE :: id_PRPE,  id_BrO,  id_Br2,   id_Br
+    INTEGER,           SAVE :: id_HOBr,  id_HBr,  id_BrNO3, id_CO2
 
     ! Pointers and objects
     TYPE(Species), POINTER  :: SpcInfo
@@ -413,8 +388,6 @@ CONTAINS
        id_CH2O = Ind_('CH2O' )
        id_CO2  = Ind_('CO2'  )
        id_PRPE = Ind_('PRPE' )
-       id_O3   = Ind_('O3'   )
-       id_HNO3 = Ind_('HNO3' )
        id_BrO  = Ind_('BrO'  )
        id_Br2  = Ind_('Br2'  )
        id_Br   = Ind_('Br'   )
@@ -452,9 +425,6 @@ CONTAINS
 
        ! Get info about this species from the species database
        SpcInfo => State_Chm%SpcData(N)%Info
-
-       ! Molecular weight in kg
-       MWkg = SpcInfo%MW_g * 1.e-3_fp
 
        ! Set emissions top level:
        ! This is the top of atmosphere unless concentration build-up
@@ -508,8 +478,8 @@ CONTAINS
        ! Loop over all grid boxes
        !$OMP PARALLEL DO                                                     &
        !$OMP DEFAULT( SHARED                                                )&
-       !$OMP PRIVATE( I,   J,   L,    L1,       L2, PBL_TOP                 )&
-       !$OMP PRIVATE( FND, TMP, FLUX, EMIS_TOP, S,  ErrorMsg                ) 
+       !$OMP PRIVATE( I,   J,   L,    L1,       L2,       PBL_TOP           )&
+       !$OMP PRIVATE( FND, TMP, FLUX, EMIS_TOP, ErrorMsg                    )
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
 

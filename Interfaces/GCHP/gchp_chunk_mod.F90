@@ -864,6 +864,7 @@ CONTAINS
     DoRad    = Input_Opt%LRAD  .AND. IsRadTime    ! radiation time step
 
     ! If Phase is not -1, only do selected processes for given phases:
+    !
     ! Phase 1: disable turbulence, chemistry and wet deposition.
     IF ( Phase == 1 ) THEN
        DoTurb   = .FALSE.
@@ -871,6 +872,12 @@ CONTAINS
        DoWetDep = .FALSE.
 
     ! Phase 2: disable convection, drydep and emissions.
+    !
+    ! NOTE: For two-phase MODEL_GEOS runs, DoDryDep is disabled only in
+    ! Phase 2, so drydep still runs in Phase 1 (before GEOS-5's own
+    ! turbulence, which Phase 1 skips here since GEOS-5 handles it). So
+    ! the emissions -> mixing -> drydep re-sequencing in this branch does
+    ! not apply to two-phase GEOS-5 runs: drydep still precedes turbulence.
     ELSEIF ( Phase == 2 ) THEN
        DoConv   = .FALSE.
        DoDryDep = .FALSE.

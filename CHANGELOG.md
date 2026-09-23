@@ -9,17 +9,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added routine `Do_Drydep_Removal` to `GeosCore/drydep_mod.F90` to apply dry deposition loss to species
 
 ### Changed
-- Updated `main.F90` and `gchp_chunk_mod.F90` to so that dry deposition is done after emissions
-- Added routine `Do_Drydep_Removal` to `GeosCore/drydep_mod.F90` to apply dry deposition loss to species
+- Updated `main.F90` and `gchp_chunk_mod.F90` so that dry deposition is done after emissions
 - Added `BudgetDryDep*` History diagnostics
-- Renamed `State_Diag%DryDepMix` to `State_Diag%DryDepFlx` to denote that this field is no longer updated in mixing
-- Renamed routine `Init_NoRegister_DryDepChemMix` to `Init_NoRegister_DryDepChmMix` to `Init_NoRegister_DryDepChmFlx` in `Headers/state_diag_mod.F90`
+- Renamed `State_Diag%DryDepMix` to `State_Diag%DryDepFlx` to denote that this field is no longer updated in mixing.
+- Renamed routine `Init_NoRegister_DryDepChemMix` to `Init_NoRegister_DryDepChmFlx`
 - Dry deposition is now done after PBL mixing for both GC-Classic and GCHP
 
 ### Removed
 - Removed dry deposition loss code from routine `Do_Tend` (in `GeosCore/mixing_mod.F90`)
-- Removed code that computed surface dry depostion flux `dflx` in `Compute_Sflx_for_Vdiff` (in `GeosCore/hco_interface_gc_mod.F90`)
-- Removed dry deposition loss code from routine `Do_Tend` (in `GeosCore/mixing_mod.F90`)
+- Removed code that computed surface dry deposition flux `dflx` in `Compute_Sflx_for_Vdiff` (in `GeosCore/hco_interface_gc_mod.F90`)
 
 ## [14.8.0] - 2026-09-11
 ### Added

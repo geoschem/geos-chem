@@ -4031,7 +4031,7 @@ CONTAINS
        ! If "DryDep" is registered but "DryDepFlx" is not, then initialize
        ! the State_Diag%DryDepFlx fields but do not register the diagnostic.
        IF ( forceDefine ) THEN
-          CALL Init_NoRegister_DryDepChmFlx( State_Diag, RC, Mix=.TRUE. )
+          CALL Init_NoRegister_DryDepChmFlx( State_Diag, RC, Flx=.TRUE. )
        ENDIF
 
     ENDIF
@@ -21046,7 +21046,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_NoRegister_DryDepChmFlx( State_Diag, RC, Chm, Mix )
+  SUBROUTINE Init_NoRegister_DryDepChmFlx( State_Diag, RC, Chm, Flx )
 !
 ! !USES:
 !
@@ -21055,7 +21055,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,        OPTIONAL      :: Chm          ! Init DryDepChm arrays
-    LOGICAL,        OPTIONAL      :: Mix          ! Init DryDepFlx arrays
+    LOGICAL,        OPTIONAL      :: Flx          ! Init DryDepFlx arrays
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -21080,7 +21080,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Pointers
-    LOGICAL :: initChm,  initMix
+    LOGICAL :: initChm,  initFlx
     LOGICAL :: isDryDep, isSatDgn
     INTEGER :: NX,       NY,       NW
     INTEGER :: nSlots,   nIds
@@ -21092,7 +21092,7 @@ CONTAINS
     ! Initialize
     RC        = GC_SUCCESS
     initChm   = .FALSE.
-    initMix   = .FALSE.
+    initFlx   = .FALSE.
     isDryDep  = State_Diag%Archive_DryDep
     isSatDgn  = State_Diag%Archive_SatDiagnDryDep
 
@@ -21113,7 +21113,7 @@ CONTAINS
 
     ! Which array to initialize?
     IF ( PRESENT( Chm ) ) initChm = Chm
-    IF ( PRESENT( Mix ) ) initMix = Mix
+    IF ( PRESENT( Flx ) ) initFlx = Flx
 
     !========================================================================
     ! Initialize the DryDepChm array
@@ -21157,10 +21157,10 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           IF ( isDryDep ) THEN
              State_Diag%Map_DryDepChm%id2slot =                              &
-                  State_Diag%Map_DryDep%id2slot
+                State_Diag%Map_DryDep%id2slot
           ELSE IF ( isSatDgn ) THEN
              State_Diag%Map_DryDepChm%id2slot =                              &
-               State_Diag%Map_SatDiagnDryDep%id2slot
+                State_Diag%Map_SatDiagnDryDep%id2slot
           ENDIF
        ENDIF
     ENDIF
@@ -21168,7 +21168,7 @@ CONTAINS
     !========================================================================
     ! Initialize the DryDepFlx array
     !========================================================================
-    IF ( initMix ) THEN
+    IF ( initFlx ) THEN
 
        ! Only allocate the DryDepFlx array if necessary
        State_Diag%Archive_DryDepFlx = ( isDryDep .or. isSatDgn )
@@ -21194,10 +21194,10 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           IF ( isDryDep ) THEN
              State_Diag%Map_DryDepFlx%slot2Id =                              &
-                  State_Diag%Map_DryDep%slot2Id
+                State_Diag%Map_DryDep%slot2Id
           ELSE IF ( isSatDgn ) THEN
              State_Diag%Map_DryDepFlx%slot2Id =                              &
-               State_Diag%Map_SatDiagnDryDep%slot2Id
+                State_Diag%Map_SatDiagnDryDep%slot2Id
           ENDIF
 
           ! Initialize id2slot vector
@@ -21207,10 +21207,10 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           IF ( isDryDep ) THEN
              State_Diag%Map_DryDepFlx%id2slot =                              &
-                  State_Diag%Map_DryDep%id2slot
+                State_Diag%Map_DryDep%id2slot
           ELSE IF ( isSatDgn ) THEN
              State_Diag%Map_DryDepFlx%id2slot =                              &
-                  State_Diag%Map_SatDiagnDryDep%id2slot
+                State_Diag%Map_SatDiagnDryDep%id2slot
           ENDIF
        ENDIF
     ENDIF
