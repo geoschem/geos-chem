@@ -36,19 +36,28 @@ This is the **GEOS-Chem science codebase** (`geoschem/geos-chem`) — the Fortra
 - **GCClassic** (`geoschem/GCClassic`) — builds this code as a standalone executable ("GEOS-Chem Classic")
 - **GCHP** (`geoschem/GCHP`) — builds this code as an ESMF/MAPL gridded component inside the GEOS/NASA modeling framework ("GCHP")
 
-Both superprojects vendor this repo at `src/GEOS-Chem`. They symlink `test` to `src/GEOS-Chem/test/` and `run` to the implementation's own subdirectory of `src/GEOS-Chem/run/` (in a GCClassic checkout, `run -> src/GEOS-Chem/run/GCClassic/`). If you were pointed here from a GCClassic or GCHP checkout, you are actually editing *this* repo — commits/PRs belong here (geoschem/geos-chem), not in the wrapper repo.
+The two superprojects vendor this repo at **different paths**:
+
+| Superproject | This repo's path | `run` symlink | `test` symlink |
+|---|---|---|---|
+| GCClassic | `src/GEOS-Chem` | `src/GEOS-Chem/run/GCClassic` | `src/GEOS-Chem/test` |
+| GCHP | `src/GCHP_GridComp/GEOSChem_GridComp/geos-chem` | `src/GCHP_GridComp/GEOSChem_GridComp/geos-chem/run/GCHP` | `src/GCHP_GridComp/GEOSChem_GridComp/geos-chem/test` |
+
+So `src/GEOS-Chem` exists only in a GCClassic checkout. Scripts that must find this repo from a GCHP superproject use the nested path (see `test/integration/GCHP/integrationTestCreate.sh`). If you were pointed here from a GCClassic or GCHP checkout, you are actually editing *this* repo — commits/PRs belong here (geoschem/geos-chem), not in the wrapper repo.
 
 ### Sibling submodules — check which repo a change belongs in
 
-This repo is only one of several the superproject pulls into `src/`. A superproject checkout contains:
+This repo is only one of several submodules each superproject pulls in. Paths below are relative to the superproject root; in GCHP, `…` stands for `src/GCHP_GridComp/GEOSChem_GridComp`:
 
-| Path | Repo | Owns |
-|---|---|---|
-| `src/GEOS-Chem` | `geoschem/geos-chem` | *this repo* — chemistry, transport, convection, deposition, diagnostics |
-| `src/HEMCO` | `geoschem/hemco` | **all emissions** and the netCDF input-data reader |
-| `src/Cloud-J` | `geoschem/Cloud-J` | **photolysis** rate calculation |
-| `src/HETP` | `geoschem/HETerogeneous-vectorized-or-Parallel` | **aerosol thermodynamics** (the ISORROPIA replacement) |
-| `docs/source/geos-chem-shared-docs` | `geoschem/geos-chem-shared-docs` | shared docs, and the `spack/` tree the superproject symlinks to its top level |
+| Repo | GCClassic path | GCHP path | Owns |
+|---|---|---|---|
+| `geoschem/geos-chem` | `src/GEOS-Chem` | `…/geos-chem` | *this repo* — chemistry, transport, convection, deposition, diagnostics |
+| `geoschem/hemco` | `src/HEMCO` | `…/HEMCO/HEMCO` | **all emissions** and the netCDF input-data reader |
+| `geoschem/Cloud-J` | `src/Cloud-J` | `…/Cloud-J` | **photolysis** rate calculation |
+| `geoschem/HETerogeneous-vectorized-or-Parallel` | `src/HETP` | `…/HETP` | **aerosol thermodynamics** (the ISORROPIA replacement) |
+| `geoschem/geos-chem-shared-docs` | `docs/source/geos-chem-shared-docs` | `docs/source/geos-chem-shared-docs` | shared docs, and the `spack/` tree each superproject symlinks to its top level |
+
+GCHP also pulls in MAPL, FMS, GFE, GMAO_Shared, ESMA_cmake, and `src/GCHP_GridComp/FVdycoreCubed_GridComp` (the FV3 advection core). None of those exist in GCClassic.
 
 So an emissions change belongs in HEMCO, not here; a photolysis-rate change belongs in Cloud-J. What lives *here* is the coupling glue: `GeosCore/hco_interface_gc_mod.F90` and `GeosCore/hco_utilities_gc_mod.F90` (HEMCO), `GeosCore/cldj_interface_mod.F90` and `Headers/phot_container_mod.F90` (Cloud-J), `GeosCore/aerosol_thermodynamics_mod.F90` (HETP). `GeosCore` links the `HCOI_Shared` and `HETP_core` targets, which exist only in the superproject build — one reason this repo cannot be configured on its own.
 
@@ -97,10 +106,10 @@ Source is organized by role, not by scientific topic — a given "feature" (e.g.
 
 ## Building
 
-There is no standalone build here — always build via a superproject run directory. From a GCClassic or GCHP checkout with this repo as its `src/GEOS-Chem` submodule:
+There is no standalone build here — always build via a superproject run directory. From the root of a GCClassic or GCHP checkout (the `run` symlink already points at the right `run/<implementation>` directory):
 
 ```console
-cd run/GCClassic && ./createRunDir.sh      # or run/GCHP/createRunDir.sh
+cd run && ./createRunDir.sh
 cd /path/to/rundir/build
 cmake ../CodeDir -DRUNDIR=..
 make -j && make install
@@ -192,7 +201,7 @@ When adding a new support module to one mechanism, add a stub in `KPP/stubs/` an
 
 ### KPP-Standalone
 
-`-DKPPSA=y` builds the KPP-Standalone box model, and only under `MECH=fullchem` or `MECH=custom`. Within this repo it produces just the `KPPStandalone` static library; the `kpp_standalone` executable is created by the superproject's `src/CMakeLists.txt`. Its run-time configuration is `run/shared/kpp_standalone_interface.yml`, and the GEOS-Chem-side hookup is `GeosCore/kppsa_interface_mod.F90`.
+`-DKPPSA=y` builds the KPP-Standalone box model, and only under `MECH=fullchem` or `MECH=custom`. Within this repo it produces just the `KPPStandalone` static library; the `kpp_standalone` executable is created by the GCClassic superproject's `src/CMakeLists.txt`. Its run-time configuration is `run/shared/kpp_standalone_interface.yml`, and the GEOS-Chem-side hookup is `GeosCore/kppsa_interface_mod.F90`.
 
 ## Testing
 
