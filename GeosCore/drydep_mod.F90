@@ -2330,7 +2330,7 @@ CONTAINS
     USE HCO_Utilities_GC_Mod, ONLY : GetHcoValDep, InquireHco
     USE HCO_Utilities_GC_Mod, ONLY : LoadHcoValDep
     USE Input_Opt_Mod,        ONLY : OptInput
-    USE PhysConstants,        ONLY : AVO
+    USE PhysConstants,        ONLY : AVO, g0_100
     USE Species_Mod,          ONLY : Species
     USE State_Chm_Mod,        ONLY : ChmState
     USE State_Diag_Mod,       ONLY : DgnState
@@ -2361,17 +2361,15 @@ CONTAINS
     LOGICAL                :: is_drydep_species
     LOGICAL                :: is_loss_hno3
     LOGICAL                :: is_loss_o3
+    LOGICAL                :: skipGlobalUnitConv
     INTEGER                :: AC,           drydep_id,    I
     INTEGER                :: J,            L,            N
     INTEGER                :: NA,           S
     INTEGER                :: drydep_top,   pbl_top,      previous_units
-    REAL(fp)               :: air2sea_freq, area_m2,      denom
+    REAL(fp)               :: air2sea_freq, denom
     REAL(fp)               :: drydep_dt,    flux_kgm2s,   flux_mcm2s
     REAL(fp)               :: frac,         fracNoHg0Dep, freq
     REAL(fp)               :: mass,         mw_kg,        paranox_loss
-
-    ! SAVEd scalars (defined on first call only)
-    LOGICAL,       SAVE    :: first = .TRUE.
 
     ! Pointers and objects
     REAL(f4),      POINTER :: ptr_2d(:,:)
@@ -2381,7 +2379,6 @@ CONTAINS
 
     ! Strings
     CHARACTER(LEN=255)     :: errMsg
-    CHARACTER(LEN=255)     :: errorMsg
     CHARACTER(LEN=255)     :: thisLoc
 
     !=================================================================
@@ -2453,23 +2450,39 @@ CONTAINS
 
     !========================================================================
     ! Unit conversion to kg/m2 (avoids area dependency)
+    !
+    ! Skip the global unit conversion when species are already in
+    ! kg/kg dry air, which is the case at both GC-Classic and GCHP call
+    ! sites for this routine.  The removal itself (Conc *= frac, below)
+    ! is unit-agnostic, so it can be done directly in kg/kg dry air; the
+    ! few quantities that do need kg/m2 units (the diagnostic flux, the
+    ! Hg deposition mass) are instead converted locally, per level, using
+    ! the same factor that ConvertSpc_KgKgDry_to_Kgm2 uses internally
+    ! (g0_100 * DELP_DRY).  This avoids a full 3-D, all-species unit
+    ! conversion (and its reverse) for the sake of a removal that only
+    ! ever touches 1-2 levels.
     !========================================================================
+    N                  =  State_Chm%Map_Advect(1)
+    skipGlobalUnitConv = ( State_Chm%Species(N) == KG_SPECIES_PER_KG_DRY_AIR )
 
-    ! Convert species units to kg/m2
-    CALL Convert_Spc_Units(                                                  &
-         Input_Opt      = Input_Opt,                                         &
-         State_Chm      = State_Chm,                                         &
-         State_Grid     = State_Grid,                                        &
-         State_Met      = State_Met,                                         &
-         mapping        = State_Chm%Map_Advect,                              &
-         new_units      = KG_SPECIES_PER_M2,                                 &
-         previous_units = previous_units,                                    &
-         RC             = RC                                                )
-    
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Unit conversion error!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
+    IF ( skipGlobalUnitConv ) THEN
+       previous_units      = KG_SPECIES_PER_KG_DRY_AIR
+    ELSE
+       CALL Convert_Spc_Units(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Grid     = State_Grid,                                     &
+            State_Met      = State_Met,                                      &
+            mapping        = State_Chm%Map_Advect,                           &
+            new_units      = KG_SPECIES_PER_M2,                              &
+            previous_units = previous_units,                                 &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Unit conversion error!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
     ENDIF
 
 #if defined( ADJOINT )  && defined ( DEBUG )
@@ -2515,11 +2528,8 @@ CONTAINS
 
     IF ( ASSOCIATED( ptr_2d ) ) THEN
        ALLOCATE( paranox_loss_HNO3( State_Grid%NX, State_Grid%NY ), STAT=AC )
-       IF ( AC /= GC_SUCCESS ) THEN
-          RC = AC
-          CALL GC_CheckVar( "paranox_loss_hno3", 0, RC )
-          RETURN
-       ENDIF
+       CALL GC_CheckVar( "paranox_loss_hno3", 0, AC )
+       IF ( AC /= GC_SUCCESS ) RETURN
        paranox_loss_HNO3 = ptr_2d
        is_loss_HNO3      = .TRUE.
     ENDIF
@@ -2535,12 +2545,9 @@ CONTAINS
          RC             = RC                                                ) 
 
     IF ( ASSOCIATED( ptr_2d ) ) THEN
-       ALLOCATE( paranox_loss_o3( State_Grid%NX, State_Grid%NY ), STAT=RC )
-       IF ( AC /= GC_SUCCESS ) THEN
-          RC = AC
-          CALL GC_CheckVar( "paranox_loss_o3", 0, RC )
-          RETURN
-       ENDIF
+       ALLOCATE( paranox_loss_o3( State_Grid%NX, State_Grid%NY ), STAT=AC )
+       CALL GC_CheckVar( "paranox_loss_o3", 0, AC )
+       IF ( AC /= GC_SUCCESS ) RETURN
        paranox_loss_O3 = ptr_2d
        is_loss_O3     = .TRUE.
     ENDIF
@@ -2570,7 +2577,6 @@ CONTAINS
        N        =  State_Chm%Map_Advect(NA)   ! Species ID
        SpcInfo  => State_Chm%SpcData(N)%Info  ! Species Database object
        mw_kg    =  SpcInfo%MW_g * 1.e-3_fp    ! Mol wt. in kg  
-       errorMsg =  ''                         ! Error message for this spc. 
 
        !--------------------------------------------------------------------
        ! Check if we need to do dry deposition for this species
@@ -2699,13 +2705,20 @@ CONTAINS
                                        State_Met%FRLANDICE(I,J), 1.0_fp     )
                    frac = 1.0_fp -                                           &
                           ( ( 1.0_fp - frac ) * ( 1.0_fp - fracNoHg0Dep ) )
-               ENDIF
+                ENDIF
 
-                ! Compute drydep flux [kg/m2/s]
+                ! Compute drydep flux [kg/m2/s].  If we skipped the global
+                ! unit conversion above, then Conc is still in [kg/kg dry],
+                ! so apply a unit conv to [kg/m2/s] just for this grid box.
                 flux_kgm2s = ( 1.0_fp - frac )                               &
                            * State_Chm%Species(N)%Conc(I,J,L)
+                IF ( skipGlobalUnitConv ) THEN
+                   flux_kgm2s = flux_kgm2s                                   &
+                              * ( g0_100 * State_Met%DELP_DRY(I,J,L) )
+                ENDIF
 
-                ! Compute the species left after dry deposition [kg/m2]
+                ! Compute the species left after dry deposition
+                ! [kg/kg or kg/m2]
                 State_Chm%Species(N)%Conc(I,J,L) =                           &
                 State_Chm%Species(N)%Conc(I,J,L) * frac
 #ifdef ADJOINT
@@ -2716,10 +2729,19 @@ CONTAINS
 #endif
 
 #ifndef MODEL_CESM
-                ! Now apply ParaNOx loss to O3 or HNO3 concentration [kg/m2]
+                ! Now apply ParaNOx loss to O3 or HNO3 concentration.
+                ! paranox_loss is in [kg/m2].  If we skipped the global
+                ! unit conversion above, we need to convert to [kg/kg dry].
                 IF ( paranox_loss > 0.0_fp ) THEN
-                   State_Chm%Species(N)%Conc(I,J,L) =                        &
-                   State_Chm%Species(N)%Conc(I,J,L) - paranox_loss
+                   IF ( skipUnitConv ) THEN
+                      State_Chm%Species(N)%Conc(I,J,L) =                     &
+                      State_Chm%Species(N)%Conc(I,J,L) -                     &
+                      ( paranox_loss /                                       &
+                        ( g0_100 * State_Met%DELP_DRY(I,J,L) ) )
+                   ELSE
+                      State_Chm%Species(N)%Conc(I,J,L) =                     &
+                      State_Chm%Species(N)%Conc(I,J,L) - paranox_loss
+                   ENDIF
                 ENDIF
 #endif
 
@@ -2782,12 +2804,6 @@ CONTAINS
        ENDDO
        !$OMP END PARALLEL DO
 
-       ! Exit with error condition
-       IF ( RC /= GC_SUCCESS ) THEN
-          CALL GC_Error( ErrorMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-       
        ! Nullify pointer
        SpcInfo  => NULL()
 
@@ -2807,22 +2823,27 @@ CONTAINS
 
     !=======================================================================
     ! Unit conversion, return to previous units
+    !
+    ! Skip this if we never left kg/kg dry air above (skipUnitConv=.TRUE.)
     !=======================================================================
+    IF ( .not. skipGlobalUnitConv ) THEN
 
-    ! Convert species units
-    CALL Convert_Spc_Units(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Chm  = State_Chm,                                             &
-         State_Grid = State_Grid,                                            &
-         State_Met  = State_Met,                                             &
-         mapping    = State_Chm%Map_Advect,                                  &
-         new_units  = previous_units,                                        &
-         RC         = RC                                                    )
-    
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Unit conversion error!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
+       ! Convert species units
+       CALL Convert_Spc_Units(                                              &
+            Input_Opt  = Input_Opt,                                         &
+            State_Chm  = State_Chm,                                         &
+            State_Grid = State_Grid,                                        &
+            State_Met  = State_Met,                                         &
+            mapping    = State_Chm%Map_Advect,                              &
+            new_units  = previous_units,                                    &
+            RC         = RC                                                )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Unit conversion error!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
     ENDIF
     
 #if defined( ADJOINT )  && defined ( DEBUG )
@@ -3831,9 +3852,6 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-
-    ! SAVEd scalars
-    LOGICAL, SAVE :: FIRST = .TRUE.
 
     !Scalars
     INTEGER       :: N
