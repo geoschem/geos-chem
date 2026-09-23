@@ -1682,14 +1682,14 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
    LOGICAL, SAVE   :: FIRST = .TRUE.
-   INTEGER         :: I,        J,        L,        N
+   INTEGER         :: II,        J,        L,        N
    ! no more NOx (hotp 5/22/10)
    INTEGER         :: JHC,      IPR!,      NOX ! (dkh, 10/30/06)
    INTEGER         :: JSV ! (hotp 5/13/10)
    INTEGER         :: JSVPOA, JSVOPOA ! for diag (hotp 5/17/10)
    REAL(fp)        :: RTEMP,    VOL,      FAC,      MPOC
    REAL(fp)        :: MNEW,     MSOA_OLD, MPRODUCT, CAIR
-   REAL(fp)        :: LOWER,    UPPER,    TOL,      VALUE
+   REAL(fp)        :: LOWER,    UPPER,    TOL,      TMP
    REAL(fp)        :: KO3(MHC), KOH(MHC), KNO3(MHC)
    REAL(fp)        :: KOM(MPROD,MSV)
    REAL(fp)        :: GM0(MPROD,MSV), AM0(MPROD,MSV)
@@ -1846,14 +1846,14 @@ CONTAINS
 #ifdef APM
    !$OMP PRIVATE( IFINORG,  OCBIN_SUM, N,     NTEMP                         )&
 #endif
-   !$OMP PRIVATE( I,        J,         L,      JHC,   IPR,   GM0,  AM0      )&
+   !$OMP PRIVATE( II,       J,         L,      JHC,   IPR,   GM0,  AM0      )&
    !$OMP PRIVATE( VOL,      FAC,       RTEMP,  KO3,   KOH,   KNO3, CAIR     )&
-   !$OMP PRIVATE( VALUE,    UPPER,     LOWER,  MNEW,  TOL                   )&
+   !$OMP PRIVATE( TMP,      UPPER,     LOWER,  MNEW,  TOL                   )&
    !$OMP PRIVATE( ORG_AER,  ORG_GAS,   KOM,    MPOC                         )&
    !$OMP PRIVATE( KRO2NO,   KRO2HO2,   JSV                                  )
    DO L = 1, State_Met%MaxChemLev
    DO J = 1, State_Grid%NY
-   DO I = 1, State_Grid%NX
+   DO II = 1, State_Grid%NX
 
       ! Zero important variables at top of loop
       AM0     = 0.0_fp
@@ -1868,41 +1868,41 @@ CONTAINS
       MPOC    = 0.0_fp
       TOL     = 0.0_fp
       UPPER   = 0.0_fp
-      VALUE   = 0.0_fp
+      TMP     = 0.0_fp
 
       ! Skip non-chemistry boxes
-      IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
+      IF ( .not. State_Met%InChemGrid(II,J,L) ) CYCLE
 
       ! Volume of grid box [m3]
-      VOL    = State_Met%AIRVOL(I,J,L)
+      VOL    = State_Met%AIRVOL(II,J,L)
 
       ! conversion factor from kg to ug/m3
       FAC    = 1.0e+9_fp / VOL
 
       ! air conc. in kg/m3
-      CAIR   = State_Met%AD(I,J,L) / VOL
+      CAIR   = State_Met%AD(II,J,L) / VOL
 
       ! Temperature [K]
-      RTEMP  = State_Met%T(I,J,L)
+      RTEMP  = State_Met%T(II,J,L)
 
       ! Get SOA yield parameters
       ! ALPHA is a module variable now. (ccc, 2/2/10)
       ! add arguments for RO2+NO, RO2+HO2 rates (hotp 5/7/10)
       CALL SOA_PARA( RTEMP, KO3, KOH, KNO3,   KOM, &
-                     I,     J,   L,   KRO2NO, KRO2HO2, State_Met )
+                     II,    J,   L,   KRO2NO, KRO2HO2, State_Met )
 
       ! Partition mass of gas & aerosol species
       ! according to 5 VOC classes & 3 oxidants
-      CALL SOA_PARTITION( I, J, L, GM0, AM0, State_Chm )
+      CALL SOA_PARTITION( II, J, L, GM0, AM0, State_Chm )
 
       ! hotp diagnostic (3/11/09)
-      GLOB_AM0_POA_0(I,J,L,1,:,:) = AM0(:,JSVPOA:JSVOPOA)
+      GLOB_AM0_POA_0(II,J,L,1,:,:) = AM0(:,JSVPOA:JSVOPOA)
 
       ! Compute oxidation of hydrocarbons by O3, OH, NO3
       ! ALPHA is a module variable now (ccc, 2/2/10)
       ! semivolpoa2: emit POA into semivolatiles here (hotp 2/27/09)
       ! add RO2+NO,HO2 rate constants (hotp 5/7/10)
-      CALL CHEM_NVOC( I,          J,         L,          &
+      CALL CHEM_NVOC( II,         J,         L,          &
                       KO3,        KOH,       KNO3,       &
                       GM0,        KRO2NO,    KRO2HO2,    &
                       Input_Opt,  State_Chm, State_Diag, &
@@ -1932,8 +1932,8 @@ CONTAINS
          JHC = PARENTPOA
          JSV = IDSV(JHC)
          DO IPR = 1, NPROD(JSV)
-            ORG_GAS(IPR,JSV) = ORG_GAS(IPR,JSV) * State_Chm%AerMass%OCFPOA(I,J)
-            ORG_AER(IPR,JSV) = ORG_AER(IPR,JSV) * State_Chm%AerMass%OCFPOA(I,J)
+            ORG_GAS(IPR,JSV) = ORG_GAS(IPR,JSV) * State_Chm%AerMass%OCFPOA(II,J)
+            ORG_AER(IPR,JSV) = ORG_AER(IPR,JSV) * State_Chm%AerMass%OCFPOA(II,J)
          ENDDO
       ENDIF
 
@@ -1944,8 +1944,8 @@ CONTAINS
          JHC = PARENTOPOA
          JSV = IDSV(JHC)
          DO IPR = 1, NPROD(JSV)
-            ORG_GAS(IPR,JSV) = ORG_GAS(IPR,JSV) * State_Chm%AerMass%OCFOPOA(I,J)
-            ORG_AER(IPR,JSV) = ORG_AER(IPR,JSV) * State_Chm%AerMass%OCFOPOA(I,J)
+            ORG_GAS(IPR,JSV) = ORG_GAS(IPR,JSV) * State_Chm%AerMass%OCFOPOA(II,J)
+            ORG_AER(IPR,JSV) = ORG_AER(IPR,JSV) * State_Chm%AerMass%OCFOPOA(II,J)
          ENDDO
       ENDIF
 
@@ -1987,64 +1987,64 @@ CONTAINS
 !              APMIDS%id_NH4 > 0 .and. &
 !              APMIDS%id_NIT > 0 ) THEN
 !            ! Then compute SOG condensation onto SO4, NH4, NIT aerosols
-!            MPOC = MPOC + ( Spc(APMIDS%id_NH4)%Conc(I,J,L) + &
-!                            Spc(APMIDS%id_NIT)%Conc(I,J,L) ) * FAC
+!            MPOC = MPOC + ( Spc(APMIDS%id_NH4)%Conc(II,J,L) + &
+!                            Spc(APMIDS%id_NIT)%Conc(II,J,L) ) * FAC
 !
 !            IF(NSO4>=1)THEN
 !               NTEMP=APMIDS%id_SO4BIN1-1
 !               DO N=(NTEMP+1),(NTEMP+NSO4)
-!                  MPOC = MPOC + Spc(N)%Conc(I,J,L) * FAC
+!                  MPOC = MPOC + Spc(N)%Conc(II,J,L) * FAC
 !               ENDDO
 !            ENDIF
 !
 !            IF(NCTSO4>=1)THEN
 !               NTEMP=APMIDS%id_CTSO4-1
 !               DO N=(NTEMP+1),(NTEMP+NCTSO4)
-!                  MPOC = MPOC + Spc(N)%Conc(I,J,L) * FAC
+!                  MPOC = MPOC + Spc(N)%Conc(II,J,L) * FAC
 !               ENDDO
 !            ENDIF
 !
 !            IF(NCTBC>=1)THEN
 !               NTEMP=APMIDS%id_CTBC-1
 !               DO N=(NTEMP+1),(NTEMP+NCTBC)
-!                  MPOC = MPOC + Spc(N)%Conc(I,J,L) * FAC
+!                  MPOC = MPOC + Spc(N)%Conc(II,J,L) * FAC
 !               ENDDO
 !            ENDIF
 !
 !            IF(NCTOC>=1)THEN
 !               NTEMP=APMIDS%id_CTOC-1
 !               DO N=(NTEMP+1),(NTEMP+NCTOC)
-!                  MPOC = MPOC + Spc(N)%Conc(I,J,L) * FAC
+!                  MPOC = MPOC + Spc(N)%Conc(II,J,L) * FAC
 !               ENDDO
 !            ENDIF
 !
 !            IF(NCTSEA>=1)THEN
 !               NTEMP=APMIDS%id_CTSEA-1
 !               DO N=(NTEMP+1),(NTEMP+NCTSEA)
-!                  MPOC = MPOC + Spc(N)%Conc(I,J,L) * FAC
+!                  MPOC = MPOC + Spc(N)%Conc(II,J,L) * FAC
 !               ENDDO
 !            ENDIF
 !
 !            IF(NSEA>=1)THEN
 !               NTEMP=APMIDS%id_SEABIN1-1
 !               DO N=(NTEMP+1),(NTEMP+16) ! SALTbin16 = 1 um
-!                  MPOC = MPOC + Spc(N)%Conc(I,J,L) * FAC
+!                  MPOC = MPOC + Spc(N)%Conc(II,J,L) * FAC
 !               ENDDO
 !            ENDIF
 !
 !            !Add MSA
-!            MPOC = MPOC + Spc(APMIDS%id_MSA)%Conc(I,J,L) * FAC
+!            MPOC = MPOC + Spc(APMIDS%id_MSA)%Conc(II,J,L) * FAC
 !
 !         ENDIF
 !
 !      ELSEIF(IFINORG.EQ.2) THEN !Consider SV SOA partition on LV SOA
 !#############################################################################
 
-         MPOC = MPOC + FAC * (Spc(APMIDS%id_CTSO4  )%Conc(I,J,L) + & !MSULFLV
-                              Spc(APMIDS%id_CTBC +1)%Conc(I,J,L) + & !MBCLV
-                              Spc(APMIDS%id_CTOC +1)%Conc(I,J,L) + & !MOCLV
-                              Spc(APMIDS%id_CTDST+1)%Conc(I,J,L) + & !MDSTLV
-                              Spc(APMIDS%id_CTSEA+1)%Conc(I,J,L))    !MSALTLV
+         MPOC = MPOC + FAC * (Spc(APMIDS%id_CTSO4  )%Conc(II,J,L) + & !MSULFLV
+                              Spc(APMIDS%id_CTBC +1)%Conc(II,J,L) + & !MBCLV
+                              Spc(APMIDS%id_CTOC +1)%Conc(II,J,L) + & !MOCLV
+                              Spc(APMIDS%id_CTDST+1)%Conc(II,J,L) + & !MDSTLV
+                              Spc(APMIDS%id_CTSEA+1)%Conc(II,J,L))    !MSALTLV
 
 !#############################################################################
 ! NOTE: IFINORG is always 2 so the other IF branches never get done.
@@ -2053,7 +2053,7 @@ CONTAINS
 !      ELSE
 !
 !         ! Compute SOG condensation onto OC aerosol
-!         MPOC = ( Spc(id_OCPI)%Conc(I,J,L) + Spc(id_OCPO)%Conc(I,J,L) ) * FAC
+!         MPOC = ( Spc(id_OCPI)%Conc(II,J,L) + Spc(id_OCPO)%Conc(II,J,L) ) * FAC
 !         MPOC = MPOC * 2.1d0
 !
 !      ENDIF
@@ -2061,8 +2061,8 @@ CONTAINS
 #else
       ! Now treat either traditional POA or semivolatile POA (hotp 7/25/10)
       IF ( id_OCPI > 0 .and. id_OCPO > 0 ) THEN
-         MPOC = ( Spc(id_OCPI)%Conc(I,J,L) + Spc(id_OCPO)%Conc(I,J,L) ) * FAC
-         MPOC = MPOC * State_Chm%AerMass%OCFOPOA(I,J)
+         MPOC = ( Spc(id_OCPI)%Conc(II,J,L) + Spc(id_OCPO)%Conc(II,J,L) ) * FAC
+         MPOC = MPOC * State_Chm%AerMass%OCFOPOA(II,J)
       ELSE
          ! semivolpoa2: MPOC is zero now (hotp 2/27/09)
          MPOC = 1e-30_fp
@@ -2073,19 +2073,19 @@ CONTAINS
       ! Solve for MNEW by solving for SOA=0
       !==============================================================
       IF ( ( MPOC / ( CAIR*1.e+9_fp ) ) <= 2.1e-18_fp ) THEN
-         VALUE = 0.e+0_fp
+         TMP = 0.e+0_fp
          UPPER = 0.e+0_fp
 
          ! Now use SV (hotp 5/13/10)
          ! update dims (hotp 5/22/10)
          DO JSV = 1, MAXSIMSV
          DO IPR = 1, NPROD(JSV)
-            VALUE = VALUE + KOM(IPR,JSV) * (ORG_GAS(IPR,JSV) + ORG_AER(IPR,JSV))
+            TMP = TMP + KOM(IPR,JSV) * (ORG_GAS(IPR,JSV) + ORG_AER(IPR,JSV))
             UPPER = UPPER + ORG_GAS(IPR,JSV) + ORG_AER(IPR,JSV)
          ENDDO
          ENDDO
 
-         IF ( VALUE <= 1.e+0_fp ) THEN
+         IF ( TMP <= 1.e+0_fp ) THEN
             MNEW  = 0.e+0_fp
          ELSE
             LOWER = 1.e-18_fp * ( CAIR * 1.e+9_fp )
@@ -2142,8 +2142,8 @@ CONTAINS
             JHC = PARENTPOA
             JSV = IDSV(JHC)
             DO IPR = 1, NPROD(JSV)
-               ORG_GAS(IPR,JSV) = ORG_GAS(IPR,JSV) / State_Chm%AerMass%OCFPOA(I,J)
-               ORG_AER(IPR,JSV) = ORG_AER(IPR,JSV) / State_Chm%AerMass%OCFPOA(I,J)
+               ORG_GAS(IPR,JSV) = ORG_GAS(IPR,JSV) / State_Chm%AerMass%OCFPOA(II,J)
+               ORG_AER(IPR,JSV) = ORG_AER(IPR,JSV) / State_Chm%AerMass%OCFPOA(II,J)
             ENDDO
          ENDIF
 
@@ -2153,8 +2153,8 @@ CONTAINS
             JHC = PARENTOPOA
             JSV = IDSV(JHC)
             DO IPR = 1, NPROD(JSV)
-               ORG_GAS(IPR,JSV) = ORG_GAS(IPR,JSV) / State_Chm%AerMass%OCFOPOA(I,J)
-               ORG_AER(IPR,JSV) = ORG_AER(IPR,JSV) / State_Chm%AerMass%OCFOPOA(I,J)
+               ORG_GAS(IPR,JSV) = ORG_GAS(IPR,JSV) / State_Chm%AerMass%OCFOPOA(II,J)
+               ORG_AER(IPR,JSV) = ORG_AER(IPR,JSV) / State_Chm%AerMass%OCFOPOA(II,J)
             ENDDO
          ENDIF
 
@@ -2179,7 +2179,7 @@ CONTAINS
          DO JSV = 1, MAXSIMSV
          DO IPR = 1, NPROD(JSV)
             GM0(IPR,JSV) = GM0(IPR,JSV) + AM0(IPR,JSV)
-            !AM0(IPR,JSV) = 1.D-18 * State_Met%AD(I,J,L)
+            !AM0(IPR,JSV) = 1.D-18 * State_Met%AD(II,J,L)
             ! try this to fix MB problem (hotp 5/25/10)
             AM0(IPR,JSV) = 1.e-20_fp
          ENDDO
@@ -2197,10 +2197,10 @@ CONTAINS
       GM0(IPR,JSV) = 0e+0_fp
 
       ! Lump SOA
-      CALL SOA_LUMP( I, J, L, GM0, AM0, State_Chm, State_Diag )
+      CALL SOA_LUMP( II, J, L, GM0, AM0, State_Chm, State_Diag )
 
       ! hotp diagnostic (3/11/09)
-      GLOB_AM0_POA(I,J,L,1,:,:) = AM0(:,JSVPOA:JSVOPOA)
+      GLOB_AM0_POA(II,J,L,1,:,:) = AM0(:,JSVPOA:JSVOPOA)
 
       !--------------------------------------------------------------------
       ! Comment out for now.  This produces a lot of excess debug output.
@@ -2209,7 +2209,7 @@ CONTAINS
       !IF ( Input_Opt%Verbose ) THEN
       !   ! IDSV for lumped arom/IVOC is hardwired (=3) (hotp 5/20/10)
       !   ! Low NOX (non-volatile) aromatic product is IPR=4
-      !   CALL CHECK_EQLB( I, J, L, KOM, FAC, MNEW, LOWER, TOL, &
+      !   CALL CHECK_EQLB( II, J, L, KOM, FAC, MNEW, LOWER, TOL, &
       !                    ORG_GAS(4,3), ORG_AER(4,3), MPOC, State_Chm )
       !ENDIF
       !--------------------------------------------------------------------
@@ -2410,27 +2410,27 @@ CONTAINS
 !
    INTEGER  :: JHC,   IPR!,     NOX (hotp 5/22/10)
    INTEGER  :: JSV ! hotp 5/13/10
-   REAL(fp) :: VALUE
+   REAL(fp) :: TMP
 
    !=================================================================
    ! SOA_EQUIL begins here!
    !=================================================================
 
    ! Equation (39) on page 139 of notes:
-   VALUE = 0.e+0_fp
+   TMP = 0.e+0_fp
 
    ! Use SV not HC (hotp 5/13/10)
    ! update dims (remove NOX) (hotp 5/22/10)
    DO JSV = 1, MAXSIMSV
    DO IPR = 1, NPROD(JSV)
-      VALUE = VALUE + KOM(IPR,JSV)                        / &
+      TMP = TMP + KOM(IPR,JSV)                        / &
                       ( 1.e+0_fp + KOM(IPR,JSV) * MASS  ) * &
                       ( GAS(IPR,JSV) + AEROSOL(IPR,JSV) )
    ENDDO
    ENDDO
 
    ! Compute SOA mass
-   SOA_MASS = VALUE + ( 1.e+5_fp * MPOC ) / ( 1.e+5_fp * MASS ) - 1.0e+0_fp
+   SOA_MASS = TMP + ( 1.e+5_fp * MPOC ) / ( 1.e+5_fp * MASS ) - 1.0e+0_fp
 
  END FUNCTION SOA_EQUIL
 !EOC
@@ -6436,7 +6436,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
- SUBROUTINE CHECK_EQLB( I,   J,   L, KOMIJL, CONVFAC, MSOACHEM, &
+ SUBROUTINE CHECK_EQLB( II,  JJ,  LL, KOMIJL, CONVFAC, MSOACHEM, &
                         LOW, TOL, ASOANGAS, ASOANAER, OCPIOCPO, State_Chm )
 !
 ! !USES:
@@ -6446,9 +6446,9 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-   INTEGER,        INTENT(IN)  :: I           ! Longitude index
-   INTEGER,        INTENT(IN)  :: J           ! Latitude index
-   INTEGER,        INTENT(IN)  :: L           ! Altitude index
+   INTEGER,        INTENT(IN)  :: II          ! Longitude index
+   INTEGER,        INTENT(IN)  :: JJ          ! Latitude index
+   INTEGER,        INTENT(IN)  :: LL          ! Altitude index
    REAL(fp),       INTENT(IN)  :: KOMIJL(MPROD,MSV) ! KOM at grid box (adj T)
    REAL(fp),       INTENT(IN)  :: CONVFAC     ! Conversion factor kg to ug/m3
    REAL(fp),       INTENT(IN)  :: OCPIOCPO    ! POA mass [ug/m3]
@@ -6504,25 +6504,25 @@ CONTAINS
    Spc => State_Chm%Species
 
    ! Calculate mass of absorbing organic medium
-   MOTEMP = Spc(id_ASOAN)%Conc(I,J,L) + &
-            Spc(id_ASOA1)%Conc(I,J,L) + &
-            Spc(id_ASOA2)%Conc(I,J,L) + &
-            Spc(id_ASOA3)%Conc(I,J,L) + &
-            Spc(id_TSOA1)%Conc(I,J,L) + &
-            Spc(id_TSOA2)%Conc(I,J,L) + &
-            Spc(id_TSOA3)%Conc(I,J,L) + &
-            Spc(id_TSOA0)%Conc(I,J,L)
+   MOTEMP = Spc(id_ASOAN)%Conc(II,JJ,LL) + &
+            Spc(id_ASOA1)%Conc(II,JJ,LL) + &
+            Spc(id_ASOA2)%Conc(II,JJ,LL) + &
+            Spc(id_ASOA3)%Conc(II,JJ,LL) + &
+            Spc(id_TSOA1)%Conc(II,JJ,LL) + &
+            Spc(id_TSOA2)%Conc(II,JJ,LL) + &
+            Spc(id_TSOA3)%Conc(II,JJ,LL) + &
+            Spc(id_TSOA0)%Conc(II,JJ,LL)
 
    ! Add primary material as appropriate
    IF ( id_POA1 > 0 ) THEN
       MOTEMP = MOTEMP              + &
-               Spc(id_POA1 )%Conc(I,J,L) * State_Chm%AerMass%OCFPOA(I,J)  + &
-               Spc(id_POA2 )%Conc(I,J,L) * State_Chm%AerMass%OCFPOA(I,J)  + &
-               Spc(id_OPOA1)%Conc(I,J,L) * State_Chm%AerMass%OCFOPOA(I,J) + &
-               Spc(id_OPOA2)%Conc(I,J,L) * State_Chm%AerMass%OCFOPOA(I,J)
+               Spc(id_POA1 )%Conc(II,JJ,LL) * State_Chm%AerMass%OCFPOA (II,JJ) + &
+               Spc(id_POA2 )%Conc(II,JJ,LL) * State_Chm%AerMass%OCFPOA (II,JJ) + &
+               Spc(id_OPOA1)%Conc(II,JJ,LL) * State_Chm%AerMass%OCFOPOA(II,JJ) + &
+               Spc(id_OPOA2)%Conc(II,JJ,LL) * State_Chm%AerMass%OCFOPOA(II,JJ)
    ELSEIF ( id_OCPI > 0 ) THEN
       MOTEMP = MOTEMP + &
-               ( Spc(id_OCPI)%Conc(I,J,L) + Spc(id_OCPO)%Conc(I,J,L) ) * 2.1e+0_fp
+               ( Spc(id_OCPI)%Conc(II,JJ,LL) + Spc(id_OCPO)%Conc(II,JJ,LL) ) * 2.1e+0_fp
    ENDIF
 
    ! Convert Mo from [kg] to [ug/m3]
@@ -6536,7 +6536,7 @@ CONTAINS
    !IF ( EQLBDIFF > 1d-4 ) print*, 'CHECK_EQLB ERROR: MO disagree',
    ! KOM_REF for non-vol is larger, so tighten here (hotp 5/28/10)
    IF ( EQLBDIFF > 1e-8_fp ) print*, 'CHECK_EQLB ERROR: MO disagree', &
-                                     I,J,L,MSOACHEM,MOTEMP,LOW,TOL,   &
+                                     II,JJ,LL,MSOACHEM,MOTEMP,LOW,TOL,   &
                                      ASOANGAS, ASOANAER, OCPIOCPO
 
    ! quick check
@@ -6551,52 +6551,52 @@ CONTAINS
    ! Product 1
    IPR = 1
    ! Compute OA in kg
-   OATEMP = Spc(id_TSOG1)%Conc(I,J,L) * KOMIJL(IPR,JSV) * MOTEMP
+   OATEMP = Spc(id_TSOG1)%Conc(II,JJ,LL) * KOMIJL(IPR,JSV) * MOTEMP
    ! Compute difference in ug/m3
-   EQLBDIFF = ABS( OATEMP - Spc(id_TSOA1)%Conc(I,J,L) )* CONVFAC
+   EQLBDIFF = ABS( OATEMP - Spc(id_TSOA1)%Conc(II,JJ,LL) )* CONVFAC
    ! Assess error
    IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
-      WRITE(*,*) 'EQLB Problem PR, JSV',  IPR, JSV, ' in box ', I, J, L
+      WRITE(*,*) 'EQLB Problem PR, JSV',  IPR, JSV, ' in box ', II, JJ, LL
    ENDIF
 
    ! Product 2
    IPR = 2
    ! Compute OA in kg
-   OATEMP = Spc(id_TSOG2)%Conc(I,J,L) * KOMIJL(IPR,JSV) * MOTEMP
+   OATEMP = Spc(id_TSOG2)%Conc(II,JJ,LL) * KOMIJL(IPR,JSV) * MOTEMP
    ! Compute difference in ug/m3
-   EQLBDIFF = ABS( OATEMP - Spc(id_TSOA2)%Conc(I,J,L) )* CONVFAC
+   EQLBDIFF = ABS( OATEMP - Spc(id_TSOA2)%Conc(II,JJ,LL) )* CONVFAC
    ! Assess error
    IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
-      WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, ' in box ', I, J, L, &
+      WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, ' in box ', II, JJ, LL, &
                   MSOACHEM,MOTEMP,LOW,TOL, &
                   ASOANGAS, ASOANAER, OCPIOCPO, &
-                  Spc(id_TSOA2)%Conc(I,J,L),Spc(id_TSOG2)%Conc(I,J,L)
+                  Spc(id_TSOA2)%Conc(II,JJ,LL),Spc(id_TSOG2)%Conc(II,JJ,LL)
       WRITE(*,*) 'KOM',KOMIJL(IPR,JSV),OATEMP,CONVFAC
    ENDIF
 
    ! Product 3
    IPR = 3
    ! Compute OA in kg
-   OATEMP = Spc(id_TSOG3)%Conc(I,J,L) * KOMIJL(IPR,JSV) * MOTEMP
+   OATEMP = Spc(id_TSOG3)%Conc(II,JJ,LL) * KOMIJL(IPR,JSV) * MOTEMP
    ! Compute difference in ug/m3
-   EQLBDIFF = ABS( OATEMP - Spc(id_TSOA3)%Conc(I,J,L) )* CONVFAC
+   EQLBDIFF = ABS( OATEMP - Spc(id_TSOA3)%Conc(II,JJ,LL) )* CONVFAC
    ! Assess error
    IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
-      WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, ' in box ', I, J, L
+      WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, ' in box ', II, JJ, LL
    ENDIF
 
    ! Product 4, C*=0.1
    IPR = 4
    ! Compute OA in kg
-   OATEMP = Spc(id_TSOG0)%Conc(I,J,L) * KOMIJL(IPR,JSV) * MOTEMP
+   OATEMP = Spc(id_TSOG0)%Conc(II,JJ,LL) * KOMIJL(IPR,JSV) * MOTEMP
    ! Compute difference in ug/m3
-   EQLBDIFF = ABS( OATEMP - Spc(id_TSOA0)%Conc(I,J,L) )* CONVFAC
+   EQLBDIFF = ABS( OATEMP - Spc(id_TSOA0)%Conc(II,JJ,LL) )* CONVFAC
    ! Assess error
    IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
-      WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, ' in box ', I, J, L, &
+      WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, ' in box ', II, JJ, LL, &
                   MSOACHEM,MOTEMP,LOW,TOL, &
                   ASOANGAS, ASOANAER, OCPIOCPO, &
-                  Spc(id_TSOA0)%Conc(I,J,L),Spc(id_TSOG0)%Conc(I,J,L)
+                  Spc(id_TSOA0)%Conc(II,JJ,LL),Spc(id_TSOG0)%Conc(II,JJ,LL)
       WRITE(*,*) 'KOM',KOMIJL(IPR,JSV),OATEMP,CONVFAC
    ENDIF
 
@@ -6612,34 +6612,34 @@ CONTAINS
    !! Product 1
    !IPR = 1
    !! Compute OA in kg
-   !OATEMP = Spc(id_ISOG1)%Conc(I,J,L) * KOMIJL(IPR,JSV) * MOTEMP
+   !OATEMP = Spc(id_ISOG1)%Conc(II,JJ,LL) * KOMIJL(IPR,JSV) * MOTEMP
    !! Compute difference in ug/m3
-   !EQLBDIFF = ABS( OATEMP - Spc(id_ISOA1)%Conc(I,J,L) )* CONVFAC
+   !EQLBDIFF = ABS( OATEMP - Spc(id_ISOA1)%Conc(II,JJ,LL) )* CONVFAC
    !! Assess error
    !IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
-   !   WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, ' in box ', I, J, L
+   !   WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, ' in box ', II, JJ, LL
    !ENDIF
    !
    !! Product 2
    !IPR = 2
    !! Compute OA in kg
-   !OATEMP = Spc(id_ISOG2)%Conc(I,J,L) * KOMIJL(IPR,JSV) * MOTEMP
+   !OATEMP = Spc(id_ISOG2)%Conc(II,JJ,LL) * KOMIJL(IPR,JSV) * MOTEMP
    !! Compute difference in ug/m3
-   !EQLBDIFF = ABS( OATEMP - Spc(id_ISOA2)%Conc(I,J,L) )* CONVFAC
+   !EQLBDIFF = ABS( OATEMP - Spc(id_ISOA2)%Conc(II,JJ,LL) )* CONVFAC
    !! Assess error
    !IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
-   !   WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV,' in box ', I, J, L
+   !   WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV,' in box ', II, JJ, LL
    !ENDIF
    !
    !! Product 3
    !IPR = 3
    !! Compute OA in kg
-   !OATEMP = Spc(id_ISOG3)%Conc(I,J,L) * KOMIJL(IPR,JSV) * MOTEMP
+   !OATEMP = Spc(id_ISOG3)%Conc(II,JJ,LL) * KOMIJL(IPR,JSV) * MOTEMP
    !! Compute difference in ug/m3
-   !EQLBDIFF = ABS( OATEMP - Spc(id_ISOA3)%Conc(I,J,L) )* CONVFAC
+   !EQLBDIFF = ABS( OATEMP - Spc(id_ISOA3)%Conc(II,JJ,LL) )* CONVFAC
    !! Assess error
    !IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
-   !   WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, ' in box ', I, J, L
+   !   WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, ' in box ', II, JJ, LL
    !ENDIF
    !---------------------------------------------------------------------------
 
@@ -6653,36 +6653,36 @@ CONTAINS
    !NOX = NHIGHNOX
    IPR = 1
    ! Compute OA in kg
-   OATEMP = Spc(id_ASOG1)%Conc(I,J,L) * KOMIJL(IPR,JSV) * MOTEMP
+   OATEMP = Spc(id_ASOG1)%Conc(II,JJ,LL) * KOMIJL(IPR,JSV) * MOTEMP
    ! Compute difference in ug/m3
-   EQLBDIFF = ABS( OATEMP - Spc(id_ASOA1)%Conc(I,J,L) )* CONVFAC
+   EQLBDIFF = ABS( OATEMP - Spc(id_ASOA1)%Conc(II,JJ,LL) )* CONVFAC
    ! Assess error
    IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
-      WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, ' in box ', I, J, L
+      WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, ' in box ', II, JJ, LL
    ENDIF
 
    ! High NOx, Product 2
    !NOX = NHIGHNOX
    IPR = 2
    ! Compute OA in kg
-   OATEMP = Spc(id_ASOG2)%Conc(I,J,L) * KOMIJL(IPR,JSV) * MOTEMP
+   OATEMP = Spc(id_ASOG2)%Conc(II,JJ,LL) * KOMIJL(IPR,JSV) * MOTEMP
    ! Compute difference in ug/m3
-   EQLBDIFF = ABS( OATEMP - Spc(id_ASOA2)%Conc(I,J,L) )* CONVFAC
+   EQLBDIFF = ABS( OATEMP - Spc(id_ASOA2)%Conc(II,JJ,LL) )* CONVFAC
    ! Assess error
    IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
-      WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, ' in box ', I, J, L
+      WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, ' in box ', II, JJ, LL
    ENDIF
 
    ! High NOx, Product 3
    !NOX = NHIGHNOX
    IPR = 3
    ! Compute OA in kg
-   OATEMP = Spc(id_ASOG3)%Conc(I,J,L) * KOMIJL(IPR,JSV) * MOTEMP
+   OATEMP = Spc(id_ASOG3)%Conc(II,JJ,LL) * KOMIJL(IPR,JSV) * MOTEMP
    ! Compute difference in ug/m3
-   EQLBDIFF = ABS( OATEMP - Spc(id_ASOA3)%Conc(I,J,L) )* CONVFAC
+   EQLBDIFF = ABS( OATEMP - Spc(id_ASOA3)%Conc(II,JJ,LL) )* CONVFAC
    ! Assess error
    IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
-      WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, ' in box ', I, J, L
+      WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, ' in box ', II, JJ, LL
    ENDIF
 
    ! LOW NOx, Product 1
@@ -6700,26 +6700,26 @@ CONTAINS
       NOX = NONLYNOX
       IPR = 1
       ! Compute OA in kg
-      OATEMP = Spc(id_POG1)%Conc(I,J,L) * KOMIJL(IPR,JSV) * MOTEMP
+      OATEMP = Spc(id_POG1)%Conc(II,JJ,LL) * KOMIJL(IPR,JSV) * MOTEMP
       ! Compute difference in ug/m3
-      EQLBDIFF = ABS( OATEMP - Spc(id_POA1)%Conc(I,J,L) )* CONVFAC
+      EQLBDIFF = ABS( OATEMP - Spc(id_POA1)%Conc(II,JJ,LL) )* CONVFAC
       ! Assess error
       IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
          WRITE(*,*) 'EQLB Problem NOX, PR, JSV', NOX, IPR, JSV, &
-                    ' in box ', I, J, L
+                    ' in box ', II, JJ, LL
       ENDIF
 
       ! Product 2
       NOX = NONLYNOX
       IPR = 2
       ! Compute OA in kg
-      OATEMP = Spc(id_POG2)%Conc(I,J,L) * KOMIJL(IPR,JSV) * MOTEMP
+      OATEMP = Spc(id_POG2)%Conc(II,JJ,LL) * KOMIJL(IPR,JSV) * MOTEMP
       ! Compute difference in ug/m3
-      EQLBDIFF = ABS( OATEMP - Spc(id_POA2)%Conc(I,J,L) )* CONVFAC
+      EQLBDIFF = ABS( OATEMP - Spc(id_POA2)%Conc(II,JJ,LL) )* CONVFAC
       ! Assess error
       IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
          WRITE(*,*) 'EQLB Problem NOX, PR, JSV', NOX, IPR, JSV, &
-                    ' in box ', I, J, L
+                    ' in box ', II, JJ, LL
       ENDIF
 
    ENDIF ! POA
@@ -6736,26 +6736,26 @@ CONTAINS
       NOX = NONLYNOX
       IPR = 1
       ! Compute OA in kg
-      OATEMP = Spc(id_OPOG1)%Conc(I,J,L) * KOMIJL(IPR,JSV) * MOTEMP
+      OATEMP = Spc(id_OPOG1)%Conc(II,JJ,LL) * KOMIJL(IPR,JSV) * MOTEMP
       ! Compute difference in ug/m3
-      EQLBDIFF = ABS( OATEMP - Spc(id_OPOA1)%Conc(I,J,L) )* CONVFAC
+      EQLBDIFF = ABS( OATEMP - Spc(id_OPOA1)%Conc(II,JJ,LL) )* CONVFAC
       ! Assess error
       IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
          WRITE(*,*) 'EQLB Problem NOX, PR, JSV', NOX, IPR, JSV, &
-                    ' in box ', I, J, L
+                    ' in box ', II, JJ, LL
       ENDIF
 
       ! Product 2
       NOX = NONLYNOX
       IPR = 2
       ! Compute OA in kg
-      OATEMP = Spc(id_OPOG2)%Conc(I,J,L) * KOMIJL(IPR,JSV) * MOTEMP
+      OATEMP = Spc(id_OPOG2)%Conc(II,JJ,LL) * KOMIJL(IPR,JSV) * MOTEMP
       ! Compute difference in ug/m3
-      EQLBDIFF = ABS( OATEMP - Spc(id_OPOA2)%Conc(I,J,L) )* CONVFAC
+      EQLBDIFF = ABS( OATEMP - Spc(id_OPOA2)%Conc(II,JJ,LL) )* CONVFAC
       ! Assess error
       IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
          WRITE(*,*) 'EQLB Problem NOX, PR, JSV', NOX, IPR, JSV, &
-                    ' in box ', I, J, L
+                    ' in box ', II, JJ, LL
       ENDIF
 
    ENDIF ! OPOA
