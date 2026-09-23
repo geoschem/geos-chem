@@ -1,0 +1,23 @@
+app:
+  config: cap_driver.yaml
+
+esmf:
+  logKindFlag: ESMF_LOGKIND_MULTI_ON_ERROR
+  defaultCalKind: ESMF_CALKIND_GREGORIAN
+  logAppendFlag: false
+
+pflogger: pflogger.yaml
+
+app_petcount: 6
+
+#servers:
+#  mit:
+#    num_nodes: 1
+#    sharedObj: libmit
+#    userRoutine: init_comm_
+#
+#  pfio:
+#    num_nodes: 1
+#
+#  app:
+#    num_nodes: any

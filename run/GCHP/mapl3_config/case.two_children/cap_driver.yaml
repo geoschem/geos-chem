@@ -1,0 +1,22 @@
+# cap_driver.yaml
+
+cap_gridcomp_config: cap_gridcomp.yaml
+
+restart: cap_restart.yaml
+skip_restart_write: false
+
+clock:
+  start: 1891-03-01T00:00:00
+  stop: 2999-03-02T21:00:00
+  dt: PT600S
+#   repeat_duration: P1Y
+  segment_duration: P1H
+
+checkpointing:
+  enabled: false
+  final: false
+  path: checkpoints
+  alarms: {}
+#    - {frequency: PT6H, refTime: '1891-03-01T00:00:00'}
+#    - {times: ['1891-03-01T00:00:00']}
+#    - {offsets: ['P6H']} # relative to segment start
