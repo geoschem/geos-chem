@@ -10,3 +10,5 @@
 *.gif binary
 *.ico binary
 *.pdf binary
+*.nc binary
+*.nc4 binary

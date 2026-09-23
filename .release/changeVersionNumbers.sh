@@ -95,6 +95,11 @@ function main() {
     pattern='^date-released: .*'
     replace "${pattern}" "date-released: ${date}" "CITATION.cff"
 
+    # sed exits 0 even when nothing matched, so confirm both edits landed
+    grep -qx "version: ${version}" "CITATION.cff"    || exitWithError "CITATION.cff"
+    grep -qx "date-released: ${date}" "CITATION.cff" || exitWithError "CITATION.cff"
+    echo "GCClassic version updated to ${version} in CITATION.cff"
+
     # Return to the starting directory
     cd "${thisDir}"
 }

@@ -54,15 +54,15 @@ So an emissions change belongs in HEMCO, not here; a photolysis-rate change belo
 
 ### Host-model preprocessor macros
 
-Beyond GCClassic and GCHP, this code is also coupled into several external host models, each gated by its own macro. Rough usage, by occurrence count:
+Beyond GCClassic and GCHP, this code is also coupled into several external host models, each gated by its own macro. Rough usage, by occurrence count (`git grep -ow <MACRO> -- ':!*.md' | wc -l`, as of 14.8.0):
 
 | Macro | Uses | Set by |
 |---|---|---|
-| `MODEL_GEOS` | 216 | NASA GMAO GEOS (see `Interfaces/GEOS/`) |
-| `MODEL_CLASSIC` | 141 | this repo's CMake, via the GCClassic superproject |
+| `MODEL_GEOS` | 215 | NASA GMAO GEOS (see `Interfaces/GEOS/`) |
+| `MODEL_CLASSIC` | 143 | this repo's CMake, via the GCClassic superproject |
 | `MODEL_CESM` | 120 | CESM/CAM-chem build (config templates in `run/CESM/`) |
 | `MODEL_WRF` | 77 | WRF-GC (`run/WRF/`) |
-| `MODEL_GCHP` | 30 | this repo's CMake, via the GCHP superproject |
+| `MODEL_GCHP` | 34 | this repo's CMake, via the GCHP superproject |
 | `MODEL_BCC` | 14 | BCC (Beijing Climate Center) coupling |
 | `MODEL_EXTERNAL` | 9 | generic external driver (renamed from `MODEL_` in 14.8.0) |
 
@@ -159,9 +159,9 @@ cd KPP
 
 The script takes the mechanism *directory name* and only checks that the directory exists, so there is no whitelist — but the directory must contain a `.eqn` file and a `gckpp.kpp`. It regenerates the `gckpp*` files, applies a `sed` fix to `gckpp_Rates.F90`, and runs `KPP/OHreact_parser.py`. Species are declared inline in the `.eqn` files; there are no `.spc` files in this version.
 
-As of 14.8.0 the minimum KPP version is **3.5.0**, and the checked-in `fullchem`, `carbon`, and `Hg` solver files were generated with 3.5.0. The authoritative declaration is the `#MINVERSION` directive on line 1 of each mechanism's `.kpp` file, and **KPP itself enforces it** — `build_mechanism.sh` does no version checking of its own (its header comment still claims 2.3.0_gc), so the error you get from a too-old KPP comes from KPP, not the script.
+As of 14.8.0 the minimum KPP version is **3.5.0**, and the checked-in `fullchem`, `carbon`, and `Hg` solver files were generated with 3.5.0. The authoritative declaration is the `#MINVERSION` directive on line 1 of each mechanism's `<mech>.kpp` file (`gckpp.kpp` is a symlink to it), and **KPP itself enforces it** — `build_mechanism.sh` does no version checking of its own (its header comment still claims 2.3.0_gc), so the error you get from a too-old KPP comes from KPP, not the script.
 
-Always read `#MINVERSION` rather than the root `CHANGELOG.md` for this, and check every mechanism's — they can disagree. The 14.8.0 changelog section illustrates why: two bullets name 3.4.0 ("Regenerated fullchem solver files with KPP 3.4.0", "Updated the minimum version … from 3.2.0 to 3.4.0"), and a later bullet in the same section supersedes both ("Changed `#MINVERSION` to 3.5.0 in `Hg.kpp`, `fullchem.kpp` and `carbon.kpp`").
+Always read `#MINVERSION` rather than the root `CHANGELOG.md` for this, and check every mechanism's — they can disagree. The 14.8.0 changelog section illustrates why: two bullets name 3.4.0 ("Regenerated fullchem solver files with KPP 3.4.0", "Updated the minimum version … from 3.2.0 to 3.4.0"), and a later bullet in the same section supersedes both ("Changed `#MINVERSION` to 3.5.0 in `Hg.kpp`, `fullchem.kpp` and `carbon.kpp`"). The mechanism that bullet leaves out is the straggler: `KPP/custom/custom.kpp` still declares `#MINVERSION 3.4.0`, and `custom/` has no checked-in `gckpp_*` solver files, so it must be generated with `build_mechanism.sh custom` before it can be built.
 
 ### The mechanism symlink farm
 
@@ -198,7 +198,7 @@ When adding a new support module to one mechanism, add a stub in `KPP/stubs/` an
 
 Test infrastructure lives under `test/` and is symlinked to the same path in the GCClassic/GCHP superprojects. Run the drivers from their own directory — they resolve paths relative to `pwd` and will refuse to run inside the source tree ("You cannot run integration tests in the source code directory!").
 
-The three drivers (`integrationTest.sh`, `parallelTest.sh`) abort immediately if **any** conda environment is active, whether or not it has netCDF, to avoid linking against the wrong netCDF:
+The three drivers (`test/integration/GCClassic/integrationTest.sh`, `test/integration/GCHP/integrationTest.sh`, and `test/parallel/GCClassic/parallelTest.sh`; `diffTest.sh` has no such check) abort immediately if **any** conda environment is active, whether or not it has netCDF, to avoid linking against the wrong netCDF:
 
 ```
 ERROR: Conda netCDF detected. Run 'conda deactivate' first.
@@ -225,6 +225,7 @@ There is a `README.md` at every level of `test/`.
 
 ## Contributing
 
+- **Target a development branch, not `main`.** Updates that do not change model output ("zero-diff" updates) go to `dev/no-diff-to-benchmark`. Updates that change model output go to the target version's branch, `dev/X.Y.Z` (e.g. `dev/14.9.0`). `main` receives only released versions. See `GOVERNANCE.md`.
 - **There is no build or test CI.** The only GitHub Actions workflow is `.github/workflows/stale.yml`, which runs on a schedule and never marks PRs stale. Nothing gates a PR automatically, so the `test/` drivers above plus GCST benchmark simulations are the whole verification story — do not wait for CI to report.
 - `.github/PULL_REQUEST_TEMPLATE.md` requires: name and institution, a description of the update, **expected changes** (how it affects model output, with plots or tables), references for a science update, the related GitHub issue, and an **AI disclosure** section — "Please disclose if AI tools (e.g. Claude, ChatGPT) were used in the preparation of this pull request." Fill that in on any PR prepared with Claude Code.
 - `.gitattributes` sets `* text=auto eol=lf`. Never introduce CRLF line endings into `.sh`, `.F90`, `.rc`, or `.yml` files — they break shebangs and Fortran preprocessing on the Linux/HPC systems this is built on.
@@ -234,7 +235,7 @@ There is a `README.md` at every level of `test/`.
 ## Versioning and changes
 
 - Root `CHANGELOG.md` follows Keep a Changelog / SemVer and documents changes to this repo specifically (GCClassic's own CHANGELOG.md separately tracks submodule-pointer bumps and wrapper-level changes). Add an entry under `## [Unreleased] - TBD` for every change.
-  Individual KPP mechanisms may keep their own changelog, e.g. `KPP/fullchem/CHANGELOG_fullchem.md` — update that too when changing fullchem's chemistry.
+  Individual KPP mechanisms may keep their own changelog, e.g. `KPP/fullchem/CHANGELOG_fullchem.md` — update that too when changing fullchem's chemistry. That file has no `## [Unreleased] - TBD` heading between releases, so add one above the latest version heading when you add the first new entry.
 - `GOVERNANCE.md` describes how a change becomes a release: propose it to the relevant Working Group chair, who forwards it to the GEOS-Chem Steering Committee (GCSC) to be slated for a target version; then submit a PR here, which the GEOS-Chem Support Team (GCST) reviews, merges, and benchmarks. Substantive science or structural changes go through that process, not just a code review.
 - Any structural (non-science) change should be accompanied by a difference test (`test/difference/`) against the prior version to confirm bit-for-bit identical results.
 - Config/run-directory changes should be mirrored across `run/GCClassic/` and `run/GCHP/` (and `run/CESM`, `run/GEOS`, `run/WRF` where applicable) since they share the same underlying `geoschem_config.yml` / `HEMCO_Config.rc` / `HISTORY.rc` schema.
@@ -243,7 +244,7 @@ There is a `README.md` at every level of `test/`.
   cd .release
   ./changeVersionNumbers.sh 14.9.0
   ```
-  It updates only three files — `CHANGELOG.md`, `KPP/fullchem/CHANGELOG_fullchem.md`, and `CITATION.cff` — and it stamps today's date, not the release date. It does **not** touch the `Version:` headers in `KPP/fullchem/fullchem.eqn` and `KPP/custom/custom.eqn`, nor the `GC_X.Y.Z/` restart-data paths in `run/GCHP/createRunDir.sh` and `run/shared/download_data.yml` (those should change only when new benchmark restart files exist). `.zenodo.json` has no version field — Zenodo takes it from the git tag. After a bump, `git grep` the old version to confirm nothing was missed.
+  It updates only three files — `CHANGELOG.md`, `KPP/fullchem/CHANGELOG_fullchem.md`, and `CITATION.cff` — and it stamps today's date, not the release date. Because `sed` exits 0 whether or not its pattern matched, the changelog edits report success even when a file has no `[Unreleased]` heading and nothing changed, which is the usual case for `CHANGELOG_fullchem.md`. Check that those edits actually landed. (The `CITATION.cff` edits are checked with `grep` and exit with an error if they did not land.) It does **not** touch the `Version:` headers in `KPP/fullchem/fullchem.eqn` and `KPP/custom/custom.eqn`, nor the `GC_X.Y.Z/` restart-data paths in `run/GCHP/createRunDir.sh` and `run/shared/download_data.yml` (those should change only when new benchmark restart files exist). `.zenodo.json` has no version field — Zenodo takes it from the git tag. After a bump, `git grep` the old version to confirm nothing was missed.
 
 ## Documentation
 

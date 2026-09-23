@@ -7,9 +7,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased] - TBD
 ### Added
 - Added `Is_DryAlt` flag for SO4, NIT, NH4, SOAS in `run/shared/species_database.yml` to enable the `SpeciesConcALT1` diagnostic for these species
+- Added `.gitattributes`, `CITATION.cff`, `GOVERNANCE.md`, `SECURITY.md` for GitHub
+- Added `CLAUDE.md`, which gives guidance to Claude Code AI
+- Added `.release/changeVersionNumbers.sh` to change version numbers in relevant files in this repository
+- Added AI disclosure section to `.github/PULL_REQUEST_TEMPLATE.md`
 
 ### Changed
 - Updated the Hg0 soil emissions parameterization to improve the response of emissions to light availability 
+- Converted `GTMM/CMakeLists.txt` line endings from CRLF to LF, per `.gitattributes`
 
 ### Fixed
 - Fixed parallelization errors in `GeosCore/apm_driv_mod.F90`
@@ -17,10 +22,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Removed
 - Removed invalid OpenMP directives from the `MPI_LOAD_BALANCE` block of `GeosCore/fullchem_mod.F90`, which caused GCHP compilation to fail with `-DOMP=ON`
 - Removed confusing comments from `KPP/fullchem/fullchem_HetStateFuncs.F90`
-- Added `.gitattributes`, `CITATION.cff`, `GOVERNANCE.md`, `SECURITY.md` for GitHub
-- Added `CLAUDE.md`, which gives guidance to Claude Code AI
-- Added `.release/changeVersionNumbers.sh` to change version numbers in relevant files in this repository
-- Added AI disclosure section to `.github/PULL_REQUEST_TEMPLATE.md`
 
 ## [14.8.0] - 2026-09-11
 ### Added
