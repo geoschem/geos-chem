@@ -18,6 +18,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Converted `GTMM/CMakeLists.txt` line endings from CRLF to LF, per `.gitattributes`
 - Changed `#MINVERSION` to 3.5.0 in `KPP/custom/custom.kpp`, to match the `fullchem`, `carbon`, and `Hg` mechanisms
 - Retitled `test/README.md` so it no longer names the GCClassic-only path `src/GEOS-Chem/test`
+- Added GitHub language-detection overrides to `.gitattributes` to
+  avoid spurious CodeQL GitHub Action errors
 
 ### Fixed
 - Fixed parallelization errors in `GeosCore/apm_driv_mod.F90`

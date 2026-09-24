@@ -12,3 +12,13 @@
 *.pdf binary
 *.nc binary
 *.nc4 binary
+
+# GitHub language detection (Linguist) overrides.
+# The .H files are Fortran include files pulled into .F90 sources with
+# #include.  Without this, GitHub counts them as C, and CodeQL default
+# setup then tries (and fails) to run a C/C++ analysis.
+*.H linguist-language=Fortran
+
+# Run-directory templates for the carbon simulation end in ".carbon",
+# which GitHub mistakes for the Carbon programming language.
+*.carbon linguist-detectable=false
