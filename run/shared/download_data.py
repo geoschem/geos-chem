@@ -32,6 +32,7 @@ Remarks:
 import os
 import sys
 import subprocess
+from urllib.parse import urlparse
 import yaml
 
 # Exit with error if we are not using Python3
@@ -154,7 +155,8 @@ def extract_pathnames_from_log(args):
                 # - https://geos-chem.s3-us-west-2.amazonaws.com
                 # - https://gcgrid.s3.amazonaws.com/
                 if "ExtData" not in local_prefix:
-                    if ".amazonaws.com" in remote:
+                    hostname = urlparse(remote).hostname or ""
+                    if hostname.endswith(".amazonaws.com"):
                         local_prefix = \
                             f"{local_prefix}/ExtData".replace('//', '/')
                 break
