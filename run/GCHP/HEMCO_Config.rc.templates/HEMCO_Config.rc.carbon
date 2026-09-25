@@ -102,7 +102,7 @@ Mask fractions:              false
     --> FINNv25                :       false    # 2012-2023  
 # ..... Regional inventories .........
     --> APEI                   :       false    # 1989-2014
-    --> NEI2016_MONMEAN        :       false    # 2002-2020
+    --> NEI2022_MONMEAN        :       false    # 2002-2024
     --> DICE_Africa            :       false    # 2013
 # ..... Non-emissions data ...........
     --> CO2_COPROD             :       true     # 2004-2009
@@ -594,41 +594,30 @@ Mask fractions:              false
 )))APEI
 
 #==============================================================================
-# --- CO: EPA NEI2016 v1 (USA) ---
+# --- CO: EPA NEI2022 v2 (USA) ---
 #
 # NOTES:
-#  * Barron Henderson wrote, "The EPA emission modeling platform always
-#    includes our best estimate of that year's emissions for Canada and Mexico
-#    (othpt, othar, ptfire_oth). Using that estimate is likely good. However,
-#    that can lead to a discontinuity in Mexico and Canada."
-#    - By default only emissions over the CONUS are used (via Mask #2007)
-#    - To include emissions over Canada and Mexico, users may revert to the old
-#      US mask file $ROOT/MASKS/v2018-09/USA_LANDMASK_NEI2011_0.1x0.1.20160921.nc
-#  * The base year of these emissions is 2016 and emissions are scaled to
-#    2002-2020 using data from the EPA Trends Report for Tier 1 CAPS (obtained
-#    21 Sep 2021).
-#    - See NEI2016/v2021-06/national_tier1_caps+HEMCOscaling.xlsx for details.
-#    - Cl2 and HCl emissions are only available for 2016 because those species
-#      aren't included in the Tier 1 CAPS file/
+#  * Laura H. Yang (WashU) processed the EPA 2022v2 emissions modeling
+#    platform (unmerged files provided by Karl Seltzer, EPA) into 7 sectors
+#    (AGR, ENE, IND, OTH_ANTH, RES, TRA, WST) at 0.1 x 0.1 degree.
+#    - See https://github.com/geoschem/geos-chem/issues/3221 for details.
+#  * By default only emissions over the CONUS are used (via Mask #2007).
+#  * The base year of these emissions is 2022. Emissions are scaled to
+#    2002-2024 with state-level, sector-specific annual scale factors
+#    derived from EPA national_state_sector_2002_2024_caps (21 Feb 2025).
+#  * ENE and IND are 3-D (11 model levels); all other sectors are 2-D.
+#  * CO is read from monthly means with sector diurnal profiles from
+#    Li et al. (2025) (IDs 905-909) and NEI99 day-of-week factors.
 #==============================================================================
-(((NEI2016_MONMEAN
-0 EPA16_CO__airportsCO   $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   CO  2002-2020/1-12/1/0 RF xy   kg/m2/s CO 26/211/252/2007 1 50
-0 EPA16_CO__nonptCO      $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      CO  2002-2020/1-12/1/0 RF xy   kg/m2/s CO 26/211/252/2007 1 50
-0 EPA16_CO__nonroadCO    $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    CO  2002-2020/1-12/1/0 RF xy   kg/m2/s CO 26/211/252/2007 1 50
-0 EPA16_CO__npogCO       $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  CO  2002-2020/1-12/1/0 RF xy   kg/m2/s CO 26/211/252/2007 1 50
-0 EPA16_CO__onroadCO     $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     CO  2002-2020/1-12/1/0 RF xy   kg/m2/s CO 26/211/252/2007 1 50
-0 EPA16_CO__onroad_caCO  $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              CO  2002-2020/1-12/1/0 RF xy   kg/m2/s CO 26/211/252/2007 1 50
-0 EPA16_CO__railCO       $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       CO  2002-2020/1-12/1/0 RF xy   kg/m2/s CO 26/211/252/2007 1 50
-0 EPA16_CO__c1c2CO       $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c1c2_12_0pt1degree_3D_month_$MM.ncf        CO  2002-2020/1-12/1/0 RF xyz  kg/m2/s CO 26/211/252/2007 1 50
-0 EPA16_CO__c3CO         $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          CO  2002-2020/1-12/1/0 RF xyz  kg/m2/s CO 26/211/252/2007 1 50
-0 EPA16_CO__pteguCO      $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              CO  2002-2020/1-12/1/0 RF xyz  kg/m2/s CO 26/211/252/2007 1 50
-0 EPA16_CO__ptogCO       $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  CO  2002-2020/1-12/1/0 RF xyz  kg/m2/s CO 26/211/252/2007 1 50
-0 EPA16_CO__ptnonipmCO   $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   CO  2002-2020/1-12/1/0 RF xyz  kg/m2/s CO 26/211/252/2007 1 50
-0 EPA16_CO__onroad_canCO $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 CO  2002-2020/1-12/1/0 RF xy   kg/m2/s CO 26/211/252/2007 1 50
-0 EPA16_CO__onroad_mexCO $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 CO  2002-2020/1-12/1/0 RF xy   kg/m2/s CO 26/211/252/2007 1 50
-0 EPA16_CO__otharCO      $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      CO  2002-2020/1-12/1/0 RF xy   kg/m2/s CO 26/211/252/2007 1 50
-0 EPA16_CO__othptCO      $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 CO  2002-2020/1-12/1/0 RF xy   kg/m2/s CO 26/211/252/2007 1 50
-)))NEI2016_MONMEAN
+(((NEI2022_MONMEAN
+0 EPA22_CO_TRA         $ROOT/NEI2022/v2026-09/EPA22data/2022_merged_TRA_0pt1degree_2D_monMean_month_$MM.nc  CO       2002-2024/1-12/1/0 RF xy  kg/m2/s CO     908/2513/211/2007      1 50
+0 EPA22_CO_AGR         $ROOT/NEI2022/v2026-09/EPA22data/2022_merged_AGR_0pt1degree_2D_monMean_month_$MM.nc  CO       2002-2024/1-12/1/0 RF xy  kg/m2/s CO     2401/2507/211/2007      1 50
+0 EPA22_CO_IND         $ROOT/NEI2022/v2026-09/EPA22data/2022_merged_IND_0pt1degree_monMean_month_$MM.nc  CO       2002-2024/1-12/1/0 RF xyz kg/m2/s CO     906/2509/211/2007      1 50
+0 EPA22_CO_RES         $ROOT/NEI2022/v2026-09/EPA22data/2022_merged_RES_0pt1degree_2D_monMean_month_$MM.nc  CO       2002-2024/1-12/1/0 RF xy  kg/m2/s CO     907/2511/211/2007      1 50
+0 EPA22_CO_OTH_ANTH    $ROOT/NEI2022/v2026-09/EPA22data/2022_merged_OTH_ANTH_0pt1degree_2D_monMean_month_$MM.nc  CO       2002-2024/1-12/1/0 RF xy  kg/m2/s CO     26/2510/211/2007      1 50
+0 EPA22_CO_ENE         $ROOT/NEI2022/v2026-09/EPA22data/2022_merged_ENE_0pt1degree_monMean_month_$MM.nc  CO       2002-2024/1-12/1/0 RF xyz kg/m2/s CO     2508/905/211/2007         1 50
+0 EPA22_CO_WST         $ROOT/NEI2022/v2026-09/EPA22data/2022_merged_WST_0pt1degree_2D_monMean_month_$MM.nc  CO       2002-2024/1-12/1/0 RF xy  kg/m2/s CO     909/2510/211/2007      1 50
+)))NEI2022_MONMEAN
 
 #==============================================================================
 # --- CO: DICE-Africa emission inventory (Marais and Wiedinmyer, ES&T, 2016) ---
@@ -1571,21 +1560,30 @@ ${RUNDIR_CO2_COPROD}
 )))CEDS_01x01
 
 #------------------------------------------------------------------------------
-# --- EPA NEI2016 (monthly-mean inventory) scale factors ---
+# --- EPA NEI2022 (monthly-mean inventory) scale factors ---
 #------------------------------------------------------------------------------
-(((NEI2016_MONMEAN
+(((NEI2022_MONMEAN
 
 # Weekday/Weekend scale factors
 211 NEI99_DOW_CO $ROOT/NEI2005/v2023-02/NEI99.dow.geos.1x1.corrected.012023.nc CO 1999/1-12/WD/0  C xy 1 1
 
-# Annual scale factors were computed from the EPA Trends Report for Tier 1 CAPS
-# (obtained 21 Sep 2021) using the "Total without wildfires" field. NH3 and
-# PM2.5 only had values for 2002-2020, while the remaining species had yearly
-# values for 1990-2020 (we include only 2002-2020 here).
-# See NEI2016/v2021-06/national_tier1_caps+HEMCOscaling.xlsx for details.
-252 NEI2016_CO_YRSCALE 1.817/1.767/1.716/1.666/1.610/1.554/1.393/1.251/1.272/1.261/1.220/1.178/1.137/1.095/1.000/0.973/0.950/0.927/0.904 - 2002-2020/1/1/0 C xy 1 1
+# State-level annual CO scale factors (base year 2022), generated from
+# EPA national_state_sector_2002_2024_caps_21feb2025_tons.xlsx
+2507 NEI2022_CO_agr   $ROOT/NEI2022/v2026-09/Emiscaling_22_new_adjusted_Apr4.nc4 CO_agr     2002-2024/1/1/0 C xy 1 1
+2508 NEI2022_CO_ene   $ROOT/NEI2022/v2026-09/Emiscaling_22_new_adjusted_Apr4.nc4 CO_ene     2002-2024/1/1/0 C xy 1 1
+2509 NEI2022_CO_ind   $ROOT/NEI2022/v2026-09/Emiscaling_22_new_adjusted_Apr4.nc4 CO_ind     2002-2024/1/1/0 C xy 1 1
+2510 NEI2022_CO_oth   $ROOT/NEI2022/v2026-09/Emiscaling_22_new_adjusted_Apr4.nc4 CO_oth     2002-2024/1/1/0 C xy 1 1
+2511 NEI2022_CO_res   $ROOT/NEI2022/v2026-09/Emiscaling_22_new_adjusted_Apr4.nc4 CO_res     2002-2024/1/1/0 C xy 1 1
+2513 NEI2022_CO_tra   $ROOT/NEI2022/v2026-09/Emiscaling_22_new_adjusted_Apr4.nc4 CO_tra     2002-2024/1/1/0 C xy 1 1
 
-)))NEI2016_MONMEAN
+# Sector diurnal scale factors for CO from Li et al. (2025)
+905 ENE_CO_TOD 0.82/0.81/0.81/0.83/0.88/0.93/0.97/1.00/1.03/1.05/1.07/1.09/1.11/1.11/1.11/1.11/1.12/1.12/1.11/1.09/1.05/0.97/0.92/0.89 - - - xy unitless 1
+906 IND_CO_TOD 0.72/0.72/0.73/0.76/0.81/0.88/0.97/1.04/1.11/1.16/1.20/1.21/1.24/1.22/1.23/1.24/1.23/1.19/1.11/1.00/0.89/0.81/0.77/0.76 - - - xy unitless 1
+907 RCO_CO_TOD 0.85/0.86/0.86/0.85/0.77/0.74/0.72/0.70/0.68/0.58/0.40/0.32/0.32/0.32/0.38/0.69/1.78/2.09/2.10/2.11/2.09/1.86/1.05/0.88 - - - xy unitless 1
+908 TRA_CO_TOD 0.11/0.12/0.13/0.20/0.41/0.81/1.16/1.34/1.53/1.68/1.78/1.82/1.84/1.89/1.93/1.89/1.63/1.18/0.83/0.61/0.42/0.31/0.22/0.16 - - - xy unitless 1
+909 WST_CO_TOD 0.42/0.43/0.45/0.52/0.63/0.77/0.93/1.08/1.22/1.32/1.41/1.44/1.46/1.47/1.49/1.53/1.51/1.43/1.23/0.97/0.74/0.57/0.51/0.47 - - - xy unitless 1
+
+)))NEI2022_MONMEAN
 
 #------------------------------------------------------------------------------
 # --- QFED2 diurnal scale factors ---
@@ -1606,12 +1604,16 @@ ${RUNDIR_CO2_COPROD}
 312 QFED_FT_FRAC  0.35 - - - xy 1 1
 )))QFED2
 
-(((CEDS_01x01
 #=========================================================================
 # --- Sector-wise diel scale factors for CEDS ---
 # These scale factors could potentially be used for other global base emissions if modified accordingly.
+# TOD_AGRICULTURE is also used by NEI2022_MONMEAN.
 #=========================================================================
+(((CEDS_01x01.or.NEI2022_MONMEAN
 2401 TOD_AGRICULTURE 0.599/0.599/0.599/0.599/0.599/0.649/0.748/0.898/1.098/1.247/1.447/1.597/1.796/1.746/1.696/1.547/1.347/1.098/0.898/0.748/0.649/0.599/0.599/0.599 - - - xy unitless 1
+)))CEDS_01x01.or.NEI2022_MONMEAN
+
+(((CEDS_01x01
 2406 TOD_ENERGY      0.790/0.720/0.720/0.710/0.740/0.800/0.920/1.080/1.190/1.220/1.210/1.210/1.170/1.150/1.140/1.130/1.100/1.070/1.040/1.020/1.020/1.010/0.960/0.880 - - - xy unitless 1
 2407 TOD_INDUSTRY    0.750/0.750/0.780/0.820/0.880/0.950/1.020/1.090/1.160/1.220/1.280/1.300/1.220/1.240/1.250/1.160/1.080/1.010/0.950/0.900/0.850/0.810/0.780/0.750 - - - xy unitless 1
 2409 TOD_RESIDENTIAL 0.393/0.393/0.393/0.393/0.393/0.492/1.180/1.475/1.574/1.574/1.377/1.180/1.082/1.082/0.984/0.984/0.984/1.082/1.377/1.475/1.377/1.377/0.984/0.393 - - - xy unitless 1
@@ -1671,9 +1673,9 @@ ${RUNDIR_CO2_COPROD}
 )))APEI
 
 # Renamed to avoid a namespace collision w/ GHGI mask above!!!
-(((NEI2016_MONMEAN
+(((NEI2022_MONMEAN
 2007 NEI_CONUS_MASK  $ROOT/MASKS/v2018-09/CONUS_Mask.01x01.nc            MASK     2000/1/1/0 C xy 1 1 -140/20/-50/60
-)))NEI2016_MONMEAN
+)))NEI2022_MONMEAN
 
 (((DICE_Africa
 2008 AFRICA_MASK $ROOT/MASKS/v2018-09/AF_LANDMASK.geos.05x0666.global.nc LANDMASK 1985/1/1/0 C xy 1 1 -20/-37/54/40
