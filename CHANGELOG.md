@@ -9,10 +9,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added `Is_DryAlt` flag for SO4, NIT, NH4, SOAS in `run/shared/species_database.yml` to enable the `SpeciesConcALT1` diagnostic for these species
 
 ### Changed
-- Updated the Hg0 soil emissions parameterization to improve the response of emissions to light availability 
+- Updated the Hg0 soil emissions parameterization to improve the response of emissions to light availability
 
 ### Fixed
 - Fixed parallelization errors in `GeosCore/apm_driv_mod.F90`
+- Fixed date range in `HEMCO_Config.rc.gmao_metfields_0125`
 
 ### Removed
 - Removed invalid OpenMP directives from the `MPI_LOAD_BALANCE` block of `GeosCore/fullchem_mod.F90`, which caused GCHP compilation to fail with `-DOMP=ON`
