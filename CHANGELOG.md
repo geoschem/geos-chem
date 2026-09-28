@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Fixed
 - Fixed parallelization errors in `GeosCore/apm_driv_mod.F90`
 - Fixed date range in `HEMCO_Config.rc.gmao_metfields_0125`
+- Fixed `Set_Boundary_Conditions` so that the CH4 BC perturbation (carbon nested-grid simulations) is applied only once per BC update and is thread-safe
 
 ### Removed
 - Removed invalid OpenMP directives from the `MPI_LOAD_BALANCE` block of `GeosCore/fullchem_mod.F90`, which caused GCHP compilation to fail with `-DOMP=ON`
