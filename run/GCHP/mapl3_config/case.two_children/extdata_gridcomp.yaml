@@ -1,6 +1,10 @@
 # For a complete user guide to this file, see GMAO MAPL wiki:
 # https://github.com/GEOS-ESM/MAPL/wiki/ExtData-Next-Generation---User-Guide
 
+mapl:
+  setServices:
+    sharedObj: libMAPL.extdata
+
 ######################################################################
 ######################################################################
 #
