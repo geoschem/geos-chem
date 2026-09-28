@@ -10,7 +10,7 @@ clock:
   stop: 2999-03-02T21:00:00
   dt: PT600S
 #   repeat_duration: P1Y
-  segment_duration: P1H
+  segment_duration: PT1H
 
 checkpointing:
   enabled: false

@@ -1,6 +1,6 @@
 root_name: GCHP
 extdata_name: EXTDATA
-history_name: HIST
+history_name: HISTORY
 
 run_extdata: true
 run_history: true
