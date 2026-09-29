@@ -377,10 +377,11 @@ CONTAINS
 
     ENDIF
 
-    !$OMP PARALLEL DO               &
-    !$OMP DEFAULT( SHARED )         &
-    !$OMP PRIVATE( I, J, L, N, K )  &
-    !$OMP SCHEDULE( DYNAMIC )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I, J, L, N, K, REFF                                      )&
+    !$OMP COLLAPSE( 3                                                       )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
@@ -1323,9 +1324,11 @@ CONTAINS
 100       FORMAT( '     - RDAER: Using online SO4 NH4 NIT!' )
        ENDIF
 
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I, J, L )
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( I, J, L                                               )&
+       !$OMP COLLAPSE( 3                                                    )&
+       !$OMP SCHEDULE( STATIC                                               )
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
@@ -1361,9 +1364,11 @@ CONTAINS
 110       FORMAT( '     - RDAER: Using online BCPI OCPI BCPO OCPO!' )
        ENDIF
 
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I, J, L )
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( I, J, L                                               )&
+       !$OMP COLLAPSE( 3                                                    )&
+       !$OMP SCHEDULE( STATIC                                               )
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
@@ -1414,9 +1419,11 @@ CONTAINS
           ENDIF
        ENDIF
 
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I, J, L )
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( I, J, L                                               )&
+       !$OMP COLLAPSE( 3                                                    )&
+       !$OMP SCHEDULE( STATIC                                               )
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
@@ -1582,20 +1589,21 @@ CONTAINS
           ! otherwise IWV will be at user input specified wavelengths
 
           ! Loop over grid boxes
-          !$OMP PARALLEL DO                                                 &
-          !$OMP PRIVATE( I,        J,       L,        R,        IRH       ) &
-          !$OMP PRIVATE( RW,       QW,      AW,       SSW,      ASYW      ) &
-          !$OMP PRIVATE( AW0,      QW0,     SSW0,     ASYW0,    REFF      ) &
-          !$OMP PRIVATE( SCALEA,   SCALEQ,  SCALESSA, SCALEASY, FRAC      ) &
-          !$OMP PRIVATE( SCALER,   SCALEOD, SCALEVOL, DRYAREA,  TAERVOL   ) &
-          !$OMP PRIVATE( TK,       CONSEXP, VPRESH2O, RELHUM,   BCSCAT_AE ) &
+          !$OMP PARALLEL DO                                                  &
+          !$OMP DEFAULT( SHARED                                             )&
+          !$OMP PRIVATE( I,        J,       L,        R,        IRH         )&
+          !$OMP PRIVATE( RW,       QW,      AW,       SSW,      ASYW        )&
+          !$OMP PRIVATE( AW0,      QW0,     SSW0,     ASYW0,    REFF        )&
+          !$OMP PRIVATE( SCALEA,   SCALEQ,  SCALESSA, SCALEASY, FRAC        )&
+          !$OMP PRIVATE( SCALER,   SCALEOD, SCALEVOL, DRYAREA,  TAERVOL     )&
+          !$OMP PRIVATE( TK,       CONSEXP, VPRESH2O, RELHUM,   BCSCAT_AE   )&
 #ifdef RRTMG
-          !$OMP PRIVATE( IR                                               ) &
+          !$OMP PRIVATE( IR                                                 )&
 #endif
-          !$OMP PRIVATE( RHOSTRAT, RAER,    SADSTRAT, XSASTRAT            ) &
-          !$OMP PRIVATE( VDRY,     VH2O,    S,        g                   ) &
-          !$OMP SCHEDULE( DYNAMIC, 8                                      ) &
-          !$OMP COLLAPSE( 3                                               )
+          !$OMP PRIVATE( RHOSTRAT, RAER,    SADSTRAT, XSASTRAT              )&
+          !$OMP PRIVATE( VDRY,     VH2O,    S,        g                     )&
+          !$OMP COLLAPSE( 3                                                 )&
+          !$OMP SCHEDULE( DYNAMIC, 8                                        )
           DO L = 1, State_Grid%NZ
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
@@ -2058,11 +2066,12 @@ CONTAINS
                "for NSTRATAER greater than 2!"
        END SELECT
 
-       !$OMP PARALLEL DO                    &
-       !$OMP DEFAULT( SHARED )              &
-       !$OMP PRIVATE( I, J, L, RAER, REFF ) &
-       !$OMP PRIVATE( SADSTRAT, XSASTRAT )  &
-       !$OMP SCHEDULE( DYNAMIC )
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( I, J, L, RAER, REFF                                   )&
+       !$OMP PRIVATE( SADSTRAT, XSASTRAT                                    )&
+       !$OMP COLLAPSE( 3                                                    )&
+       !$OMP SCHEDULE( DYNAMIC, 8 )
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
@@ -2153,10 +2162,8 @@ CONTAINS
     IF ( State_Diag%Archive_AOD .and. ODSWITCH .EQ. 1 ) THEN
 
        ! Loop over aerosol types (dust handled in dust_mod.F90)
-       !$OMP PARALLEL DO                                                     &
-       !$OMP DEFAULT( SHARED                                               ) &
-       !$OMP PRIVATE( I, J, L, N, W, LINTERP, IsWL1, IsWL2, IsWL3, S       ) &
-       !$OMP SCHEDULE( DYNAMIC                                             )
+       ! NOTE: Parallelize over grid boxes below instead of over the
+       ! NRHAER (=5) aerosol types, which would leave most threads idle.
        ! Loop over hydroscopic aerosols
        DO NA = 1, NRHAER
 
@@ -2187,6 +2194,11 @@ CONTAINS
              ENDIF
 
              ! Loop over grid boxes
+             !$OMP PARALLEL DO                                               &
+             !$OMP DEFAULT( SHARED                                          )&
+             !$OMP PRIVATE( I, J, L, S                                      )&
+             !$OMP COLLAPSE( 3                                              )&
+             !$OMP SCHEDULE( STATIC                                         )
              DO L = 1, State_Grid%NZ
              DO J = 1, State_Grid%NY
              DO I = 1, State_Grid%NX
@@ -2280,10 +2292,10 @@ CONTAINS
              ENDDO
              ENDDO
              ENDDO
+             !$OMP END PARALLEL DO
 
           ENDDO ! end loop over wavelengths
        ENDDO ! end of loop over hygroscopic aerosols
-       !$OMP END PARALLEL DO
 
     ENDIF
 
@@ -2292,11 +2304,9 @@ CONTAINS
     !------------------------------------
     IF ( State_Diag%Archive_AerSurfAreaHyg .AND. ODSWITCH .EQ. 1) THEN
 
-       !$OMP PARALLEL DO              &
-       !$OMP DEFAULT( SHARED        ) &
-       !$OMP PRIVATE( I, J, L, N, S ) &
-       !$OMP SCHEDULE( DYNAMIC      )
        ! Loop over hydroscopic aerosols
+       ! NOTE: Parallelize over grid boxes below instead of over the
+       ! NRHAER (=5) aerosol types, which would leave most threads idle.
        DO NA = 1, NRHAER
 
           ! Get ID following ordering of aerosol densities in RD_AOD
@@ -2312,6 +2322,11 @@ CONTAINS
           !----------------------------------------------------
           S = State_Diag%Map_AerSurfAreaHyg%id2slot(NA)
           IF ( S > 0 ) THEN
+             !$OMP PARALLEL DO                                               &
+             !$OMP DEFAULT( SHARED                                          )&
+             !$OMP PRIVATE( I, J, L                                         )&
+             !$OMP COLLAPSE( 3                                              )&
+             !$OMP SCHEDULE( STATIC                                         )
              DO L = 1, State_Grid%NZ
              DO J = 1, State_Grid%NY
              DO I = 1, State_Grid%NX
@@ -2320,10 +2335,10 @@ CONTAINS
              ENDDO
              ENDDO
              ENDDO
+             !$OMP END PARALLEL DO
           ENDIF
 
        ENDDO ! end of loop over hygroscopic aerosols
-       !$OMP END PARALLEL DO
 
     ENDIF
 
