@@ -1,7 +1,4 @@
 &fv_core_nml
-  npx = 13
-  npy = 13
-  npz = 91
   adiabatic = .true.
   fv_debug = .F.
   range_warn = .F.
