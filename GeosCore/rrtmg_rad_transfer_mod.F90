@@ -720,10 +720,11 @@ CONTAINS
 
     ENDIF
 
-    !$OMP PARALLEL DO          &
-    !$OMP DEFAULT( SHARED )    &
-    !$OMP PRIVATE( I, J, IB  ) &
-    !$OMP SCHEDULE( DYNAMIC )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I, J, IB                                                 )&
+    !$OMP COLLAPSE( 2                                                       )&
+    !$OMP SCHEDULE( DYNAMIC, 8                                              )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -775,9 +776,13 @@ CONTAINS
     ENDDO
     !$OMP END PARALLEL DO
 
-    !%%% NOTE: LOOPS ARE GOING IN WRONG ORDER (bmy, 1/8/18)
-    DO I = 1, State_Grid%NX
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I, J, L                                                  )&
+    !$OMP COLLAPSE( 2                                                       )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO J = 1, State_Grid%NY
+    DO I = 1, State_Grid%NX
        DO L = 1, State_Grid%NZ
           PCENTER(I,J,L) = GET_PCENTER( I, J, L )
           PEDGE  (I,J,L) = GET_PEDGE  ( I, J, L )
@@ -790,6 +795,7 @@ CONTAINS
        TSFC  (I,J)   = State_Met%TSKIN(I,J)
     ENDDO
     ENDDO
+    !$OMP END PARALLEL DO
 
     ! Incorporate temperature adjustment if not the baseline
     ! call and we are using fixed dynamical heating
@@ -812,12 +818,13 @@ CONTAINS
        TLAY_SW(:,:,:) = TLAY(:,:,:)
     End If
 
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I,       J,      L,      IN_TROP           ) &
-    !$OMP PRIVATE( AIR_TMP, YLAT,   O3COL,  O3_CTM,  T_CTM    ) &
-    !$OMP PRIVATE( P_CTM,   T_CLIM, Z_CLIM, O3_CLIM, AIR_CLIM ) &
-    !$OMP SCHEDULE( DYNAMIC )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I,       J,      L,      IN_TROP, LCHEM                  )&
+    !$OMP PRIVATE( AIR_TMP, YLAT,   O3COL,  O3_CTM,  T_CTM                  )&
+    !$OMP PRIVATE( P_CTM,   T_CLIM, Z_CLIM, O3_CLIM, AIR_CLIM               )&
+    !$OMP COLLAPSE( 2                                                       )&
+    !$OMP SCHEDULE( DYNAMIC, 8                                              )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -951,10 +958,11 @@ CONTAINS
              ! ALSO, WE MUST MERGE AEROSOL PROPERTIES FOR THE SPECIES TO BE OUTPUT
              ! (I.E. COMBINE HYDROPHILIC/PHOBIC AND MULTIPLE SIZES)
 
-             !$OMP PARALLEL DO        &
-             !$OMP DEFAULT( SHARED )  &
-             !$OMP PRIVATE( I, J, L ) &
-             !$OMP SCHEDULE( DYNAMIC )
+             !$OMP PARALLEL DO                                               &
+             !$OMP DEFAULT( SHARED                                          )&
+             !$OMP PRIVATE( I, J, L                                         )&
+             !$OMP COLLAPSE( 3                                              )&
+             !$OMP SCHEDULE( DYNAMIC, 8                                     )
              DO L = 1, State_Grid%NZ
              DO J = 1, State_Grid%NY
              DO I = 1, State_Grid%NX
@@ -1006,10 +1014,11 @@ CONTAINS
           !DIVIDE THROUGH BY TOTAL AOD (FOR SSA) AND AOD*SSA (FOR ASYM)
           IF (IB.GT.16) THEN !SW
 
-             !$OMP PARALLEL DO        &
-             !$OMP DEFAULT( SHARED )  &
-             !$OMP PRIVATE( I, J, L ) &
-             !$OMP SCHEDULE( DYNAMIC )
+             !$OMP PARALLEL DO                                               &
+             !$OMP DEFAULT( SHARED                                          )&
+             !$OMP PRIVATE( I, J, L                                         )&
+             !$OMP COLLAPSE( 3                                              )&
+             !$OMP SCHEDULE( DYNAMIC, 8                                     )
              DO L = 1, State_Grid%NZ
              DO J = 1, State_Grid%NY
              DO I = 1, State_Grid%NX
@@ -1049,16 +1058,17 @@ CONTAINS
     ELSE
 
        !NO AEROSOL, SET ALL TO SAFE VALUES
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I, J, L, IB, IB_SW ) &
-       !$OMP SCHEDULE( DYNAMIC )
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( I, J, L, IB, IB_SW                                    )&
+       !$OMP COLLAPSE( 4                                                    )&
+       !$OMP SCHEDULE( STATIC                                               )
        DO IB= 1, NBNDS
-          IB_SW = IB-NBNDLW
           DO L = 1, State_Grid%NZ
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
 
+             IB_SW = IB-NBNDLW
              IF (IB.LE.16) THEN
                 TAUAER_LW(I,J,L,IB)    = 0.0
              ELSE
@@ -1080,11 +1090,16 @@ CONTAINS
     ENDIF
 
     ! checking values
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I, J, L, IB, IB_SW                                       )&
+    !$OMP COLLAPSE( 4                                                       )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO IB= NBNDLW+1, NBNDS
-       IB_SW = IB-NBNDLW
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
+          IB_SW = IB-NBNDLW
           IF (ASMAER(I,J,L,IB_SW).GT.0.999d0) THEN
              ASMAER(I,J,L,IB_SW) = 0.999d0
           ENDIF
@@ -1116,12 +1131,19 @@ CONTAINS
        ENDDO
        ENDDO
     ENDDO
+    !$OMP END PARALLEL DO
 
     DOY = GET_DAY_OF_YEAR()
     ONECOL = 1
 
     ! GET LEVEL VALUES
     GCAIR = 1.0E-3*GASCON/AVOGAD
+
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I, J, L, RHOA, RHOB, RHOSUM                              )&
+    !$OMP COLLAPSE( 2                                                       )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO J=1,State_Grid%NY
     DO I=1,State_Grid%NX
        PLEV(I,J,1) = PEDGE(I,J,1) ! SET LOWEST LEVEL TO SURFACE PRESSURE
@@ -1144,6 +1166,7 @@ CONTAINS
        END DO
     END DO
     END DO
+    !$OMP END PARALLEL DO
 
     ! FILL CO2, N2O AND O2 ARRAYS WITH REASONABLE ATMOSPHERIC VALUES
     IF (SPECMASK(State_Chm%Phot%NASPECRAD+5).EQ.1) THEN
@@ -1194,18 +1217,20 @@ CONTAINS
        SEEDLW=ISEED+NGPTSW+1
        SEEDSW=SEEDLW+NGPTLW+1
 
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I,           J,           PCENTER0,    CLDFR0      ) &
-       !$OMP PRIVATE( CLIQWP0,     CICEWP0,     REICE0,      RELIQ0      ) &
-       !$OMP PRIVATE( TAUCLD_SW0,  SSACLD0,     ASMCLD0,     FSFCLD0     ) &
-       !$OMP PRIVATE( CLDFMCL_LW0, CIWPMCL_LW0, CLWPMCL_LW0, REICMCL0    ) &
-       !$OMP PRIVATE( RELQMCL0,    TAUCMCL_LW0, CLDFMCL_SW0, CIWPMCL_SW0 ) &
-       !$OMP PRIVATE( CLWPMCL_SW0, TAUCMCL_SW0, SSACMCL0,    ASMCMCL0    ) &
-       !$OMP PRIVATE( FSFCMCL0,    p_PCENTER,   p_CLDFR,     p_CICEWP    ) &
-       !$OMP PRIVATE( p_CLIQWP,    p_REICE,     p_RELIQ,     p_TAUCLD_LW ) &
-       !$OMP PRIVATE( p_TAUCLD_SW, p_SSACLD,    p_ASMCLD,    p_FSFCLD    ) &
-       !$OMP SCHEDULE( DYNAMIC )
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( I,           J,           PCENTER0,    CLDFR0         )&
+       !$OMP PRIVATE( CLIQWP0,     CICEWP0,     REICE0,      RELIQ0         )&
+       !$OMP PRIVATE( TAUCLD_SW0,  SSACLD0,     ASMCLD0,     FSFCLD0        )&
+       !$OMP PRIVATE( CLDFMCL_LW0, CIWPMCL_LW0, CLWPMCL_LW0, REICMCL0       )&
+       !$OMP PRIVATE( RELQMCL0,    TAUCMCL_LW0, CLDFMCL_SW0, CIWPMCL_SW0    )&
+       !$OMP PRIVATE( CLWPMCL_SW0, TAUCMCL_SW0, SSACMCL0,    ASMCMCL0       )&
+       !$OMP PRIVATE( FSFCMCL0,    p_PCENTER,   p_CLDFR,     p_CICEWP       )&
+       !$OMP PRIVATE( p_CLIQWP,    p_REICE,     p_RELIQ,     p_TAUCLD_LW    )&
+       !$OMP PRIVATE( p_TAUCLD_SW, p_SSACLD,    p_ASMCLD,    p_FSFCLD       )&
+       !$OMP FIRSTPRIVATE( IRNG                                             )&
+       !$OMP COLLAPSE( 2                                                    )&
+       !$OMP SCHEDULE( DYNAMIC, 8                                           )
        DO J=1, State_Grid%NY
        DO I=1, State_Grid%NX
 
@@ -1327,28 +1352,30 @@ CONTAINS
     ! Number of columns which fail to converge - initialize to zero
     N_Failed = 0
 
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I,   J,       UFLX,         DFLX,         HR           ) &
-    !$OMP PRIVATE( UFLXC,        DFLXC,        HRC,          DUFLX_DT     ) &
-    !$OMP PRIVATE( DUFLXC_DT,    ECAER,        SWUFLX,       SWDFLX       ) &
-    !$OMP PRIVATE( SWHR,         SWUFLXC,      SWDFLXC,      SWHRC        ) &
-    !$OMP PRIVATE( p_PCENTER,    p_PLEV,       p_TLAY,       p_TLEV       ) &
-    !$OMP PRIVATE( p_H2OVMR,     p_O3VMR,      p_CO2VMR,     p_CH4VMR     ) &
-    !$OMP PRIVATE( p_N2OVMR,     p_O2VMR,      p_CFC11VMR,   p_CFC12VMR   ) &
-    !$OMP PRIVATE( p_CFC22VMR,   p_CCL4VMR,    p_RTEMISS,    p_REICMCL    ) &
-    !$OMP PRIVATE( p_RELQMCL,    p_CLDFMCL_LW, p_TAUCMCL_LW, p_CIWPMCL_LW ) &
-    !$OMP PRIVATE( p_CLWPMCL_LW, p_TAUAER_LW,  p_CLDFMCL_SW, p_TAUCMCL_SW ) &
-    !$OMP PRIVATE( p_SSACMCL,    p_ASMCMCL,    p_FSFCMCL,    p_CIWPMCL_SW ) &
-    !$OMP PRIVATE( p_CLWPMCL_SW, p_TAUAER_SW,  p_SSAAER,     p_ASMAER     ) &
-    !$OMP PRIVATE( p_SUNCOS,     dtadj,        HRdyn,        HRstrat      ) &
-    !$OMP PRIVATE( RHOA,         RHOB,         RHOSUM,       StratImbal   ) &
-    !$OMP PRIVATE( HR_P,         p_TLAY_P,     I_PC,         p_TLAY_0     ) &
-    !$OMP PRIVATE( UFLXC_P,      DFLXC_P,      UFLX_P,       DFLX_P       ) &
-    !$OMP PRIVATE( TSadj_adapt,  TSadj,        i_Iter,       L            ) &
-    !$OMP PRIVATE( p_TLAY_SW,    p_TLEV_SW,    Do_Adjust                  ) &
-    !$OMP PRIVATE( last_max,     curr_max,     i_max,    last_max_stored  ) &
-    !$OMP SCHEDULE( DYNAMIC )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I,   J,       UFLX,         DFLX,         HR             )&
+    !$OMP PRIVATE( UFLXC,        DFLXC,        HRC,          DUFLX_DT       )&
+    !$OMP PRIVATE( DUFLXC_DT,    ECAER,        SWUFLX,       SWDFLX         )&
+    !$OMP PRIVATE( SWHR,         SWUFLXC,      SWDFLXC,      SWHRC          )&
+    !$OMP PRIVATE( p_PCENTER,    p_PLEV,       p_TLAY,       p_TLEV         )&
+    !$OMP PRIVATE( p_H2OVMR,     p_O3VMR,      p_CO2VMR,     p_CH4VMR       )&
+    !$OMP PRIVATE( p_N2OVMR,     p_O2VMR,      p_CFC11VMR,   p_CFC12VMR     )&
+    !$OMP PRIVATE( p_CFC22VMR,   p_CCL4VMR,    p_RTEMISS,    p_REICMCL      )&
+    !$OMP PRIVATE( p_RELQMCL,    p_CLDFMCL_LW, p_TAUCMCL_LW, p_CIWPMCL_LW   )&
+    !$OMP PRIVATE( p_CLWPMCL_LW, p_TAUAER_LW,  p_CLDFMCL_SW, p_TAUCMCL_SW   )&
+    !$OMP PRIVATE( p_SSACMCL,    p_ASMCMCL,    p_FSFCMCL,    p_CIWPMCL_SW   )&
+    !$OMP PRIVATE( p_CLWPMCL_SW, p_TAUAER_SW,  p_SSAAER,     p_ASMAER       )&
+    !$OMP PRIVATE( p_SUNCOS,     dtadj,        HRdyn,        HRstrat        )&
+    !$OMP PRIVATE( RHOA,         RHOB,         RHOSUM,       StratImbal     )&
+    !$OMP PRIVATE( HR_P,         p_TLAY_P,     I_PC,         p_TLAY_0       )&
+    !$OMP PRIVATE( UFLXC_P,      DFLXC_P,      UFLX_P,       DFLX_P         )&
+    !$OMP PRIVATE( TSadj_adapt,  TSadj,        i_Iter,       L              )&
+    !$OMP PRIVATE( p_TLAY_SW,    p_TLEV_SW,    Do_Adjust                    )&
+    !$OMP PRIVATE( last_max,     curr_max,     i_max,    last_max_stored    )&
+    !$OMP REDUCTION( +:N_Failed                                             )&
+    !$OMP COLLAPSE( 2                                                       )&
+    !$OMP SCHEDULE( DYNAMIC, 8                                              )
     DO J=1, State_Grid%NY
     DO I=1, State_Grid%NX
 
@@ -1723,11 +1750,7 @@ CONTAINS
              End Do ! While StratImbal
 
              ! If convergence failed, record that
-             If (StratImbal) Then
-                !$OMP ATOMIC UPDATE
-                N_Failed = N_Failed + 1
-                !$OMP END ATOMIC
-             End If
+             If (StratImbal) N_Failed = N_Failed + 1
 
              ! Store the flux arrays and delta-T from the final
              ! RK4 sub-calculation. This ensures that the fluxes 
@@ -1778,13 +1801,21 @@ CONTAINS
        ENDIF
     ENDIF
 
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I, J, LL, W )            &
-    !$OMP PRIVATE( AODTMP, SSATMP, ASYMTMP) &
-    !$OMP PRIVATE( AODOUT, SSAOUT, ASYMOUT) &
-    !$OMP PRIVATE( iTrop                  ) &
-    !$OMP SCHEDULE( DYNAMIC )
+    ! Set the state_diag index corresponding to BASE. The BASE
+    ! fluxes are always calculated no matter what outputs are set
+    ! in HISTORY.rc since they are needed here. They are also
+    ! calculated prior to all other outputs. The index always
+    ! corresponds to 1.
+    baseIndex = 1
+
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I, J, LL, W                                            )&
+    !$OMP PRIVATE( AODTMP, SSATMP, ASYMTMP                                  )&
+    !$OMP PRIVATE( AODOUT, SSAOUT, ASYMOUT                                  )&
+    !$OMP PRIVATE( iTrop                                                    )&
+    !$OMP COLLAPSE( 2                                                       )&
+    !$OMP SCHEDULE( DYNAMIC, 8                                              )
     DO J=1,State_Grid%NY
     DO I=1,State_Grid%NX
 
@@ -1925,13 +1956,6 @@ CONTAINS
        ! If not BASE, the subtract flux just calculated from BASE
        !-------------------------------------------------------
        IF ( iSpecMenu > 0 ) THEN
-
-          ! Set the state_diag index corresponding to BASE. The BASE
-          ! fluxes are always calculated no matter what outputs are set
-          ! in HISTORY.rc since they are needed here. They are also
-          ! calculated prior to all other outputs. The index always
-          ! corresponds to 1.
-          baseIndex = 1
 
           ! All-sky SW flux @ TOA [W/m2]
           IF ( State_Diag%Archive_RadAllSkySWTOA ) THEN
