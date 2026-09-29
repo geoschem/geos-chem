@@ -16,8 +16,8 @@ MODULE CARBON_MOD
 !
 ! !USES:
 !
-  USE PhysConstants     ! Physical constants
-  USE PRECISION_MOD     ! For GEOS-Chem Precisions
+  USE PhysConstants, ONLY : AVO, PI, PI_180, g0     ! Physical constants
+  USE PRECISION_MOD, ONLY : fp, f4     ! For GEOS-Chem Precisions
 
 #ifdef TOMAS
   USE TOMAS_MOD,   ONLY : ORG_NUC       !SamO
@@ -563,7 +563,7 @@ CONTAINS
                        State_Diag = State_Diag,                              &
                        State_Grid = State_Grid,                              &
                        spcId      = id_OCPI,                                 &
-                       RC         = RC                                      )
+                       RCC        = RC                                      )
        IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPI' )
        ENDIF
@@ -1343,7 +1343,7 @@ CONTAINS
 ! !INTERFACE:
 !
  SUBROUTINE CHEM_OCPI( Input_Opt,  State_Chm, State_Diag,                    &
-                       State_Grid, spcId,     RC )
+                       State_Grid, spcId,     RCC )
 !
 ! !USES:
 !
@@ -1368,7 +1368,7 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
-   INTEGER,        INTENT(OUT)   :: RC           ! Success or failure?
+   INTEGER,        INTENT(OUT)   :: RCC           ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  01 Apr 2004 - R. Park - Initial version
@@ -1391,7 +1391,7 @@ CONTAINS
    !=================================================================
 
    ! Assume success
-   RC =  GC_SUCCESS
+   RCC =  GC_SUCCESS
    TC => State_Chm%Species(spcId)%Conc
 
    !$OMP PARALLEL DO                                                         &
