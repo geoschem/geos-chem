@@ -386,10 +386,11 @@ CONTAINS
     REAL(fp)           :: NEWSOA
     REAL(fp)           :: DTCHEM, SOAP_LIFETIME  ! [=] seconds
     REAL(fp)           :: CONC_SUM
-    INTEGER            :: L
+    INTEGER            :: I, J, L
 
 #ifdef TOMAS
-    INTEGER            :: I, J
+    LOGICAL            :: error
+    INTEGER            :: EC
     REAL*4             :: BOXVOL, TEMPTMS, PRES, BOXMASS
     REAL*4             :: RHTOMAS
 #endif
@@ -403,7 +404,7 @@ CONTAINS
 
 #ifdef APM
     TYPE(DiagnCont), POINTER :: DiagnCnt
-    INTEGER            :: FLAG,I,J,N,IDCARBON
+    INTEGER            :: FLAG,N,IDCARBON
     REAL(fp)           :: A_M2, E_CARBON, DTSRCE
     REAL(fp)           :: EMITRATE(State_Grid%NX,State_Grid%NY)
 #endif
@@ -609,7 +610,8 @@ CONTAINS
           !$OMP PARALLEL DO                                                  &
           !$OMP DEFAULT( SHARED                                             )&
           !$OMP PRIVATE( J, I                                               )&
-          !$OMP COLLAPSE( 2                                                 )
+          !$OMP COLLAPSE( 2                                                 )&
+          !$OMP SCHEDULE( STATIC                                            )
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
              EMITRATE(I,J) = EMITRATE(I,J) + &
@@ -638,7 +640,8 @@ CONTAINS
        !$OMP PARALLEL DO                                                     &
        !$OMP DEFAULT( SHARED                                                )&
        !$OMP PRIVATE( L, J, I, A_M2, E_CARBON, N                            )&
-       !$OMP COLLAPSE( 3                                                    )
+       !$OMP COLLAPSE( 3                                                    )&
+       !$OMP SCHEDULE( STATIC                                               )
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
@@ -667,7 +670,8 @@ CONTAINS
        !$OMP PARALLEL DO                                                     &
        !$OMP DEFAULT( SHARED                                                )&
        !$OMP PRIVATE( L, J, I, A_M2, E_CARBON, N                            )&
-       !$OMP COLLAPSE( 3                                                    )
+       !$OMP COLLAPSE( 3                                                    )&
+       !$OMP SCHEDULE( STATIC                                               )
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
@@ -723,7 +727,8 @@ CONTAINS
           !$OMP PARALLEL DO                                                  &
           !$OMP DEFAULT( SHARED                                             )&
           !$OMP PRIVATE( J, I                                               )&
-          !$OMP COLLAPSE( 2                                                 )
+          !$OMP COLLAPSE( 2                                                 )&
+          !$OMP SCHEDULE( STATIC                                            )
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
              EMITRATE(I,J) = EMITRATE(I,J) + &
@@ -751,7 +756,8 @@ CONTAINS
       !$OMP PARALLEL DO                                                      &
       !$OMP DEFAULT( SHARED                                                 )&
       !$OMP PRIVATE( L, J, I, A_M2, E_CARBON, N                             )&
-      !$OMP COLLAPSE( 3                                                     )
+      !$OMP COLLAPSE( 3                                                     )&
+      !$OMP SCHEDULE( STATIC                                                )
       DO L = 1, State_Grid%NZ
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
@@ -780,7 +786,8 @@ CONTAINS
       !$OMP PARALLEL DO                                                      &
       !$OMP DEFAULT( SHARED                                                 )&
       !$OMP PRIVATE( L, J, I, A_M2, E_CARBON, N                             )&
-      !$OMP COLLAPSE( 3                                                     )
+      !$OMP COLLAPSE( 3                                                     )&
+      !$OMP SCHEDULE( STATIC                                                )
       DO L = 1, State_Grid%NZ
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
@@ -816,7 +823,8 @@ CONTAINS
       !$OMP PARALLEL DO                                                      &
       !$OMP DEFAULT( SHARED                                                 )&
       !$OMP PRIVATE( L, J, I, N                                             )&
-      !$OMP COLLAPSE( 3                                                     )
+      !$OMP COLLAPSE( 3                                                     )&
+      !$OMP SCHEDULE( STATIC                                                )
       DO L = 1, State_Grid%NZ
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
@@ -860,13 +868,25 @@ CONTAINS
       CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid, &
                  State_Met, State_Diag,'CHECKMN from chemcarbon', RC)
 
-      !$OMP PARALLEL DO       &
-      !$OMP DEFAULT( SHARED ) &
-      !$OMP PRIVATE( I, J, L, NEWSOA, BOXVOL, TEMPTMS, PRES, BOXMASS, RHTOMAS)&
-      !$OMP COLLAPSE( 3                                                     )
+      ! Initialize error flag for the parallel loop below
+      error = .FALSE.
+
+      !$OMP PARALLEL DO                                                      &
+      !$OMP DEFAULT( SHARED                                                 )&
+      !$OMP PRIVATE( I,       J,    L,       NEWSOA, BOXVOL                 )&
+      !$OMP PRIVATE( TEMPTMS, PRES, BOXMASS, RHTOMAS, EC                    )&
+      !$OMP COLLAPSE( 3                                                     )&
+      !$OMP SCHEDULE( DYNAMIC, 8                                            )&
+      !$OMP REDUCTION( .OR. : error                                         )
       DO L = 1, State_Grid%NZ
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
+
+         ! Skip to the end of the loop if any of the threads returned
+         ! with error.  Then exit this routine with failure status
+         ! outside of the parallel loop, as this is thread-safe.
+         IF ( error ) CYCLE
+
          NEWSOA  = Spc(id_SOAP)%Conc(I,J,L) * (1.e+0_fp - DEXP(-DTCHEM/SOAP_LIFETIME))
          BOXVOL  = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3
          BOXMASS  = State_Met%AD(I,J,L)  !kg
@@ -883,7 +903,13 @@ CONTAINS
             !sfarina16: SOAP -> size Resolved TOMAS SOA
             ORG_NUC(I,J,L) =  NEWSOA/DTCHEM ! SamO [kg/box/second]
             CALL SOACOND( NEWSOA, I, J, L, BOXVOL, TEMPTMS, PRES, BOXMASS, &
-                          State_Chm, State_Grid, State_Diag, RC, RHTOMAS)
+                          State_Chm, State_Grid, State_Diag, EC, RHTOMAS)
+
+            ! Trap potential errors (we can't exit an OpenMP loop)
+            IF ( EC /= GC_SUCCESS ) THEN
+               error = .TRUE.
+               CYCLE
+            ENDIF
          ENDIF
          Spc(id_SOAS)%Conc(I,J,L) = Spc(id_SOAS)%Conc(I,J,L) + NEWSOA
          Spc(id_SOAP)%Conc(I,J,L) = Spc(id_SOAP)%Conc(I,J,L) - NEWSOA
@@ -891,17 +917,31 @@ CONTAINS
       ENDDO
       ENDDO
       !$OMP END PARALLEL DO
+
+      ! Exit with failure status if any thread encountered an error
+      IF ( error ) THEN
+         ErrMsg = 'Error encountered in "SOACOND"!'
+         CALL GC_Error( ErrMsg, RC, LOC )
+         RETURN
+      ENDIF
 #else
+      !NEWSOA used in a different context than above.
+      !above is absolute mass, here is a relative decay factor
+      NEWSOA = DEXP(-DTCHEM/SOAP_LIFETIME)
+
       !$OMP PARALLEL DO                                                      &
       !$OMP DEFAULT( SHARED                                                 )&
-      !$OMP PRIVATE( L, NEWSOA                                              )
+      !$OMP PRIVATE( I, J, L                                                )&
+      !$OMP COLLAPSE( 3                                                     )&
+      !$OMP SCHEDULE( STATIC                                                )
       DO L = 1, State_Grid%NZ
-         !NEWSOA used in a different context than above.
-         !above is absolute mass, here is a relative decay factor
-         NEWSOA = DEXP(-DTCHEM/SOAP_LIFETIME)
-         Spc(id_SOAS)%Conc(:,:,L) = Spc(id_SOAS)%Conc(:,:,L) + &
-                              Spc(id_SOAP)%Conc(:,:,L) * (1.0_fp - NEWSOA)
-         Spc(id_SOAP)%Conc(:,:,L) = Spc(id_SOAP)%Conc(:,:,L) * NEWSOA
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
+         Spc(id_SOAS)%Conc(I,J,L) = Spc(id_SOAS)%Conc(I,J,L) + &
+                              Spc(id_SOAP)%Conc(I,J,L) * (1.0_fp - NEWSOA)
+         Spc(id_SOAP)%Conc(I,J,L) = Spc(id_SOAP)%Conc(I,J,L) * NEWSOA
+      ENDDO
+      ENDDO
       ENDDO
       !$OMP END PARALLEL DO
 #endif
@@ -1042,7 +1082,8 @@ CONTAINS
    !$OMP PARALLEL DO                                                         &
    !$OMP DEFAULT( SHARED                                                    )&
    !$OMP PRIVATE( I, J, L, TC0, FREQ, RKT, CNEW                             )&
-   !$OMP COLLAPSE( 3                                                        )
+   !$OMP COLLAPSE( 3                                                        )&
+   !$OMP SCHEDULE( STATIC                                                   )
    DO L = 1, State_Grid%NZ
    DO J = 1, State_Grid%NY
    DO I = 1, State_Grid%NX
@@ -1160,7 +1201,8 @@ CONTAINS
    !$OMP PARALLEL DO                                                         &
    !$OMP DEFAULT( SHARED                                                    )&
    !$OMP PRIVATE( I, J, L, TC0, CCV, CNEW                                   )&
-   !$OMP COLLAPSE( 3                                                        ) 
+   !$OMP COLLAPSE( 3                                                        )&
+   !$OMP SCHEDULE( STATIC                                                   )
    DO L = 1, State_Grid%NZ
    DO J = 1, State_Grid%NY
    DO I = 1, State_Grid%NX
@@ -1282,7 +1324,8 @@ CONTAINS
    !$OMP PARALLEL DO                                                         &
    !$OMP DEFAULT( SHARED                                                    )&
    !$OMP PRIVATE( I, J, L, TC0, FREQ, RKT, CNEW                             )&
-   !$OMP COLLAPSE( 3                                                        )
+   !$OMP COLLAPSE( 3                                                        )&
+   !$OMP SCHEDULE( STATIC                                                   )
    DO L = 1, State_Grid%NZ
    DO J = 1, State_Grid%NY
    DO I = 1, State_Grid%NX
@@ -1397,7 +1440,8 @@ CONTAINS
    !$OMP PARALLEL DO                                                         &
    !$OMP DEFAULT( SHARED                                                    )&
    !$OMP PRIVATE( I, J, L, TC0, CCV, CNEW                                   )&
-   !$OMP COLLAPSE( 3                                                        )
+   !$OMP COLLAPSE( 3                                                        )&
+   !$OMP SCHEDULE( STATIC                                                   )
    DO L = 1, State_Grid%NZ
    DO J = 1, State_Grid%NY
    DO I = 1, State_Grid%NX
@@ -1850,7 +1894,9 @@ CONTAINS
    !$OMP PRIVATE( VOL,      FAC,       RTEMP,  KO3,   KOH,   KNO3, CAIR     )&
    !$OMP PRIVATE( VALUE,    UPPER,     LOWER,  MNEW,  TOL                   )&
    !$OMP PRIVATE( ORG_AER,  ORG_GAS,   KOM,    MPOC                         )&
-   !$OMP PRIVATE( KRO2NO,   KRO2HO2,   JSV                                  )
+   !$OMP PRIVATE( KRO2NO,   KRO2HO2,   JSV                                  )&
+   !$OMP COLLAPSE( 3                                                        )&
+   !$OMP SCHEDULE( GUIDED                                                   )
    DO L = 1, State_Met%MaxChemLev
    DO J = 1, State_Grid%NY
    DO I = 1, State_Grid%NX
@@ -4856,9 +4902,11 @@ CONTAINS
        CALL LoadHcoValEmis ( Input_Opt, State_Grid, SESQID )
    ENDIF
 
-   !$OMP PARALLEL DO       &
-   !$OMP DEFAULT( SHARED ) &
-   !$OMP PRIVATE( I, J, L, F_OF_PBL, TMPFLX, Emis, FOUND )
+   !$OMP PARALLEL DO                                                         &
+   !$OMP DEFAULT( SHARED                                                    )&
+   !$OMP PRIVATE( I, J, L, F_OF_PBL, TMPFLX, Emis, FOUND                    )&
+   !$OMP COLLAPSE( 3                                                        )&
+   !$OMP SCHEDULE( STATIC                                                   )
    DO L = 1, PBL_MAX
    DO J = 1, State_Grid%NY
    DO I = 1, State_Grid%NX
@@ -4990,8 +5038,9 @@ CONTAINS
                                   ! set to TRUE and in hcoi_gc_diag_mod.F90 to use 3D GFAS
                                   ! and need to modify HEMCO_Config.rc and ExtData.rc
                                   ! need to eventually move this switch to HEMCO_Config.rc, bc, jrp 26/03/2026
-   INTEGER                  :: L, K, EMTYPE
+   INTEGER                  :: L, K, EMTYPE, EC
    INTEGER                  :: ii=53, jj=29
+   LOGICAL                  :: error
    INTEGER                  :: previous_units
    LOGICAL, SAVE            :: FIRST = .TRUE. !(ramnarine 12/27/2018)
    LOGICAL, SAVE            :: USE_FIRE_NUM = .FALSE.
@@ -5461,13 +5510,29 @@ CONTAINS
    TERP_ORGC = TERP_ORGC(:,:) * AREA(:,:) * DTSRCE
    Ptr2D => NULL()
 
-   !$OMP PARALLEL DO       &
-   !$OMP DEFAULT( SHARED ) &
-   !$OMP PRIVATE( I, J, BOXVOL, TEMPTMS, PRES, BOXMASS, RHTOMAS )
+   ! Initialize error flag for the parallel loop below
+   error = .FALSE.
+
+   !$OMP PARALLEL DO                                                         &
+   !$OMP DEFAULT( SHARED                                                    )&
+   !$OMP PRIVATE( I, J, BOXVOL, TEMPTMS, PRES, BOXMASS, RHTOMAS, EC         )&
+   !$OMP COLLAPSE( 2                                                        )&
+   !$OMP SCHEDULE( DYNAMIC, 8                                               )&
+   !$OMP REDUCTION( .OR. : error                                            )
    DO J = 1, State_Grid%NY
    DO I = 1, State_Grid%NX
+
+      ! Skip to the end of the loop if any of the threads returned
+      ! with error.  Then exit this routine with failure status
+      ! outside of the parallel loop, as this is thread-safe.
+      IF ( error ) CYCLE
+
       CALL CHECKMN( I, J, 1, Input_Opt, State_Chm, State_Grid, &
-         State_Met, State_Diag,'CHECKMN from emisscarbontomas', RC)
+         State_Met, State_Diag,'CHECKMN from emisscarbontomas', EC)
+      IF ( EC /= GC_SUCCESS ) THEN
+         error = .TRUE.
+         CYCLE
+      ENDIF
       IF ( TERP_ORGC(I,J) > 0.d0 ) THEN
          BOXVOL  = State_Met%AIRVOL(I,J,1) * 1.e6 !convert from m3 -> cm3
          BOXMASS  = State_Met%AD(I,J,1)  ! kg
@@ -5482,7 +5547,11 @@ CONTAINS
          ! print*,'TEMPTMS, RHTOMAS in emisscarb =',TEMPTMS,RHTOMAS,I,J
          ENDIF 
          CALL SOACOND( TERP_ORGC(I,J), I, J, 1, BOXVOL, TEMPTMS, PRES, BOXMASS,&
-                       State_Chm, State_Grid, State_Diag, RC, RHTOMAS)
+                       State_Chm, State_Grid, State_Diag, EC, RHTOMAS)
+         IF ( EC /= GC_SUCCESS ) THEN
+            error = .TRUE.
+            CYCLE
+         ENDIF
       END IF
    END DO
    END DO
@@ -5515,6 +5584,14 @@ CONTAINS
    ! Start HEMCO timer again
    IF ( Input_Opt%useTimers ) THEN
       CALL Timer_Start( "HEMCO", RC )
+   ENDIF
+
+   ! Exit with failure status if any thread in the SOACOND loop
+   ! encountered an error.  Do this after converting units back.
+   IF ( error ) THEN
+      ErrMsg = 'Error encountered in "CHECKMN" or "SOACOND"!'
+      CALL GC_Error( ErrMsg, RC, LOC )
+      RETURN
    ENDIF
 
  END SUBROUTINE EMISSCARBONTOMAS
@@ -5591,9 +5668,11 @@ CONTAINS
       stop
    ENDIF
 
-   !$OMP PARALLEL DO       &
-   !$OMP DEFAULT( SHARED ) &
-   !$OMP PRIVATE( I, J, L, K, F_OF_PBL )
+   !$OMP PARALLEL DO                                                         &
+   !$OMP DEFAULT( SHARED                                                    )&
+   !$OMP PRIVATE( I, J, L, K, F_OF_PBL                                      )&
+   !$OMP COLLAPSE( 4                                                        )&
+   !$OMP SCHEDULE( STATIC                                                   )
    DO L = 1, PBL_MAX
    DO J = 1, State_Grid%NY
    DO I = 1, State_Grid%NX
@@ -5715,9 +5794,11 @@ CONTAINS
          SUNTMP = 0e+0_fp
 
          ! Loop over surface grid boxes
-         !$OMP PARALLEL DO       &
-         !$OMP DEFAULT( SHARED ) &
-         !$OMP PRIVATE( I, J, YMID_R, TIMLOC, AHR )
+         !$OMP PARALLEL DO                                                   &
+         !$OMP DEFAULT( SHARED                                              )&
+         !$OMP PRIVATE( I, J, YMID_R, TIMLOC, AHR                           )&
+         !$OMP COLLAPSE( 2                                                  )&
+         !$OMP SCHEDULE( STATIC                                             )
          DO J = 1, State_Grid%NY
          DO I = 1, State_Grid%NX
 
@@ -6815,9 +6896,11 @@ CONTAINS
    ! Point to chemical species vector containing concentrations
    Spc => State_Chm%Species
 
-   !$OMP PARALLEL DO       &
-   !$OMP DEFAULT( SHARED ) &
-   !$OMP PRIVATE( NOX, JHC, JSV, I, J, L )
+   !$OMP PARALLEL DO                                                         &
+   !$OMP DEFAULT( SHARED                                                    )&
+   !$OMP PRIVATE( NOX, JHC, JSV, I, J, L                                    )&
+   !$OMP COLLAPSE( 3                                                        )&
+   !$OMP SCHEDULE( STATIC                                                   )
    DO L = 1, State_Met%MaxChemLev
    DO J = 1, State_Grid%NY
    DO I = 1, State_Grid%NX
@@ -6955,11 +7038,13 @@ CONTAINS
 
    ! run in serial now (hotp 6/5/10)
    ! Make parallel again (mpayer, 9/14/11)
-   !$OMP PARALLEL DO       &
-   !$OMP DEFAULT( SHARED ) &
-   !$OMP PRIVATE( NOX,         JHC,        JSV,    IPR ) &
-   !$OMP PRIVATE( TEMPDELTA,   TEMPSOAG,   MBDIFF      ) &
-   !$OMP PRIVATE( I, J, L                              )
+   !$OMP PARALLEL DO                                                         &
+   !$OMP DEFAULT( SHARED                                                    )&
+   !$OMP PRIVATE( NOX,         JHC,        JSV,    IPR                      )&
+   !$OMP PRIVATE( TEMPDELTA,   TEMPSOAG,   MBDIFF                           )&
+   !$OMP PRIVATE( I, J, L                                                   )&
+   !$OMP COLLAPSE( 3                                                        )&
+   !$OMP SCHEDULE( STATIC                                                   )
    DO L = 1, State_Met%MaxChemLev
    DO J = 1, State_Grid%NY
    DO I = 1, State_Grid%NX
@@ -8366,10 +8451,11 @@ CONTAINS
    ! Zero BCPO -> BCPI conversion array
    BCCONVNEW  = 0e+0_fp
 
-   !$OMP PARALLEL DO       &
-   !$OMP DEFAULT( SHARED ) &
-   !$OMP PRIVATE( I, J, L, TC0, FREQ, BL_FRAC, RKT, CNEW ) &
-   !$OMP SCHEDULE( DYNAMIC )
+   !$OMP PARALLEL DO                                                         &
+   !$OMP DEFAULT( SHARED                                                    )&
+   !$OMP PRIVATE( I, J, L, TC0, FREQ, BL_FRAC, RKT, CNEW                    )&
+   !$OMP COLLAPSE( 3                                                        )&
+   !$OMP SCHEDULE( STATIC                                                   )
    DO L = 1, State_Grid%NZ
    DO J = 1, State_Grid%NY
    DO I = 1, State_Grid%NX
@@ -8466,10 +8552,11 @@ CONTAINS
    ! Chemistry timestep [s]
    DTCHEM = GET_TS_CHEM()
 
-   !$OMP PARALLEL DO       &
-   !$OMP DEFAULT( SHARED ) &
-   !$OMP PRIVATE( I, J, L, TC0, CCV, FREQ, BL_FRAC, CNEW ) &
-   !$OMP SCHEDULE( DYNAMIC )
+   !$OMP PARALLEL DO                                                         &
+   !$OMP DEFAULT( SHARED                                                    )&
+   !$OMP PRIVATE( I, J, L, TC0, CCV, FREQ, BL_FRAC, CNEW                    )&
+   !$OMP COLLAPSE( 3                                                        )&
+   !$OMP SCHEDULE( STATIC                                                   )
    DO L = 1, State_Grid%NZ
    DO J = 1, State_Grid%NY
    DO I = 1, State_Grid%NX
@@ -8575,10 +8662,11 @@ CONTAINS
    ! Zero OCPO -> OCPI conversion array
    OCCONVNEW = 0e+0_fp
 
-   !$OMP PARALLEL DO       &
-   !$OMP DEFAULT( SHARED ) &
-   !$OMP PRIVATE( I, J, L, TC0, FREQ, BL_FRAC, RKT, CNEW ) &
-   !$OMP SCHEDULE( DYNAMIC )
+   !$OMP PARALLEL DO                                                         &
+   !$OMP DEFAULT( SHARED                                                    )&
+   !$OMP PRIVATE( I, J, L, TC0, FREQ, BL_FRAC, RKT, CNEW                    )&
+   !$OMP COLLAPSE( 3                                                        )&
+   !$OMP SCHEDULE( STATIC                                                   )
    DO L = 1, State_Grid%NZ
    DO J = 1, State_Grid%NY
    DO I = 1, State_Grid%NX
@@ -8676,10 +8764,11 @@ CONTAINS
    ! Chemistry timestep [s]
    DTCHEM = GET_TS_CHEM()
 
-   !$OMP PARALLEL DO       &
-   !$OMP DEFAULT( SHARED ) &
-   !$OMP PRIVATE( I, J, L, TC0, CCV, BL_FRAC, FREQ, CNEW ) &
-   !$OMP SCHEDULE( DYNAMIC )
+   !$OMP PARALLEL DO                                                         &
+   !$OMP DEFAULT( SHARED                                                    )&
+   !$OMP PRIVATE( I, J, L, TC0, CCV, BL_FRAC, FREQ, CNEW                    )&
+   !$OMP COLLAPSE( 3                                                        )&
+   !$OMP SCHEDULE( STATIC                                                   )
    DO L = 1, State_Grid%NZ
    DO J = 1, State_Grid%NY
    DO I = 1, State_Grid%NX
@@ -8812,12 +8901,13 @@ CONTAINS
 
    IDTEMP = APMIDS%id_BCBIN1+NBCOC-1
 
-   !$OMP PARALLEL DO       &
-   !$OMP DEFAULT( SHARED ) &
-   !$OMP PRIVATE( I, J, L, N, K, DEN, REFF, DP )       &
-   !$OMP PRIVATE( CONST, VTS, TEMP, P, PDP, SLIP )     &
-   !$OMP PRIVATE( MASS, OLD, VISC, TC0, DELZ, DELZ1  ) &
-   !$OMP SCHEDULE( DYNAMIC )
+   !$OMP PARALLEL DO                                                         &
+   !$OMP DEFAULT( SHARED                                                    )&
+   !$OMP PRIVATE( I, J, L, N, K, DEN, REFF, DP                              )&
+   !$OMP PRIVATE( CONST, VTS, TEMP, P, PDP, SLIP                            )&
+   !$OMP PRIVATE( MASS, OLD, VISC, TC0, DELZ, DELZ1                         )&
+   !$OMP COLLAPSE( 2                                                        )&
+   !$OMP SCHEDULE( DYNAMIC, 8                                               )
    DO J = 1, State_Grid%NY
    DO I = 1, State_Grid%NX
 
@@ -9080,12 +9170,13 @@ CONTAINS
 
    IDTEMP = APMIDS%id_OCBIN1+NBCOC-1
 
-   !$OMP PARALLEL DO       &
-   !$OMP DEFAULT( SHARED ) &
-   !$OMP PRIVATE( I, J, L, N, K, DEN, REFF, DP )       &
-   !$OMP PRIVATE( CONST, VTS, TEMP, P, PDP, SLIP )     &
-   !$OMP PRIVATE( MASS, OLD, VISC, TC0, DELZ, DELZ1  ) &
-   !$OMP SCHEDULE( DYNAMIC )
+   !$OMP PARALLEL DO                                                         &
+   !$OMP DEFAULT( SHARED                                                    )&
+   !$OMP PRIVATE( I, J, L, N, K, DEN, REFF, DP                              )&
+   !$OMP PRIVATE( CONST, VTS, TEMP, P, PDP, SLIP                            )&
+   !$OMP PRIVATE( MASS, OLD, VISC, TC0, DELZ, DELZ1                         )&
+   !$OMP COLLAPSE( 2                                                        )&
+   !$OMP SCHEDULE( DYNAMIC, 8                                               )
    DO J = 1, State_Grid%NY
    DO I = 1, State_Grid%NX
 
