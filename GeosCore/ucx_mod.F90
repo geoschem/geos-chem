@@ -332,7 +332,11 @@ CONTAINS
     !$OMP PRIVATE( NOXRATE,  N2ORATE,  DNOX                    ) &
     !$OMP PRIVATE( OLD_NO3,  OLD_NO2,  OLD_NO,   OLD_N         ) &
     !$OMP PRIVATE( NEW_NO3,  NEW_NO2,  NEW_NO,   NEW_N         ) &
-    !$OMP PRIVATE( OLD_N2O,  NEW_N2O,  LMinPhot                )
+    !$OMP PRIVATE( OLD_N2O,  NEW_N2O,  LMinPhot                ) &
+    !$OMP REDUCTION( + : MESONOX_DELTA                         ) &
+    !$OMP REDUCTION( + : MESON2O_DELTA                         ) &
+    !$OMP COLLAPSE( 3                                          ) &
+    !$OMP SCHEDULE( STATIC                                     )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX

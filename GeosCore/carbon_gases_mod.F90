@@ -275,6 +275,9 @@ CONTAINS
     USE HCO_State_Mod,        ONLY : Hco_GetHcoId
     USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_HcoStateOK
     USE Input_Opt_Mod,        ONLY : OptInput
+#ifndef NO_OMP
+    USE Omp_Lib,              ONLY : Omp_Get_Wtime
+#endif
     USE rateLawUtilFuncs,     ONLY : SafeDiv
     USE Species_Mod,          ONLY : SpcConc
     USE State_Grid_Mod,       ONLY : GrdState
@@ -423,7 +426,8 @@ CONTAINS
           !$OMP PARALLEL DO                                                  &
           !$OMP DEFAULT( SHARED                                             )&
           !$OMP PRIVATE( I, J, L                                            )&
-          !$OMP COLLAPSE( 3                                                 )
+          !$OMP COLLAPSE( 3                                                 )&
+          !$OMP SCHEDULE( STATIC                                            )
           DO L = 1, State_Grid%NZ
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
@@ -462,7 +466,7 @@ CONTAINS
        ! Loop over grid boxes
        !$OMP PARALLEL DO                                                     &
        !$OMP DEFAULT( SHARED                                                )&
-       !$OMP PRIVATE( I, J, L, N, timeBefore, timeAfter                     )&
+       !$OMP PRIVATE( I, J, L, N, IERR, timeBefore, timeAfter               )&
        !$OMP COLLAPSE( 3                                                    )&
        !$OMP SCHEDULE( DYNAMIC, 24                                          )
        DO L = 1, State_Grid%NZ
@@ -483,6 +487,7 @@ CONTAINS
           SUNCOS         = State_Met%SUNCOSmid(I,J)  ! Cos(SZA) ) [1]
           timeBefore     = 0.0_fp
           timeAfter      = 0.0_fp
+          IERR           = 0
 
           !==================================================================
           ! Convert species to molec/cm3 for the KPP solver
@@ -500,7 +505,11 @@ CONTAINS
 
           ! Start measuring KPP-related routine timing for this grid box
           IF ( State_Diag%Archive_KppTime ) THEN
-             CALL CPU_Time( timeBefore )
+#ifdef NO_OMP
+             CALL CPU_Time( timeBefore )   ! When OpenMP is not used
+#else
+             timeBefore = Omp_Get_Wtime()  ! When OpenMP is used
+#endif
           ENDIF
 
           ! Compute the rate constants that will be used
@@ -541,7 +550,11 @@ CONTAINS
 
           ! Start measuring KPP-related routine timing for this grid box
           IF ( State_Diag%Archive_KppTime ) THEN
+#ifndef NO_OMP
              CALL CPU_Time( timeAfter )
+#else
+             timeAfter = Omp_Get_Wtime()
+#endif
           ENDIF
 
           !==================================================================
