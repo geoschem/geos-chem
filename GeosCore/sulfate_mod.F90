@@ -365,7 +365,9 @@ CONTAINS
     IDNH3 = HCO_GetHcoID( 'NH3', HcoState )
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( L, J, I, A_M2                                            )
+    !$OMP PRIVATE( L, J, I, A_M2                                            )&
+    !$OMP COLLAPSE( 2                                                       )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -384,7 +386,9 @@ CONTAINS
     IDSO2 = HCO_GetHcoID( 'SO2', HcoState )
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( L, J, I, A_M2                                            )
+    !$OMP PRIVATE( L, J, I, A_M2                                            )&
+    !$OMP COLLAPSE( 2                                                       )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -965,10 +969,11 @@ CONTAINS
        IF ( SRTNH4 > 0 ) THEN
           TID = IBINS*(ICOMP-IDIAG) + 1
 
-          !$OMP PARALLEL DO       &
-          !$OMP DEFAULT( SHARED ) &
-          !$OMP PRIVATE( I, J, L, M, TEMPNH4, MK_TEMP2, NH4_CONC ) &
-          !$OMP SCHEDULE( DYNAMIC )
+          !$OMP PARALLEL DO                                                  &
+          !$OMP DEFAULT( SHARED                                             )&
+          !$OMP PRIVATE( I, J, L, M, TEMPNH4, MK_TEMP2, NH4_CONC            )&
+          !$OMP COLLAPSE( 3                                                 )&
+          !$OMP SCHEDULE( STATIC                                            )
           DO L=1,State_Grid%NZ
           DO J=1,State_Grid%NY
           DO I=1,State_Grid%NX
@@ -1055,7 +1060,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE ErrCode_Mod,          ONLY : GC_WARNING
+    USE ErrCode_Mod,          ONLY : GC_SUCCESS, GC_WARNING, GC_Error
     USE ERROR_MOD,            ONLY : ERROR_STOP,  IT_IS_NAN
     USE Input_Opt_Mod,        ONLY : OptInput
     USE Species_Mod,          ONLY : SpcConc
@@ -1096,6 +1101,8 @@ CONTAINS
 !
 ! !LOCAL VARIABLES
 !
+    LOGICAL                :: error
+    INTEGER                :: errorStatus
     INTEGER                :: I, J, K, L, DOW_LT, NTOP, C, Bi
     REAL*8                 :: SO4(State_Grid%NZ)
     REAL*8                 :: DTSRCE
@@ -1155,11 +1162,15 @@ CONTAINS
     ! Strings
     CHARACTER(LEN= 63)       :: DgnName
     CHARACTER(LEN=255)       :: MSG
-    CHARACTER(LEN=255)       :: LOC='srcsf30 (sulfate_mod.F90)'
+    CHARACTER(LEN=255)       :: LOC
+    CHARACTER(LEN=255)       :: errMsg
 
     !=================================================================
     ! SRCSF30 begins here!
     !=================================================================
+
+    ! Assume success
+    RC       = GC_SUCCESS
 
     ! Free pointers
     Ptr2D    => NULL()
@@ -1167,10 +1178,12 @@ CONTAINS
 
     ! COpy values from Input_Opt
     LNLPBL   = Input_Opt%LNLPBL
+    LOC      =  ' -> at SRCSF30 (in sulfate_mod.F90)'
 
     ! Import emissions from HEMCO (through HEMCO state)
     IF ( .NOT. ASSOCIATED(HcoState) ) THEN
-       CALL ERROR_STOP ( 'HcoState not defined!', LOC )
+       CALL GC_ERROR( 'HcoState not defined!', RC, LOC )
+       RETURN
     ENDIF
 
     ! Emission timestep [seconds]
@@ -1250,17 +1263,26 @@ CONTAINS
     !=================================================================
     ! Compute SO4 emissions
     !=================================================================
+    error       = .FALSE.
+    errorStatus = 0
 
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I, J, NTOP, SO4, TSO4, L, FEMIS, EFRAC, K )      &
-    !$OMP PRIVATE( NDISTINIT, NDIST, MDIST, NDISTFINAL, MADDFINAL ) &
-    !$OMP PRIVATE( Ndiag, Mdiag)                                    &
-    !$OMP PRIVATE( MADDTOTAL, NDIST2, MDIST2, C , ERRORSWITCH)      &
-    !$OMP PRIVATE( BOXVOL, TEMP, PRES, pdbug )                      &
-    !$OMP SCHEDULE( DYNAMIC )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I, J, NTOP, SO4, TSO4, L, FEMIS, EFRAC, K                )&
+    !$OMP PRIVATE( NDISTINIT, NDIST, MDIST, NDISTFINAL, MADDFINAL           )&
+    !$OMP PRIVATE( Ndiag, Mdiag                                             )&
+    !$OMP PRIVATE( MADDTOTAL, NDIST2, MDIST2, C , ERRORSWITCH               )&
+    !$OMP PRIVATE( BOXVOL, TEMP, PRES, pdbug                                )&
+    !$OMP COLLAPSE( 2                                                       )&
+    !$OMP SCHEDULE( DYNAMIC, 8                                              )&
+    !$OMP REDUCTION( .or. : error                                           )&
+    !$OMP REDUCTION( MAX  : errorStatus                                     )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
+
+       ! If any of the threads encounter an error, skip until the end
+       ! of the loop, and then exit this routine w/ failure status
+       IF ( error ) CYCLE
 
        !initialize diagnostics
        Ndiag(:) = 0.0D0
@@ -1311,13 +1333,16 @@ CONTAINS
           !ENDIF
 
           IF ( ABS( SUM( EFRAC(:)) - 1.d0 ) > 1.D-5 ) THEN
+             !$OMP CRITICAL
              PRINT*, '### ERROR in SRCSF30!'
              PRINT*, '### I, J : ', I, J
              print*, 'EFRAC',EFRAC(:)
              PRINT*, '### SUM(EFRAC) : ', SUM( EFRAC(:) )
              PRINT*, '### This should exactly 1.00'
-             CALL ERROR_STOP( 'Check SO4 redistribution', &
-                              'SRCSF30 (sulfate_mod.F90)' )
+             !$OMP END CRITICAL
+             error       = .TRUE.
+             errorStatus = 1
+             CYCLE
           ENDIF
 
        ELSE
@@ -1327,8 +1352,10 @@ CONTAINS
                   'running TOMAS simulation with the new PBL scheme ', &
                   'implemented since GEOS-Chem v.8-02-01.',            &
                   '-----> Try not using the non-local PBL option'
-          CALL ERROR_STOP( 'Code does not support new PBL scheme', &
-                           'SRCSF30 (sulfate_mod.F90)')
+
+          error       = .TRUE.
+          errorStatus = 2
+          CYCLE
 
        ENDIF  ! .not. LNLPBL
 
@@ -1372,14 +1399,20 @@ CONTAINS
                    IF( IT_IS_NAN( MDIST(K,C) ) ) THEN
                       PRINT *,'+++++++ Found NaN in SRCSF30  +++++++'
                       PRINT *,'Location (I,J,L):',I,J,L,'Bin',K,'comp',C
-                      CALL  ERROR_STOP('SRCSF30 SGCCOAG','sulfate_mod.F90')
+                      error       = .TRUE.
+                      errorStatus = 3
+                      EXIT
                    ENDIF
                 ENDDO
+                IF ( error ) EXIT
                 !initialize emitted sulfate number and mass returned
                 ! from subgridcoag
                 NDISTFINAL(K) = 0.0D0
                 MADDFINAL(K)  = 0.0D0
              ENDDO
+
+             ! Skip to the next grid box if a NaN was found
+             IF ( error ) EXIT
              !sfarina subgridcoag does its own mnfix. this call might be
              ! unnecessary?
              CALL MNFIX( NDIST, MDIST, ERRORSWITCH )
@@ -1441,12 +1474,17 @@ CONTAINS
 
                 !sanity check
                 if(NDISTFINAL(K) < 0d0) then
-                   CALL  ERROR_STOP('negative number emis','sulfate_mod.F90')
+                   error       = .TRUE.
+                   errorStatus = 4
                 endif
                 if(MADDTOTAL < 0d0) then
-                   CALL  ERROR_STOP('negative mass emis','sulfate_mod.F90')
+                   error       = .TRUE.
+                   errorStatus = 5
                 endif
              ENDDO
+
+             ! Skip to the next grid box if negative emissions were found
+             IF ( error ) EXIT
 
              !debug - avg particle mass after emission but before mnfix
              !DO K = 1, IBINS
@@ -1530,6 +1568,26 @@ CONTAINS
     ENDDO
     ENDDO
     !$OMP END PARALLEL DO
+
+    !========================================================================
+    ! Exit with error status if any errors were encountered in the loop
+    !========================================================================
+    IF ( error ) THEN
+       SELECT CASE( errorStatus )
+          CASE( 1 )
+             errMsg = 'Error: check SO4 redistribution!'
+          CASE( 2 )
+             errMsg = 'Error: SRCSF30 is not compatible w/ VDIFF PBL mixing!'
+          CASE( 3 )
+             errMsg = 'Error: NaN found in SRCSF30 before SUBGRIDCOAG!'
+          CASE( 4 )
+             errMsg = 'Error: Negative number emission!'
+          CASE( 5 )
+             errMsg = 'Error: Negative mass emission!'
+       END SELECT
+       CALL GC_Error( errMsg, RC, thisLoc=LOC )
+       RETURN
+    ENDIF
 
     NULLIFY(TC1)
 
@@ -1696,13 +1754,14 @@ CONTAINS
     FAC1          =  C1 * ( RUM**C2 )
     FAC2          =  C3 * ( RUM**C4 )
 
-    !$OMP PARALLEL DO                                                       &
-    !$OMP DEFAULT( SHARED                                                 ) &
-    !$OMP PRIVATE( I,       J,     L,    VTS,  P,        TEMP, RHB,  RWET ) &
-    !$OMP PRIVATE( RATIO_R, RHO,   DP,   PDP,  CONST,    SLIP, VISC, TC0  ) &
-    !$OMP PRIVATE( DELZ,    DELZ1, TOT1, TOT2, AREA_CM2, FLUX             ) &
-    !$OMP PRIVATE( RHO1,    WTP,   S                                      ) &
-    !$OMP SCHEDULE( DYNAMIC                                               )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I,       J,     L,    VTS,  P,        TEMP, RHB,  RWET   )&
+    !$OMP PRIVATE( RATIO_R, RHO,   DP,   PDP,  CONST,    SLIP, VISC, TC0    )&
+    !$OMP PRIVATE( DELZ,    DELZ1, TOT1, TOT2, AREA_CM2, FLUX               )&
+    !$OMP PRIVATE( RHO1,    WTP,   S                                        )&
+    !$OMP COLLAPSE( 2                                                       )&
+    !$OMP SCHEDULE( DYNAMIC, 8                                              )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -2042,11 +2101,12 @@ CONTAINS
     !=================================================================
     ! Do the chemistry over all chemically-active grid boxes!
     !=================================================================
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I, J, L, TK, O2, DMS0,OH, XNO3, RK1, RK2, BOXVL ) &
-    !$OMP PRIVATE( RK3, DMS_OH, DMS, OH0, XNO30, XOH, XN3, XX, LOH, LNO3 ) &
-    !$OMP SCHEDULE( DYNAMIC )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I, J, L, TK, O2, DMS0,OH, XNO3, RK1, RK2, BOXVL          )&
+    !$OMP PRIVATE( RK3, DMS_OH, DMS, OH0, XNO30, XOH, XN3, XX, LOH, LNO3    )&
+    !$OMP COLLAPSE( 3                                                       )&
+    !$OMP SCHEDULE( DYNAMIC, 8                                              )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
@@ -2339,8 +2399,8 @@ CONTAINS
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
     !$OMP PRIVATE( I, J, L, M, H2O20, KOH, FREQ, ALPHA, DH2O2, H2O2, PHOTJ  )&
-    !$OMP SCHEDULE( DYNAMIC, 8                                              )&
-    !$OMP COLLAPSE( 3                                                       )
+    !$OMP COLLAPSE( 3                                                       )&
+    !$OMP SCHEDULE( DYNAMIC, 8                                              )
     DO L  = 1, State_Grid%NZ
     DO J  = 1, State_Grid%NY
     DO I  = 1, State_Grid%NX
@@ -2494,6 +2554,8 @@ CONTAINS
     LOGICAL               :: IS_OFFLINE
     LOGICAL               :: IS_FULLCHEM
     LOGICAL               :: LDSTUP
+    LOGICAL               :: error
+    INTEGER               :: EC,     errorStatus
     INTEGER               :: I,      J,       L
     INTEGER               :: II,     NSTEP
     INTEGER               :: BULK,   SIZE_RES
@@ -2577,6 +2639,8 @@ CONTAINS
 
     ! Assume success
     RC          = GC_SUCCESS
+    error       = .FALSE.
+    errorStatus = 0
     ErrMsg      = ''
     ThisLoc     = ' -> at CHEM_SO2 (in module GeosCore/sulfate_mod.F90)'
 
@@ -2706,9 +2770,10 @@ CONTAINS
 
     ! Loop over chemistry grid boxes
     ! NOTE: Bob Yantosca verified that these !$OMP PRIVATE statements
-    ! are correct (12/11/20).  Make sure you add variables to the !$OMP
-    ! PRIVATE declaration if they are (1) Scalar variables; (2) Pointers
-    ! to other variables; (3) Arrays that have less than (I,J,L) scope.
+    ! are correct (12/11/20, updated 9/29/26).  Make sure you add variables
+    ! to the !$OMP PRIVATE declaration if they are (1) Scalar variables;
+    ! (2) Pointers to other variables; (3) Arrays that have less than
+    ! (I,J,L) scope.
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
     !$OMP PRIVATE( I,        J,             L,         SO20,     H2O20      )&
@@ -2723,7 +2788,7 @@ CONTAINS
     !$OMP PRIVATE( TNH3,     TNO3,          CL,        GNO3,     ANIT       )&
     !$OMP PRIVATE( LSTOT,    ALKdst,        ALKds,     ALKss,    NH3        )&
     !$OMP PRIVATE( SSCvv,    aSO4,          SO2_sr,    SR,       TANIT      )&
-    !$OMP PRIVATE( BULK,     SIZE_RES,      RC,        AlkA,     AlkC       )&
+    !$OMP PRIVATE( BULK,     SIZE_RES,      EC,        AlkA,     AlkC       )&
     !$OMP PRIVATE( ALK_d,    KTS,           KTN,       PSO4_d,   PH2SO4_d   )&
     !$OMP PRIVATE( PNIT_d,   SO2_gas,       KTH,       H2SO4_cd, H2SO4_gas  )&
     !$OMP PRIVATE( Ki,       PH2SO4d_tot,   PSO4d_tot, IBIN,     PNITd_tot  )&
@@ -2740,12 +2805,19 @@ CONTAINS
     !$OMP PRIVATE( SO4H4_vv, fupdateHOCl_0, KaqO2,     TNA,      one_m_KRATE)&
     !$OMP PRIVATE( HCHO0,    HMSc,          HMS0,      OH0,      KaqHCHO    )&
     !$OMP PRIVATE( KaqHMS,   KaqHMS2,       L7,        L7S,      L7_b       )&
-    !$OMP PRIVATE( L7S_b,    L8,            L8S,       LSTOT_HMS            )&
+    !$OMP PRIVATE( L7S_b,    L8,            L8S,       IONIC,    LSTOT_HMS  )&
     !$OMP COLLAPSE( 3                                                       )&
-    !$OMP SCHEDULE( DYNAMIC, 24                                             )
+    !$OMP SCHEDULE( DYNAMIC, 24                                             )&
+    !$OMP REDUCTION( .OR. : error                                           )&
+    !$OMP REDUCTION( MAX  : errorStatus                                     )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
+
+       ! Skip to the end of the loop if any of the threads returned
+       ! with error.  Then exit this routine with failure status
+       ! outside of the parallel loop, as this is thread-safe.
+       IF ( error ) CYCLE
 
        ! Initialize for safety's sake
        Ld          = 0.0_fp
@@ -2895,7 +2967,12 @@ CONTAINS
        CALL GET_ALK( I,         J,           L,          ALK1,               &
                      ALK2,      Kt1,         Kt2,        Kt1N,               &
                      Kt2N,      Kt1L,        Kt2L,       Input_Opt,          &
-                     State_Chm, State_Grid,  State_Met,  RC                 )
+                     State_Chm, State_Grid,  State_Met,  EC                 )
+       IF ( EC /= GC_SUCCESS ) THEN
+          error       = .TRUE.
+          errorStatus = 1
+          CYCLE
+       ENDIF
 
        ! Total alkalinity [kg]
        ALK = ALK1 + ALK2
@@ -2917,7 +2994,12 @@ CONTAINS
                              Kt1N,       Kt2N,       Kt1L,      Kt2L,        &
                              SO2_ss,     PSO4E,      PSO4F,     AlkA,        &
                              AlkC,       Input_Opt,  State_Met, State_Chm,   &
-                             State_Diag, FullRun,    RC                     )
+                             State_Diag, FullRun,    EC                     )
+          IF ( EC /= GC_SUCCESS ) THEN
+             error       = .TRUE.
+             errorStatus = 2
+             CYCLE
+          ENDIF
 
        ELSE
 
@@ -2978,7 +3060,12 @@ CONTAINS
                              SO2_ss,    H2SO4_cd,  KTS,       KTN,           &
                              KTH,       SO2_gas,   H2SO4_gas, PSO4_d,        &
                              PH2SO4_d,  PNIT_d,    ALKA_d,    Input_Opt,     &
-                             State_Met, State_Chm, RC                       )
+                             State_Met, State_Chm, EC                       )
+             IF ( EC /= GC_SUCCESS ) THEN
+                error       = .TRUE.
+                errorStatus = 3
+                CYCLE
+             ENDIF
 
              ! tdf "SO2_ss" is SO2 mixing ratio remaining after interaction
              ! with dust
@@ -3648,7 +3735,8 @@ CONTAINS
              ENDIF
 
              IF ( L7S > 1.0e+15_fp .or. L7S < 0 ) THEN
-                RC = GC_FAILURE
+                error       = .TRUE.
+                errorStatus = 4
                 PRINT *,'Loc:',I,J,L
                 PRINT *,'L7S:',L7S
                 PRINT *,'HCHO :',HCHO0
@@ -3698,7 +3786,8 @@ CONTAINS
 
 
              IF ( L7S_b > 1.0e+15_fp .or. L7S_b < 0 ) THEN
-                RC = GC_FAILURE
+                error       = .TRUE.
+                errorStatus = 5
                 PRINT *,'Loc: ',I,J,L
                 PRINT *,'L7S_b: ',L7S_b
                 PRINT *,'HMSc: ',HMSc
@@ -3708,7 +3797,6 @@ CONTAINS
                 PRINT *,'TK: ',TK
                 PRINT *,'LWC: ',LWC
                 PRINT *,'PATM :',PATM
-                !                  CALL ERROR_STOP( 'L6s_b >1e15 or <0,  point 3', LOC )
              ENDIF
 
              L7S = 0.e+0_fp
@@ -4337,7 +4425,30 @@ CONTAINS
              ENDIF
           ENDIF
        ENDIF
+
+    ENDDO
+    ENDDO
+    ENDDO
+    !$OMP END PARALLEL DO
+
 #ifdef LUO_WETDEP
+    !=================================================================
+    ! Compute rain pH from the column of cloud pH.  This must be done
+    ! after the loop above, since it needs pHCloud at levels L:NZ,
+    ! which other iterations of that loop may still be writing.
+    !=================================================================
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I, J, L                                                  )&
+    !$OMP COLLAPSE( 3                                                       )&
+    !$OMP SCHEDULE( DYNAMIC, 8                                              )
+    DO L = 1, State_Grid%NZ
+    DO J = 1, State_Grid%NY
+    DO I = 1, State_Grid%NX
+
+       ! Skip non-chemistry boxes, as the loop above does
+       IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
+
        ! Luo et al 2020 wtdep
        IF( SUM( State_Chm%QQ3D    (I,J,L:State_Grid%NZ) *                    &
                 State_Met%BXHEIGHT(I,J,L:State_Grid%NZ)   ) > 1.D-30 ) THEN
@@ -4363,12 +4474,12 @@ CONTAINS
          State_Chm%QQpHrain(I,J,L) = 0.D0
          State_Chm%QQrain(I,J,L)   = 0.D0
        ENDIF
-#endif
 
     ENDDO
     ENDDO
     ENDDO
     !$OMP END PARALLEL DO
+#endif
 
     ! Deallocate if allocated
     IF ( ASSOCIATED( NDENS_SALA ) ) DEALLOCATE ( NDENS_SALA )
@@ -4381,6 +4492,26 @@ CONTAINS
     SO2s       => NULL()
     NDENS_SALA => NULL()
     NDENS_SALC => NULL()
+
+    ! Exit with failure status if any of the threads encountered an
+    ! error in the main loop above.  This is the thread-safe
+    ! implementation.  (Do this after freeing memory, to avoid leaks.)
+    IF ( error ) THEN
+       SELECT CASE( errorStatus )
+          CASE( 1 )
+             errMsg = 'Error encountered in "Get_Alk"!'
+          CASE( 2 )
+             errMsg = 'Error encountered in "Seasalt_Chem"!'
+          CASE( 3 )
+             errMsg = 'Error encountered in "Dust_Chem"!'
+          CASE( 4 )
+             errMsg = 'L7S out of range (see printout above)!'
+          CASE( 5 )
+             errMsg = 'L7S_b out of range (see printout above)!'
+       END SELECT
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
 
   END SUBROUTINE CHEM_SO2
 !EOC
@@ -7721,7 +7852,8 @@ CONTAINS
     !$OMP DEFAULT( SHARED                                                   )&
     !$OMP PRIVATE( I,     J,    L,     N,         SO4,  SO4s,  SO40         )&
     !$OMP PRIVATE( SO40s, SO4d, SO40d, SO40_dust, IBIN, PSO4d, IDTRC        )&
-    !$OMP SCHEDULE( DYNAMIC                                                 )
+    !$OMP COLLAPSE( 3                                                       )&
+    !$OMP SCHEDULE( DYNAMIC, 8                                              )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
@@ -7912,7 +8044,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE ERROR_MOD
-    USE Input_Opt_Mod,      ONLY : OptINput
+    USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
@@ -7946,17 +8078,34 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER           :: I,      J,       L
-    INTEGER           :: k,      binact1, binact2
-    INTEGER           :: KMIN,   previous_units
+    LOGICAL           :: error
+    INTEGER           :: EC,     errorStatus
+    INTEGER           :: I,      J,              L
+    INTEGER           :: k,      binact1,        binact2
+    INTEGER           :: KMIN,   previous_units, id_NKact
     REAL(fp)          :: SO4OXID
+    CHARACTER(LEN=255):: errMsg
 
     !=================================================================
     ! CHEM_SO4_AQ begins here!
     !=================================================================
 
-    ! Assume success
-    RC  = GC_SUCCESS
+    ! Initialize
+    RC          = GC_SUCCESS
+    error       = .FALSE.
+    errorStatus = 0
+
+    ! Set activating bin based on which TOMAS bin length is being used
+    ! (JKodros, 6/2/15)
+#if defined( TOMAS12 )
+    id_NKact = id_NK05
+#elif defined( TOMAS15 )
+    id_NKact = id_NK08
+#elif defined( TOMAS30 )
+    id_NKact = id_NK10
+#else
+    id_NKact = id_NK20
+#endif
 
     ! Convert species from to [kg]
     ! NOTE: For TOMAS, convert all species units, in order not to
@@ -7978,12 +8127,22 @@ CONTAINS
 
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I, J, L, KMIN, SO4OXID, BINACT1, BINACT2                 ) 
+    !$OMP PRIVATE( I, J, L, KMIN, SO4OXID, BINACT1, BINACT2, EC             )&
+    !$OMP COLLAPSE( 3                                                       )&
+    !$OMP SCHEDULE( DYNAMIC, 8                                              )&
+    !$OMP REDUCTION( .OR. : error                                           )&
+    !$OMP REDUCTION( MAX  : errorStatus                                     )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
+       ! Skip to the end of the loop if any of the threads returned
+       ! with error.  Then exit this routine with failure status
+       ! outside of the parallel loop, as this is thread-safe.
+       IF ( error ) CYCLE
+
        ! Zero private loop variables
+       EC      = GC_SUCCESS
        BINACT1 = 0.0_fp
        BINACT2 = 0.0_fp
        KMIN    = 0.0_fp
@@ -7995,25 +8154,21 @@ CONTAINS
        SO4OXID = PSO4_SO2AQ(I,J,L) * State_Met%AD(I,J,L) &
                  / ( AIRMW / State_Chm%SpcData(id_SO4)%Info%MW_g )
        IF ( SO4OXID > 0e+0_fp ) THEN
-          ! JKodros (6/2/15 - Set activating bin based on which TOMAS bin
-          !length being used)
-#if defined( TOMAS12 )
-          CALL GETACTBIN( I, J, L, id_NK05, .TRUE. , BINACT1, State_Chm, RC )
 
-          CALL GETACTBIN( I, J, L, id_NK05, .FALSE., BINACT2, State_Chm, RC )
-#elif defined( TOMAS15 )
-          CALL GETACTBIN( I, J, L, id_NK08, .TRUE. , BINACT1, State_Chm, RC )
+          ! Get the activating bins
+          CALL GETACTBIN( I, J, L, id_NKact, .TRUE., BINACT1, State_Chm, EC )
+          IF ( EC /= GC_SUCCESS ) THEN
+             error       = .TRUE.
+             errorStatus = 1
+             CYCLE
+          ENDIF
 
-          CALL GETACTBIN( I, J, L, id_NK08, .FALSE., BINACT2, State_Chm, RC )
-#elif defined( TOMAS30 )
-          CALL GETACTBIN( I, J, L, id_NK10, .TRUE. , BINACT1, State_Chm, RC )
-
-          CALL GETACTBIN( I, J, L, id_NK10, .FALSE., BINACT2, State_Chm, RC )
-#else
-          CALL GETACTBIN( I, J, L, id_NK20, .TRUE. , BINACT1, State_Chm, RC )
-
-          CALL GETACTBIN( I, J, L, id_NK20, .FALSE., BINACT2, State_Chm, RC )
-#endif
+          CALL GETACTBIN( I, J, L, id_NKact, .FALSE., BINACT2, State_Chm, EC )
+          IF ( EC /= GC_SUCCESS ) THEN
+             error       = .TRUE.
+             errorStatus = 1
+             CYCLE
+          ENDIF
 
           KMIN = ( BINACT1 + BINACT2 )/ 2.
 
@@ -8032,7 +8187,13 @@ CONTAINS
                State_Grid = State_Grid,                                      &
                State_Met  = State_Met,                                       &
                State_Diag = State_Diag,                                      &
-               RC         = RC                                              )
+               RC         = EC                                              )
+
+          IF ( EC /= GC_SUCCESS ) THEN
+             error       = .TRUE.
+             errorStatus = 2
+             CYCLE
+          ENDIF
 
        ENDIF
     ENDDO
@@ -8054,6 +8215,21 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error('Unit conversion error', RC, &
                      'End of CHEM_SO4_AQ in sulfate_mod.F90')
+       RETURN
+    ENDIF
+
+    ! Exit with failure status if any of the threads encountered an
+    ! error in the parallel loop above.  This is done after converting
+    ! units back, so that the species units are left consistent.
+    IF ( error ) THEN
+       SELECT CASE( errorStatus )
+          CASE( 1 )
+             errMsg = 'Error encountered in "GetActBin"!'
+          CASE( 2 )
+             errMsg = 'Error encountered in "AqOxid"!'
+       END SELECT
+       CALL GC_Error( errMsg, RC,                                            &
+                      'CHEM_SO4_AQ (in module GeosCore/sulfate_mod.F90)' )
        RETURN
     ENDIF
 
@@ -8130,10 +8306,11 @@ CONTAINS
     Spc => State_Chm%Species
 
     ! Loop over chemistry grid boxes
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I, J, L, MSA0, MSA ) &
-    !$OMP SCHEDULE( DYNAMIC )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I, J, L, MSA0, MSA                                       )&
+    !$OMP COLLAPSE( 3                                                       )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
@@ -8262,10 +8439,11 @@ CONTAINS
     IDTRC(6) = id_NITdbin6
     IDTRC(7) = id_NITdbin7
 
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I, J, L, NITd, NIT0d, IBIN, PNITd ) &
-    !$OMP SCHEDULE( DYNAMIC, 1 )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I, J, L, NITd, NIT0d, IBIN, PNITd                        )&
+    !$OMP COLLAPSE( 3                                                       )&
+    !$OMP SCHEDULE( DYNAMIC, 8                                              )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
@@ -8390,10 +8568,11 @@ CONTAINS
       ! Point to chemical species array [v/v dry]
       Spc      => State_Chm%Species
 
-      !$OMP PARALLEL DO          &
-      !$OMP DEFAULT( SHARED )    &
-      !$OMP PRIVATE( I, J, L)    &
-      !$OMP SCHEDULE( DYNAMIC, 1 )
+      !$OMP PARALLEL DO                                                      &
+      !$OMP DEFAULT( SHARED                                                 )&
+      !$OMP PRIVATE( I, J, L                                                )&
+      !$OMP COLLAPSE( 3                                                     )&
+      !$OMP SCHEDULE( STATIC                                                )
       DO L = 1, State_Met%MaxChemLev
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
@@ -9509,7 +9688,8 @@ CONTAINS
     !$OMP PRIVATE( I,     J,     L,    N,    K,    DEN,  REFF               )&
     !$OMP PRIVATE( DP,    CONST, VTS,  TEMP, P,    PDP,  SLIP               )&
     !$OMP PRIVATE( MASS,  OLD,   VISC, TC0,  DELZ, DELZ1                    )&
-    !$OMP SCHEDULE( DYNAMIC, 1                                              )
+    !$OMP COLLAPSE( 2                                                       )&
+    !$OMP SCHEDULE( DYNAMIC, 8                                              )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
