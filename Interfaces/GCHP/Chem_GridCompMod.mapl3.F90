@@ -1,5 +1,148 @@
 #include "MAPL.h"
 
+#ifdef MAPL3
+module GCHPctmEnv_GridCompMod
+
+  use ESMF
+  use MAPL
+  use pflogger, only: logger_t => logger
+
+  implicit none
+  private
+
+  public SetServices
+
+  integer,  parameter :: r4 = REAL4
+  integer,  parameter :: r8 = REAL8
+
+contains
+
+  !=============================================================================
+  ! SetServices - External visible registration routine
+  !
+  subroutine SetServices(gc, rc)
+
+    type(ESMF_GridComp)  :: gc     ! composite gridded component
+    integer, intent(out) :: rc     ! Error code, 0 all is well
+
+    integer :: status
+    type(ESMF_HConfig) :: hconfig
+    class(logger_t), pointer :: logger
+
+    call MAPL_GridCompGet(gc, hconfig=hconfig, logger=logger, _RC)
+    call logger%debug("GEOSChem_GridCompMod.F90::SetServices starting...")
+
+    ! Register methods
+    call MAPL_GridCompSetEntryPoint(gc, ESMF_Method_Initialize,  Initialize, _RC)
+    call MAPL_GridCompSetEntryPoint(gc, ESMF_Method_Run, Run, phase_name="run", _RC)
+    call MAPL_GridCompSetEntryPoint(gc, ESMF_Method_Finalize, Finalize, _RC)
+
+    ! Include auto-generated code for declaring non-vector imports
+#include "GEOSChem_Import___.h"
+
+    ! Include auto-generated code for declaring exports
+#include "GEOSChem_Export___.h"
+
+    call logger%debug("GEOSChem_GridCompMod.F90::SetServices done")
+
+    _RETURN(_SUCCESS)
+
+  end subroutine SetServices
+
+  !=============================================================================
+  ! Initialize routine
+  subroutine Initialize(gc, import, export, clock, rc)
+
+    type(ESMF_GridComp)  :: gc     ! composite gridded component
+    type(ESMF_State)     :: import ! import state
+    type(ESMF_State)     :: export ! export state
+    type(ESMF_Clock)     :: clock  ! the clock
+    integer, intent(out) :: rc     ! Error code, 0 all is well
+
+    integer :: status
+    type(ESMF_HConfig) :: hconfig
+    class(logger_t), pointer :: logger
+
+    call MAPL_GridCompGet(gc, hconfig=hconfig, logger=logger, _RC)
+    call logger%debug("GEOSChem_GridCompMod.F90::Initialize starting...")
+
+    call logger%debug("GEOSChem_GridCompMod.F90::Initialize done")
+
+    _RETURN(_SUCCESS)
+      
+  end subroutine Initialize
+
+  !=============================================================================
+  ! Run -- The Run method of the Gridded Component.
+
+  subroutine Run(gc, import, export, clock, rc)
+
+    type(ESMF_GridComp)  :: gc     ! composite gridded component
+    type(ESMF_State)     :: import ! import state
+    type(ESMF_State)     :: export ! export state
+    type(ESMF_Clock)     :: clock  ! the clock
+    integer, intent(out) :: rc     ! Error code, 0 all is well
+
+    integer      :: status
+    type(ESMF_HConfig) :: hconfig
+    class(logger_t), pointer :: logger
+
+    ! Include auto-generated code to declare non-vector import/export pointers
+#include "GEOSChem_DeclarePointer___.h"
+    
+    call MAPL_GridCompGet(gc, logger=logger, _RC)
+    call logger%debug("GEOSChem_GridCompMod.F90:: Run starting...")
+
+    ! Include auto-generated code to get non-vector import/export pointers
+    ! Pointers to vectors will be done conditionally later on
+#include "GEOSChem_GetPointer___.h"
+
+    call logger%debug("GEOSChem_GridCompMod.F90::Run done")
+
+    _RETURN(_SUCCESS)
+
+  end subroutine Run
+
+  !=============================================================================
+  ! Finalize -- The Finalize method of the Gridded Component.
+
+  subroutine Finalize( gc, import, export, clock, rc )
+
+    type(ESMF_GridComp)  :: gc     ! composite gridded component
+    type(ESMF_State)     :: import ! import state
+    type(ESMF_State)     :: export ! export state
+    type(ESMF_Clock)     :: clock  ! the clock
+    integer, intent(out) :: rc     ! Error code, 0 all is well
+
+    integer :: status
+    class(logger_t), pointer :: logger
+
+    call MAPL_GridCompGet(gc, logger=logger, _RC)
+    call logger%debug("GEOSChem_GridCompMod.F90::Finalize starting...")
+
+    call logger%debug("GEOSChem_GridCompMod.F90::Finalize done")
+
+    _RETURN(ESMF_SUCCESS)
+
+  end subroutine Finalize
+
+  !=============================================================================
+  ! Extract -- Description
+  subroutine Extract(gc )
+
+  end subroutine Extract
+
+end module GEOSChem_GridCompMod
+
+subroutine GEOSChem_SetServices(gc, rc)
+   use ESMF
+   use GEOSChem_GridCompMod, only : mySetservices => SetServices
+   type(ESMF_GridComp) :: gc
+   integer, intent(out) :: rc
+   call mySetServices(gc, rc=rc)
+end subroutine GEOSChem_SetServices
+
+#else
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
@@ -2601,3 +2744,4 @@ CONTAINS
   END SUBROUTINE Extract_
 
 END MODULE Chem_GridCompMod
+#endif
