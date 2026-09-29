@@ -299,9 +299,11 @@ CONTAINS
     MESON2O_DELTA = 0e+0_fp
 
     ! First compute ZMID outside of main parallel loop
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I, J, L, ZBASE, ZDEL )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I, J, L, ZBASE, ZDEL                                     )&
+    !$OMP COLLAPSE( 2                                                       )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -320,23 +322,23 @@ CONTAINS
     !$OMP END PARALLEL DO
 
     ! Main parallel DO loop over lon, lat, alt
-    !$OMP PARALLEL DO        &
-    !$OMP DEFAULT( SHARED )  &
-    !$OMP PRIVATE( I,        J,        L                       ) &
-    !$OMP PRIVATE( DAYFRAC,            DN2O,     CYCLEBOX      ) &
-    !$OMP PRIVATE(           RRATE,    T3K,      TINV          ) &
-    !$OMP PRIVATE( NDAIR,    XAIR,     KGNOX,    KGN2O         ) &
-    !$OMP PRIVATE( LOCALNOX, LOCALN2O, LOCALO3,  LOCALO3P      ) &
-    !$OMP PRIVATE( LOCALO1D, NO_ALPHA, NO_BETA,  NO_GAMMA      ) &
-    !$OMP PRIVATE( FRACNO2,  FRACNO3,  FRACNO,   FRACN         ) &
-    !$OMP PRIVATE( NOXRATE,  N2ORATE,  DNOX                    ) &
-    !$OMP PRIVATE( OLD_NO3,  OLD_NO2,  OLD_NO,   OLD_N         ) &
-    !$OMP PRIVATE( NEW_NO3,  NEW_NO2,  NEW_NO,   NEW_N         ) &
-    !$OMP PRIVATE( OLD_N2O,  NEW_N2O,  LMinPhot                ) &
-    !$OMP REDUCTION( + : MESONOX_DELTA                         ) &
-    !$OMP REDUCTION( + : MESON2O_DELTA                         ) &
-    !$OMP COLLAPSE( 3                                          ) &
-    !$OMP SCHEDULE( STATIC                                     )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I,        J,        L                                    )&
+    !$OMP PRIVATE( DAYFRAC,            DN2O,     CYCLEBOX                   )&
+    !$OMP PRIVATE(           RRATE,    T3K,      TINV                       )&
+    !$OMP PRIVATE( NDAIR,    XAIR,     KGNOX,    KGN2O                      )&
+    !$OMP PRIVATE( LOCALNOX, LOCALN2O, LOCALO3,  LOCALO3P                   )&
+    !$OMP PRIVATE( LOCALO1D, NO_ALPHA, NO_BETA,  NO_GAMMA                   )&
+    !$OMP PRIVATE( FRACNO2,  FRACNO3,  FRACNO,   FRACN                      )&
+    !$OMP PRIVATE( NOXRATE,  N2ORATE,  DNOX                                 )&
+    !$OMP PRIVATE( OLD_NO3,  OLD_NO2,  OLD_NO,   OLD_N                      )&
+    !$OMP PRIVATE( NEW_NO3,  NEW_NO2,  NEW_NO,   NEW_N                      )&
+    !$OMP PRIVATE( OLD_N2O,  NEW_N2O,  LMinPhot                             )&
+    !$OMP REDUCTION( + : MESONOX_DELTA                                      )&
+    !$OMP REDUCTION( + : MESON2O_DELTA                                      )&
+    !$OMP COLLAPSE( 3                                                       )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
@@ -654,11 +656,13 @@ CONTAINS
     NOXDATA2D => State_Chm%NOXCOEFF(:,:,:,TARG_MONTH)
 
     ! Scan through target array, element by element
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I,      J,      L,       VERTCOUNT ) &
-    !$OMP PRIVATE( EXTRAP, LSTART, PCENTER, FOUNDLEV  ) &
-    !$OMP PRIVATE( ITRAC,  ISRATE, CURRVAL, JJNOX     )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I,      J,      L,       VERTCOUNT                       )&
+    !$OMP PRIVATE( EXTRAP, LSTART, PCENTER, FOUNDLEV                        )&
+    !$OMP PRIVATE( ITRAC,  ISRATE, CURRVAL, JJNOX                           )&
+    !$OMP COLLAPSE( 2                                                       )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -858,25 +862,26 @@ CONTAINS
 
     ! First settle liquid aerosols (SLA) using scheme found
     ! elsewhere in GEOS-Chem
-    !$OMP PARALLEL DO        &
-    !$OMP DEFAULT( SHARED  ) &
-    !$OMP PRIVATE( J,            I,            L,          VTS        ) &
-    !$OMP PRIVATE( VNAT,         NATCOL,       BXMIN,      MINALT     ) &
-    !$OMP PRIVATE( MAXALT,       VFALLMAX,     TEMP,       P          ) &
-    !$OMP PRIVATE( RUNCALC,      RWET,         RHO                    ) &
-    !$OMP PRIVATE( SP_NUM,       SP_LAMBDA,    VISC,       IAERO      ) &
-    !$OMP PRIVATE( DP,           PDP,          CONST,      SLIP       ) &
-    !$OMP PRIVATE( DELZ,         CONST_V,      PHASEMASS,  K          ) &
-    !$OMP PRIVATE( IDTCURRENT,   SEDMASS,      DELZ1,      SEDSTEP    ) &
-    !$OMP PRIVATE( NUMSEDSTEPS,  TEMPREAL,     ISED,       STARTPT    ) &
-    !$OMP PRIVATE( XNO3_0,       XNAT_0,       XICE_0,     XPSC_0     ) &
-    !$OMP PRIVATE( INVAIR_0,     INVAIR_ABOVE, XNO3_ABOVE, XNAT_ABOVE ) &
-    !$OMP PRIVATE( XICE_ABOVE,   XPSC_ABOVE,   P_ABOVE,    ABOVEGRAD  ) &
-    !$OMP PRIVATE( XNO3_BELOW,   XNAT_BELOW,   XICE_BELOW, XPSC_BELOW ) &
-    !$OMP PRIVATE( P_0,          PSED0,        PSEDABOVE,  BELOWGRAD  ) &
-    !$OMP PRIVATE( LOCALPROFILE, SEDQUANT,     SEDNO3,     SEDICE     ) &
-    !$OMP PRIVATE( SEDH2O,       SEDNAT,       SEDPSC                 ) &
-    !$OMP SCHEDULE( DYNAMIC )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( J,            I,            L,          VTS              )&
+    !$OMP PRIVATE( VNAT,         NATCOL,       BXMIN,      MINALT           )&
+    !$OMP PRIVATE( MAXALT,       VFALLMAX,     TEMP,       P                )&
+    !$OMP PRIVATE( RUNCALC,      RWET,         RHO                          )&
+    !$OMP PRIVATE( SP_NUM,       SP_LAMBDA,    VISC,       IAERO            )&
+    !$OMP PRIVATE( DP,           PDP,          CONST,      SLIP             )&
+    !$OMP PRIVATE( DELZ,         CONST_V,      PHASEMASS,  K                )&
+    !$OMP PRIVATE( IDTCURRENT,   SEDMASS,      DELZ1,      SEDSTEP          )&
+    !$OMP PRIVATE( NUMSEDSTEPS,  TEMPREAL,     ISED,       STARTPT          )&
+    !$OMP PRIVATE( XNO3_0,       XNAT_0,       XICE_0,     XPSC_0           )&
+    !$OMP PRIVATE( INVAIR_0,     INVAIR_ABOVE, XNO3_ABOVE, XNAT_ABOVE       )&
+    !$OMP PRIVATE( XICE_ABOVE,   XPSC_ABOVE,   P_ABOVE,    ABOVEGRAD        )&
+    !$OMP PRIVATE( XNO3_BELOW,   XNAT_BELOW,   XICE_BELOW, XPSC_BELOW       )&
+    !$OMP PRIVATE( P_0,          PSED0,        PSEDABOVE,  BELOWGRAD        )&
+    !$OMP PRIVATE( LOCALPROFILE, SEDQUANT,     SEDNO3,     SEDICE           )&
+    !$OMP PRIVATE( SEDH2O,       SEDNAT,       SEDPSC                       )&
+    !$OMP COLLAPSE( 2                                                       )&
+    !$OMP SCHEDULE( DYNAMIC, 8                                              )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -1423,15 +1428,16 @@ CONTAINS
        GF_ATMCONV = LOG(ATM)
     ENDIF
 
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( J,          I,              L       ) &
-    !$OMP PRIVATE( PCENTER,    PCENTER_P,      TCENTER ) &
-    !$OMP PRIVATE( INVAIR )                              &
-    !$OMP PRIVATE( H2SO4SUM,   GF_PP,          GF_INVT ) &
-    !$OMP PRIVATE( GF_CFACTOR, GF_LOGPSULFATE, GF_PVAP ) &
-    !$OMP PRIVATE( GF_DIFF                             ) &
-    !$OMP SCHEDULE( DYNAMIC )
+    !$OMP PARALLEL DO                                                       &
+    !$OMP DEFAULT( SHARED                                                  )&
+    !$OMP PRIVATE( J,          I,              L                           )&
+    !$OMP PRIVATE( PCENTER,    PCENTER_P,      TCENTER                     )&
+    !$OMP PRIVATE( INVAIR                                                  )&
+    !$OMP PRIVATE( H2SO4SUM,   GF_PP,          GF_INVT                     )&
+    !$OMP PRIVATE( GF_CFACTOR, GF_LOGPSULFATE, GF_PVAP                     )&
+    !$OMP PRIVATE( GF_DIFF                                                 )&
+    !$OMP COLLAPSE( 3                                                      )&
+    !$OMP SCHEDULE( DYNAMIC, 8                                             )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
@@ -1708,35 +1714,36 @@ CONTAINS
     CALL CALC_H2SO4_GAS( Input_Opt, State_Chm, State_Grid, State_Met )
 
     ! Loop over latitude boxes first
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I,            J,                  L             ) &
-    !$OMP PRIVATE( K,            IS_POLAR,           IS_STRAT      ) &
-    !$OMP PRIVATE( PCENTER,      PCENTER_PA,         DENAIR        ) &
-    !$OMP PRIVATE( INVAIR,       PSATHNO3,           PSATH2O       ) &
-    !$OMP PRIVATE( VOL_NAT,      VOL_ICE                           ) &
-    !$OMP PRIVATE( VOL_SLA,      PSATHNO3_SUPERCOOL, TCENTER       ) &
-    !$OMP PRIVATE( TINV,         IS_VALID                          ) &
-    !$OMP PRIVATE( RAD_AER_BOX,  RHO_AER_BOX                       ) &
-    !$OMP PRIVATE( KG_AER_BOX,   NDENS_AER_BOX,      SAD_AER_BOX   ) &
-    !$OMP PRIVATE( KG_NAT,       KG_ICE,             KG_NO3        ) &
-    !$OMP PRIVATE( GAMMA_BOX,    PSATH2O_SUPERSAT,   H2OSUM        ) &
-    !$OMP PRIVATE( H2OPP,        H2O_BOX_S,          H2O_BOX_L     ) &
-    !$OMP PRIVATE( H2O_BOX_G,    H2SO4SUM,           HNO3SUM       ) &
-    !$OMP PRIVATE( HNO3PP,       HNO3_BOX_S,         HNO3_BOX_L    ) &
-    !$OMP PRIVATE( HNO3_BOX_G,   BrNO3SUM,           HBrSUM        ) &
-    !$OMP PRIVATE( HOBrSUM,      ClNO3SUM,           HClSUM        ) &
-    !$OMP PRIVATE( HOClSUM,      STATE_LOCAL,        HBrGASFRAC    ) &
-    !$OMP PRIVATE( HOBrGASFRAC,  HNO3GASFRAC,        HClGASFRAC    ) &
-    !$OMP PRIVATE( HOClGASFRAC,  TOFFSET,            W_H2SO4       ) &
-    !$OMP PRIVATE( W_H2O,        W_HCl,              W_HOCl        ) &
-    !$OMP PRIVATE( W_HBr,        W_HOBr,             W_HNO3        ) &
-    !$OMP PRIVATE( HCl_BOX_G,    HCl_BOX_L,          HOCl_BOX_G    ) &
-    !$OMP PRIVATE( HOCl_BOX_L,   H2SO4_BOX_G,        HBr_BOX_G     ) &
-    !$OMP PRIVATE( HBr_BOX_L,    HOBr_BOX_G,         HOBr_BOX_L    ) &
-    !$OMP PRIVATE( H2SO4_BOX_L,  KHET_COMMON,        KHET_SPECIFIC ) &
-    !$OMP PRIVATE( VOL_TOT,      BOX_LAT                           ) &
-    !$OMP SCHEDULE( DYNAMIC, 1                                     )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I,            J,                  L                      )&
+    !$OMP PRIVATE( K,            IS_POLAR,           IS_STRAT               )&
+    !$OMP PRIVATE( PCENTER,      PCENTER_PA,         DENAIR                 )&
+    !$OMP PRIVATE( INVAIR,       PSATHNO3,           PSATH2O                )&
+    !$OMP PRIVATE( VOL_NAT,      VOL_ICE                                    )&
+    !$OMP PRIVATE( VOL_SLA,      PSATHNO3_SUPERCOOL, TCENTER                )&
+    !$OMP PRIVATE( TINV,         IS_VALID                                   )&
+    !$OMP PRIVATE( RAD_AER_BOX,  RHO_AER_BOX                                )&
+    !$OMP PRIVATE( KG_AER_BOX,   NDENS_AER_BOX,      SAD_AER_BOX            )&
+    !$OMP PRIVATE( KG_NAT,       KG_ICE,             KG_NO3                 )&
+    !$OMP PRIVATE( GAMMA_BOX,    PSATH2O_SUPERSAT,   H2OSUM                 )&
+    !$OMP PRIVATE( H2OPP,        H2O_BOX_S,          H2O_BOX_L              )&
+    !$OMP PRIVATE( H2O_BOX_G,    H2SO4SUM,           HNO3SUM                )&
+    !$OMP PRIVATE( HNO3PP,       HNO3_BOX_S,         HNO3_BOX_L             )&
+    !$OMP PRIVATE( HNO3_BOX_G,   BrNO3SUM,           HBrSUM                 )&
+    !$OMP PRIVATE( HOBrSUM,      ClNO3SUM,           HClSUM                 )&
+    !$OMP PRIVATE( HOClSUM,      STATE_LOCAL,        HBrGASFRAC             )&
+    !$OMP PRIVATE( HOBrGASFRAC,  HNO3GASFRAC,        HClGASFRAC             )&
+    !$OMP PRIVATE( HOClGASFRAC,  TOFFSET,            W_H2SO4                )&
+    !$OMP PRIVATE( W_H2O,        W_HCl,              W_HOCl                 )&
+    !$OMP PRIVATE( W_HBr,        W_HOBr,             W_HNO3                 )&
+    !$OMP PRIVATE( HCl_BOX_G,    HCl_BOX_L,          HOCl_BOX_G             )&
+    !$OMP PRIVATE( HOCl_BOX_L,   H2SO4_BOX_G,        HBr_BOX_G              )&
+    !$OMP PRIVATE( HBr_BOX_L,    HOBr_BOX_G,         HOBr_BOX_L             )&
+    !$OMP PRIVATE( H2SO4_BOX_L,  KHET_COMMON,        KHET_SPECIFIC          )&
+    !$OMP PRIVATE( VOL_TOT,      BOX_LAT                                    )&
+    !$OMP COLLAPSE( 3                                                       )&
+    !$OMP SCHEDULE( DYNAMIC, 8                                              )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
@@ -3651,11 +3658,13 @@ CONTAINS
        RETURN
     ENDIF
 
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I, J, L, TPLEV, READ_SPHU, LEVCPT) &
-    !$OMP PRIVATE( SPHU_kgkg, H2OVV_moist, Ev_mid   ) &
-    !$OMP PRIVATE( Esat, EsatA, EsatB, EsatC, EsatD )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I, J, L, TPLEV, READ_SPHU, LEVCPT                        )&
+    !$OMP PRIVATE( SPHU_kgkg, H2OVV_moist, Ev_mid                           )&
+    !$OMP PRIVATE( Esat, EsatA, EsatB, EsatC, EsatD                         )&
+    !$OMP COLLAPSE( 2                                                       )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -3811,9 +3820,6 @@ CONTAINS
     ! UCX_H2SO4PHOT begins here!
     !=================================================================
 
-    ! Initialize
-    PHOTDELTA = 0.0_fp
-
     ! Copy fields from species database
     SO2_MW_G = State_Chm%SpcData(id_SO2)%Info%MW_g ! g/mol
     SO4_MW_G = State_Chm%SpcData(id_SO4)%Info%MW_g ! g/mol
@@ -3825,13 +3831,17 @@ CONTAINS
     ! Allow for the possibility of variable timestep
     DTCHEM = GET_TS_CHEM()
 
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I, J, L, DAYCOLUMN, GMU ) &
-    !$OMP PRIVATE( LMINPHOT, PHOTDELTA, SO4_IN, SO4_DELTA )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I,        J,         L,      DAYCOLUMN, GMU              )&
+    !$OMP PRIVATE( LMINPHOT, PHOTDELTA, SO4_IN, SO4_DELTA                   )&
+    !$OMP COLLAPSE( 2                                                       )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO J=1,State_Grid%NY
     DO I=1,State_Grid%NX
 
+       ! Initialize
+       PHOTDELTA = 0.0_fp
        GMU       = State_Met%SUNCOSmid(I,J)
        DAYCOLUMN = (GMU.gt.0e+0_fp)
 
