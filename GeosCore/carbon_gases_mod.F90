@@ -330,9 +330,6 @@ CONTAINS
 
     ! Arrays
     INTEGER                :: ICNTRL(20)
-    INTEGER                :: ISTATUS(20)
-    REAL(dp)               :: RCNTRL(20)
-    REAL(dp)               :: RSTATE(20)
     REAL(fp)               :: OHdiurnalFac(State_Grid%NX, State_Grid%NY)
 
     ! Arrays for data read in via HEMCO
@@ -468,10 +465,18 @@ CONTAINS
        !$OMP DEFAULT( SHARED                                                )&
        !$OMP PRIVATE( I, J, L, N, IERR, timeBefore, timeAfter               )&
        !$OMP COLLAPSE( 3                                                    )&
-       !$OMP SCHEDULE( DYNAMIC, 24                                          )
+       !$OMP SCHEDULE( DYNAMIC, 24                                          )&
+       !$OMP REDUCTION( .OR. : failed                                       )
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
+
+          ! The "failed" variable will return true if any thread encounters
+          ! a situation where the integrator cannot converge to a solution
+          ! in a given grid box. If this happens, keep cycling until the end
+          ! of the loop is reached, and then exit this routine with failure
+          ! status outside of the loop.  This is thread-safe.
+          IF ( failed ) CYCLE
 
           ! Initialize PRIVATE and THREADPRIVATE loop variables
           C              = 0.0_dp                    ! Species conc. [molec/cm3]
@@ -485,9 +490,9 @@ CONTAINS
           TEMP_OVER_K300 = TEMP / 300.0_dp           ! T/300 term for equations
           K300_OVER_TEMP = 300.0_dp / TEMP           ! 300/T term for equations
           SUNCOS         = State_Met%SUNCOSmid(I,J)  ! Cos(SZA) ) [1]
-          timeBefore     = 0.0_fp
-          timeAfter      = 0.0_fp
-          IERR           = 0
+          timeBefore     = 0.0_fp                    ! Used for KPPTime diag
+          timeAfter      = 0.0_fp                    ! Used for KPPTime diag
+          IERR           = 0                         ! KPP success/failure flag
 
           !==================================================================
           ! Convert species to molec/cm3 for the KPP solver
@@ -545,15 +550,18 @@ CONTAINS
                ICNTRL_U = ICNTRL,                                            &
                IERR_U   = IERR                                              )
 
-          ! Trap potential errors
-          IF ( IERR /= 1 ) failed = .TRUE.
+          ! Proceed to end of loop upon integration failure
+          IF ( IERR /= 1 ) THEN
+             failed = .TRUE.
+             CYCLE
+          ENDIF
 
-          ! Start measuring KPP-related routine timing for this grid box
+          ! Stop measuring KPP-related routine timing for this grid box
           IF ( State_Diag%Archive_KppTime ) THEN
-#ifndef NO_OMP
-             CALL CPU_Time( timeAfter )
+#ifdef NO_OMP
+             CALL CPU_Time( timeAfter )    ! When OpenMP is not used
 #else
-             timeAfter = Omp_Get_Wtime()
+             timeAfter = Omp_Get_Wtime()   ! When OpenMP is used
 #endif
           ENDIF
 
@@ -564,7 +572,6 @@ CONTAINS
                I          = I,                                               &
                J          = J,                                               &
                L          = L,                                               &
-               ISTATUS    = ISTATUS,                                         &
                timeBefore = timeBefore,                                      &
                timeAfter  = timeAfter,                                       &
                State_Diag = State_Diag                                      )
@@ -1362,8 +1369,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE carbon_UpdateKppDiags( I,         J,          L,                &
-                                    ISTATUS,   timeBefore, timeAfter,        &
-                                    State_Diag                              )
+                                    timeBefore, timeAfter, State_Diag       )
 !
 ! !USES:
 !
@@ -1376,7 +1382,6 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     INTEGER,        INTENT(IN)    :: I, J, L      ! Grid box indices
-    INTEGER,        INTENT(IN)    :: ISTATUS(20)  ! KPP input options
     REAL(f4),       INTENT(IN)    :: timeBefore   ! Time before rates + integ
     REAL(f4),       INTENT(IN)    :: timeAfter    ! Time after  rates + integ
 !
@@ -1403,54 +1408,15 @@ CONTAINS
     !========================================================================
     ! HISTORY: Archive KPP solver diagnostics
     !
-    ! NOTE: If using the default Forward Euler (feuler) integrator, many of
-    ! these diagnostics will not have much variation as there is no internal
-    ! timestepping loop. But  But we will leave this here to facilitate
-    ! testing of other integrators, if so desired.
+    ! NOTE: The forward-Euler (feuler) integrator has no internal
+    ! timestepping loop and does not return solver statistics (ISTATUS),
+    ! so the KppIntCounts, KppJacCounts, KppTotSteps, KppAccSteps,
+    ! KppRejSteps, KppLuDecomps, KppSubsts, and KppSmDecomps diagnostics
+    ! are left at zero.  Only the KPP timing is archived.
     !========================================================================
     IF ( State_Diag%Archive_KppDiags ) THEN
 
-       ! # of integrator calls
-       IF ( State_Diag%Archive_KppIntCounts ) THEN
-          State_Diag%KppIntCounts(I,J,L) = ISTATUS(1)
-       ENDIF
-
-       ! # of times Jacobian was constructed
-       IF ( State_Diag%Archive_KppJacCounts ) THEN
-          State_Diag%KppJacCounts(I,J,L) = ISTATUS(2)
-       ENDIF
-
-       ! # of internal timesteps
-       IF ( State_Diag%Archive_KppTotSteps ) THEN
-          State_Diag%KppTotSteps(I,J,L) = ISTATUS(3)
-       ENDIF
-
-       ! # of accepted internal timesteps
-       IF ( State_Diag%Archive_KppAccSteps ) THEN
-          State_Diag%KppAccSteps(I,J,L) = ISTATUS(4)
-       ENDIF
-
-       ! # of rejected internal timesteps
-       IF ( State_Diag%Archive_KppRejSteps ) THEN
-          State_Diag%KppRejSteps(I,J,L) = ISTATUS(5)
-       ENDIF
-
-       ! # of LU-decompositions
-       IF ( State_Diag%Archive_KppLuDecomps ) THEN
-          State_Diag%KppLuDecomps(I,J,L) = ISTATUS(6)
-       ENDIF
-
-       ! # of forward and backwards substitutions
-       IF ( State_Diag%Archive_KppSubsts ) THEN
-          State_Diag%KppSubsts(I,J,L) = ISTATUS(7)
-       ENDIF
-
-       ! # of singular-matrix decompositions
-       IF ( State_Diag%Archive_KppSmDecomps ) THEN
-          State_Diag%KppSmDecomps(I,J,L) = ISTATUS(8)
-       ENDIF
-
-       ! # of singular-matrix decompositions
+       ! Time spent in KPP rate computation + integration
        IF ( State_Diag%Archive_KppTime ) THEN
           State_Diag%KppTime(I,J,L) = timeAfter - timeBefore
        ENDIF
