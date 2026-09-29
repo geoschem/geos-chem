@@ -3290,7 +3290,7 @@ END FUNCTION WASHFRAC_DUSTBIN
                                    State_Grid%NZ,State_Grid%NX,State_Grid%NY)
 
     ! Strings
-    CHARACTER(LEN=255)     :: ErrMsg, ErrorMsg, ThisLoc
+    CHARACTER(LEN=255)     :: ErrorMsg, ThisLoc
 
     ! Pointers
     TYPE(Species), POINTER :: SpcInfo
@@ -3302,7 +3302,7 @@ END FUNCTION WASHFRAC_DUSTBIN
     ! Initialize
     RC        = GC_SUCCESS
     errPrint  = .TRUE.
-    ErrorMsg  = ''
+    errorMsg  = ''
     ThisLoc   = ' -> at WetDep (in module GeosCore/wetscav_mod.F90)'
 
     ! Is this a mercury simulation?
@@ -3384,7 +3384,7 @@ END FUNCTION WASHFRAC_DUSTBIN
     !$OMP PARALLEL DO                                                 &
     !$OMP DEFAULT( SHARED                                           ) &
     !$OMP PRIVATE( I,           J,          FTOP,        L          ) &
-    !$OMP PRIVATE( NW,          ERRMSG,     F,           F_PRIME    ) &
+    !$OMP PRIVATE( NW,          ErrorMsg,   F,           F_PRIME    ) &
     !$OMP PRIVATE( F_RAINOUT,   F_WASHOUT,  K_RAIN,      Q          ) &
     !$OMP PRIVATE( QDOWN,       IS_RAINOUT, IS_WASHOUT,  N          ) &
     !$OMP PRIVATE( DEP_HG,      SpcInfo,    Hg_Cat,      EC         ) &
@@ -3427,7 +3427,6 @@ END FUNCTION WASHFRAC_DUSTBIN
        !==============================================================
 
        ! Zero variables for this level
-       ERRMSG             = 'RAINOUT: Top of atm'
        F                  = 0.0_fp
        F_PRIME            = 0.0_fp
        F_RAINOUT          = 0.0_fp
@@ -3489,7 +3488,7 @@ END FUNCTION WASHFRAC_DUSTBIN
                                    J          = J,                           &
                                    L          = L,                           &
                                    IDX        = IDX,                         &
-                                   ERRMSG     = ERRMSG,                      &
+                                   ERRMSG     = 'RAINOUT: Top of atm',       &
                                    F_RAINOUT  = F,                           &
                                    K_RAIN     = K_RAIN,                      &
                                    DT         = DT,                          &
@@ -3651,16 +3650,13 @@ END FUNCTION WASHFRAC_DUSTBIN
              ! RAINOUT
              !--------------------------------------------------------
 
-             ! Error msg for stdout
-             ERRMSG = 'RAINOUT'
-
              ! Do rainout if we meet the above criteria
              CALL DO_RAINOUT_ONLY( LS         = LS,                          &
                                    I          = I,                           &
                                    J          = J,                           &
                                    L          = L,                           &
                                    IDX        = IDX,                         &
-                                   ERRMSG     = ERRMSG,                      &
+                                   ERRMSG     = 'RAINOUT',                   &
                                    F_RAINOUT  = F_RAINOUT,                   &
                                    K_RAIN     = K_RAIN,                      &
                                    DT         = DT,                          &
@@ -3696,16 +3692,13 @@ END FUNCTION WASHFRAC_DUSTBIN
              ! WASHOUT ONLY
              !--------------------------------------------------------
 
-             ! Error msg for stdout
-             ERRMSG = 'WASHOUT'
-
              ! Do the washout
              CALL DO_WASHOUT_ONLY( LS         = LS,              &
                                    I          = I,               &
                                    J          = J,               &
                                    L          = L,               &
                                    IDX        = IDX,             &
-                                   ERRMSG     = ERRMSG,          &
+                                   ERRMSG     = 'WASHOUT',       &
                                    QDOWN      = QDOWN,           &
                                    Q          = Q,               &
                                    F_WASHOUT  = F_WASHOUT,       &
@@ -3751,16 +3744,14 @@ END FUNCTION WASHFRAC_DUSTBIN
              ! No precipitation at grid box (I,J,L), thus F = 0
              F = 0e+0_fp
 
-             ! Error message
-             ERRMSG = 'RESUSPENSION in middle levels'
-
              ! Re-evaporate all of the rain
              CALL DO_COMPLETE_REEVAP( LS         = LS,                       &
                                       I          = I,                        &
                                       J          = J,                        &
                                       L          = L,                        &
                                       IDX        = IDX,                      &
-                                      ERRMSG     = ERRMSG,                   &
+                                      ERRMSG     =                           &
+                                        'RESUSPENSION in middle levels',     &
                                       DT         = DT,                       &
                                       DSpc       = DSpc,                     &
                                       Input_Opt  = Input_Opt,                &
@@ -3791,7 +3782,6 @@ END FUNCTION WASHFRAC_DUSTBIN
        !==============================================================
 
        ! Zero variables for this level
-       ERRMSG  = 'WASHOUT: at surface'
        F       = 0e+0_fp
        F_PRIME = 0e+0_fp
        K_RAIN  = 0e+0_fp
@@ -3823,7 +3813,7 @@ END FUNCTION WASHFRAC_DUSTBIN
                                      J          = J,                         &
                                      L          = L,                         &
                                      IDX        = IDX,                       &
-                                     ERRMSG     = ERRMSG,                    &
+                                     ERRMSG     = 'WASHOUT: at surface',     &
                                      QDOWN      = QDOWN,                     &
                                      F          = F,                         &
                                      DT         = DT,                        &
@@ -3928,8 +3918,8 @@ END FUNCTION WASHFRAC_DUSTBIN
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Unit conversion error at end of WETDEP!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       ErrorMsg = 'Unit conversion error at end of WETDEP!'
+       CALL GC_Error( ErrorMsg, RC, ThisLoc )
        RETURN
     ENDIF
 

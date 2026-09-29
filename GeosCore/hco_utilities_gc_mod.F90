@@ -294,7 +294,8 @@ CONTAINS
     IF ( Input_Opt%LIMGRID ) THEN
 
       ! Check if we have to load the data.
-      IF ( TrcID > 0 .and. (.not. ASSOCIATED(HcoState%Spc(TrcID)%Emis%Val)) ) RETURN
+      IF ( TrcID > 0 .and.                                                   &
+           (.not. ASSOCIATED(HcoState%Spc(TrcID)%DepV%Val)) ) RETURN
 
       ! The below section must be OMP CRITICAL because it is stateful.
       ! The first call to the critical section will update the container!!

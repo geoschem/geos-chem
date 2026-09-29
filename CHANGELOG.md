@@ -27,6 +27,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Fixed
 - Fixed parallelization errors in `GeosCore/apm_driv_mod.F90`
+- Fixed several more parallelization issues in `GeosCore/*.F90` modules
 - Fixed date range in `HEMCO_Config.rc.gmao_metfields_0125`
 - Fixed minor issues with longer intervals in GC-Classic History diagnostics
 - Fixed vertical coordinate variables in `History/history_netcdf_mod.F90` for collections whose `levels` do not start at 1
