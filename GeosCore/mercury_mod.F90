@@ -104,8 +104,7 @@ MODULE Mercury_Mod
   !--------------------------------------------------------------------------
   ! Scalars
   !--------------------------------------------------------------------------
-  LOGICAL  :: doSuppress,     Failed2x
-  INTEGER  :: errorCount,     N_Hg_CATS
+  INTEGER  :: N_Hg_CATS
   INTEGER  :: id_Hg0,         id_Hg2,      id_HgP
   INTEGER  :: id_phot_NO2,    id_phot_BrO, id_phot_ClO
   INTEGER  :: id_phot_Hg2Org, id_O3,       id_OH
@@ -579,7 +578,8 @@ CONTAINS
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
     !$OMP PRIVATE( I, J, L, T_Hg, E_Hg                                      )&
-    !$OMP COLLAPSE( 2                                                       )
+    !$OMP COLLAPSE( 2                                                       )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -706,7 +706,7 @@ CONTAINS
     LOGICAL, SAVE          :: FIRST = .TRUE.
 
     ! Scalars
-    LOGICAL                :: doSuppress
+    LOGICAL                :: doSuppress, error
     INTEGER                :: previous_units
     INTEGER                :: I,          J,         L,          K
     INTEGER                :: N,          NN,        CN,         Hg_Cat
@@ -714,7 +714,7 @@ CONTAINS
     INTEGER                :: P,          MONTH,     YEAR,       IRH
     INTEGER                :: TotSteps,   TotFuncs,  TotJacob,   TotAccep
     INTEGER                :: TotRejec,   TotNumLU,  HCRC,       IERR
-    INTEGER                :: Day,        S,         errorCount
+    INTEGER                :: Day,        S,         errorCount, EC
     REAL(fp)               :: REL_HUM,    rtim,      itim,       TOUT
     REAL(fp)               :: T,          TIN
 
@@ -769,8 +769,8 @@ CONTAINS
     Day        =  Get_Day()         ! Current day
     Month      =  Get_Month()       ! Current month
     Year       =  Get_Year()        ! Current year
-    Failed2x   = .FALSE.            ! Flag for graceful exit of simulation
     doSuppress = .FALSE.            ! Suppress further KPP integration errmsgs?
+    error      = .FALSE.            ! Flag for thread-safe exit of simulation
 
     ! Initialize pointers
     SpcInfo  => NULL()                 ! Pointer to GEOS-Chem species database
@@ -822,7 +822,8 @@ CONTAINS
        !$OMP PARALLEL DO                                                    &
        !$OMP DEFAULT( SHARED                                               )&
        !$OMP PRIVATE( I, J, L, N, REL_HUM                                  )&
-       !$OMP COLLAPSE( 3                                                   )
+       !$OMP COLLAPSE( 3                                                   )&
+       !$OMP SCHEDULE( STATIC                                              )
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
@@ -992,30 +993,35 @@ CONTAINS
     !$OMP PRIVATE( I,        J,        L,        N                          )&
     !$OMP PRIVATE( IERR,     RCNTRL,   ISTATUS,  RSTATE                     )&
     !$OMP PRIVATE( SpcID,    KppID,    F,        C_before_integrate         )&
-    !$OMP PRIVATE( P,        NN                                             )&
+    !$OMP PRIVATE( P,        NN,       EC,       errMsg                     )&
     !$OMP COLLAPSE( 3                                                       )&
-    !$OMP SCHEDULE ( DYNAMIC,  24                                           )&
-    !$OMP REDUCTION( +:errorCount                                           )
+    !$OMP SCHEDULE( DYNAMIC,  24                                            )&
+    !$OMP REDUCTION( .OR. : error                                           )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
-       ! Skip to the end of the loop if we have failed integration twice
-       IF ( Failed2x ) CYCLE
+       ! The error variable is declared with REDUCTION( .OR. ), so each
+       ! thread has its own copy, initialized to .FALSE.  If a thread hits
+       ! an error, it skips its remaining iterations.  The copies are OR'ed
+       ! together at the end of the loop, and the error is handled there.
+       ! This is the thread-safe way to break out of a parallel loop.
+       IF ( error ) CYCLE
 
        !====================================================================
        ! For safety sake, initialize certain variables for each grid
        ! box (I,J,L), whether or not chemistry will be done there.
        !====================================================================
-       IERR      = 0         ! Success or failure flag
-       P         = 0         ! GEOS-Chem photolyis species ID
-       ISTATUS   = 0.0_dp    ! Rosenbrock output
-       PHOTOL    = 0.0_dp    ! Photolysis array
-       RCNTRL    = 0.0_fp    ! Rosenbrock input
-       RSTATE    = 0.0_dp    ! Rosenbrock output
-       C         = 0.0_dp    ! KPP species conc's
-       RCONST    = 0.0_dp    ! KPP rate constants
-       CFACTOR   = 1.0_dp    ! KPP conversion factor (not really needed)
+       EC        = GC_SUCCESS   ! Success or failure flag
+       IERR      = 0            ! KPP success or failure flag
+       P         = 0            ! GEOS-Chem photolyis species ID
+       ISTATUS   = 0.0_dp       ! Rosenbrock output
+       PHOTOL    = 0.0_dp       ! Photolysis array
+       RCNTRL    = 0.0_fp       ! Rosenbrock input
+       RSTATE    = 0.0_dp       ! Rosenbrock output
+       C         = 0.0_dp       ! KPP species conc's
+       RCONST    = 0.0_dp       ! KPP rate constants
+       CFACTOR   = 1.0_dp       ! KPP conversion factor (not really needed)
 
        !====================================================================
        ! Test if we need to do the chemistry for box (I,J,L),
@@ -1091,7 +1097,11 @@ CONTAINS
                                     State_Chm  = State_Chm,                  &
                                     State_Grid = State_Grid,                 &
                                     State_Met  = State_Met,                  &
-                                    RC         = RC                         )
+                                    RC         = EC                         )
+       IF ( EC /= GC_SUCCESS ) THEN
+          error = .TRUE.
+          CYCLE
+       ENDIF
 
        !=====================================================================
        ! Update KPP rates
@@ -1134,7 +1144,10 @@ CONTAINS
                        RCNTRL, ISTATUS, RSTATE, IERR                        )
 
        ! Print grid box indices to screen if integrate failed
+       ! NOTE: errorCount and doSuppress are shared, so update them
+       ! one thread at a time.
        IF ( IERR < 0 ) THEN
+          !$OMP CRITICAL
           IF ( .not. doSuppress ) THEN
              WRITE( 6, * ) '### INTEGRATE RETURNED ERROR AT: ', I, J, L
              errorCount = errorCount + 1
@@ -1144,6 +1157,7 @@ CONTAINS
                 doSuppress = .TRUE.
              ENDIF
           ENDIF
+          !$OMP END CRITICAL
        ENDIF
 
        ! HISTORY: Update KppDiags collection (solver statistics)
@@ -1196,10 +1210,6 @@ CONTAINS
              ! Make sure only one thread at a time executes this block
              !$OMP CRITICAL
 
-             ! Set a flag to break out of loop gracefully
-             ! NOTE: You can set a GDB breakpoint here to examine the error
-             Failed2x = .TRUE.
-
              ! Print concentrations at trouble box KPP error
              PRINT*, REPEAT( '#', 79 )
              PRINT*, '### KPP DEBUG OUTPUT!'
@@ -1221,7 +1231,8 @@ CONTAINS
              !$OMP END CRITICAL
              !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-             ! Start skipping to end of loop upon 2 failures in a row
+             ! Set a flag to break out of loop gracefully
+             error = .TRUE.
              CYCLE
 #endif
           ENDIF
@@ -1345,8 +1356,9 @@ CONTAINS
     ! Return gracefully if integration failed 2x anywhere
     ! (as we cannot break out of a parallel DO loop!)
     !=======================================================================
-    IF ( Failed2x ) THEN
-       ErrMsg = 'KPP failed to converge after 2 iterations!'
+    IF ( error ) THEN
+       ErrMsg = 'An error was encountered, or KPP failed to converge '     // &
+                'after 2 iterations!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF

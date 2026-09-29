@@ -70,7 +70,6 @@ MODULE FullChem_Mod
   INTEGER               :: id_NIT, id_SO4s, id_NITs, id_HNO3
 #endif
   LOGICAL               :: ok_OH, ok_HO2, ok_O1D, ok_O3P
-  LOGICAL               :: Failed2x
 
   ! Diagnostic flags
   LOGICAL               :: Do_Diag_OH_HO2_O1D_O3P
@@ -226,13 +225,14 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL            :: IsLocNoon,  Size_Res,  Failed2x, doSuppress
-    INTEGER            :: I,          J,         L,        N
-    INTEGER            :: NA,         F,         SpcID,    KppID
-    INTEGER            :: P,          MONTH,     YEAR,     Day
-    INTEGER            :: IERR,       S,         Thread
-    INTEGER            :: errorCount, previous_units
-    REAL(fp)           :: SO4_FRAC,   SR,        LWC
+    LOGICAL            :: IsLocNoon,   Size_Res,   doSuppress, error
+    INTEGER            :: I,           J,          L,          N
+    INTEGER            :: NA,          F,          SpcID,      KppID
+    INTEGER            :: P,           MONTH,      YEAR,       Day
+    INTEGER            :: IERR,        S,          Thread
+    INTEGER            :: errorCount,  previous_units
+    INTEGER            :: errorStatus, EC
+    REAL(fp)           :: SO4_FRAC,    SR,         LWC
     REAL(dp)           :: KPPH_before_integrate
 
     ! Strings
@@ -325,7 +325,8 @@ CONTAINS
     Year       =  Get_Year()   ! Current year
     Thread     =  1
     errorCount =  0
-    Failed2x   = .FALSE.
+    errorStatus=  0
+    error      = .FALSE.
     doSuppress = .FALSE.
 
     ! Print information the first time that DO_FULLCHEM is called
@@ -498,9 +499,10 @@ CONTAINS
        ! Point to mapping obj specific to ConcBeforeChem diagnostic collection
        mapData => State_Diag%Map_ConcBeforeChem
 
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( N, S   )
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( N, S                                                  )&
+       !$OMP SCHEDULE( STATIC                                               )
        DO S = 1, mapData%nSlots
           N = mapData%slot2id(S)
           State_Diag%ConcBeforeChem(:,:,:,S) = State_Chm%Species(N)%Conc(:,:,:)
@@ -615,7 +617,8 @@ CONTAINS
     !$OMP PRIVATE( KPPH_before_integrate,          local_RCONST             )&
     !$OMP PRIVATE( SO4_FRAC, IERR,     RCNTRL,     ISTATUS,   RSTATE        )&
     !$OMP PRIVATE( SpcID,    KppID,    F,          P,         Vloc          )&
-    !$OMP PRIVATE( Aout,     Thread,   RC,         S,         LCH4          )&
+    !$OMP PRIVATE( Aout,     Thread,   EC,         S,         LCH4          )&
+    !$OMP PRIVATE( errMsg                                                  )&
     !$OMP PRIVATE( OHreact,  PCO_TOT,  PCO_CH4,    PCO_NMVOC, SR            )&
     !$OMP PRIVATE( SIZE_RES, LWC,      TimeStart,  TimeEnd                  )&
 #ifdef MODEL_GEOS
@@ -623,18 +626,23 @@ CONTAINS
 #endif
     !$OMP COLLAPSE( 3                                                       )&
     !$OMP SCHEDULE( DYNAMIC, 24                                             )&
-    !$OMP REDUCTION( +:errorCount                                           )
+    !$OMP REDUCTION( .OR. : error                                           )&
+    !$OMP REDUCTION( MAX  : errorStatus                                     )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
-       ! Skip to the end of the loop if we have failed integration twice
-       IF ( Failed2x ) CYCLE
+       ! Skip to the end of the loop if we have failed integration twice,
+       ! or if any of the called routines return an error status.  Then
+       ! exit this routine after the loop with failure status.  This is
+       ! the correct thread-safe implementation.
+       IF ( error ) CYCLE
 
        !=====================================================================
        ! Initialize private loop variables for each (I,J,L)
        ! Other private variables will be assigned in Set_Kpp_GridBox_Values
        !=====================================================================
+       EC        = GC_SUCCESS               ! Success or failure flag
        IERR      = 0                        ! KPP success or failure flag
        ICNTRL    = 0                        ! Rosenbrock input (integer)
        RCNTRL    = 0.0_fp                   ! Rosenbrock input (real)
@@ -724,7 +732,12 @@ CONTAINS
              ! (2) O3    + hv -> OH  + OH        (trop-only mechanisms)
              CALL PHOTRATE_ADJ( Input_Opt, State_Chm,  State_Diag, State_Met,&
                                 I,         J,          L,          SO4_FRAC, &
-                                IERR )
+                                EC )
+             IF ( EC /= GC_SUCCESS ) THEN
+                error       = .TRUE.
+                errorStatus = 1
+                CYCLE
+             ENDIF
 
              ! Loop over the FAST-JX photolysis species
              DO N = 1, State_Chm%Phot%nMaxPhotRxns
@@ -932,7 +945,12 @@ CONTAINS
                                     State_Chm  = State_Chm,                  &
                                     State_Grid = State_Grid,                 &
                                     State_Met  = State_Met,                  &
-                                    RC         = RC                         )
+                                    RC         = EC                         )
+       IF ( EC /= GC_SUCCESS ) THEN
+          error       = .TRUE.
+          errorStatus = 2
+          CYCLE
+       ENDIF
 
        !=====================================================================
        ! CHEMISTRY MECHANISM INITIALIZATION (#2)
@@ -958,7 +976,12 @@ CONTAINS
                                    State_Grid = State_Grid,                  &
                                    State_Met  = State_Met,                   &
                                    size_res   = size_res,                    &
-                                   RC         = RC                          )
+                                   RC         = EC                          )
+       IF ( EC /= GC_SUCCESS ) THEN
+          error       = .TRUE.
+          errorStatus = 3
+          CYCLE
+       ENDIF
 
        !=====================================================================
        ! CHEMISTRY MECHANISM INITIALIZATION (#3)
@@ -994,7 +1017,12 @@ CONTAINS
                                   State_Chm  = State_Chm,                    &
                                   State_Met  = State_Met,                    &
                                   H          = State_Het,                    &
-                                  RC         = RC                           )
+                                  RC         = EC                           )
+       IF ( EC /= GC_SUCCESS ) THEN
+          error       = .TRUE.
+          errorStatus = 4
+          CYCLE
+       ENDIF
 
        !=====================================================================
        ! CHEMISTRY MECHANISM INITIALIZATION (#5)
@@ -1138,6 +1166,9 @@ CONTAINS
        IF ( IERR < 0 ) THEN
 
           ! Turn off error output after a certain limit is reached
+          ! NOTE: errorCount and doSuppress are shared, so update them
+          ! one thread at a time.
+          !$OMP CRITICAL
           IF ( .not. doSuppress ) THEN
              WRITE( 6, * ) '### INTEGRATE RETURNED ERROR AT: ', I, J, L
              errorCount = errorCount + 1
@@ -1147,6 +1178,7 @@ CONTAINS
                 doSuppress = .TRUE.
              ENDIF
           ENDIF
+          !$OMP END CRITICAL
 
 #if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM )
           ! Keep track of number of error boxes
@@ -1349,10 +1381,6 @@ CONTAINS
              ! Make sure only one thread at a time executes this block
              !$OMP CRITICAL
              !
-             ! Set a flag to break out of loop gracefully
-             ! NOTE: You can set a GDB breakpoint here to examine the error
-             Failed2x = .TRUE.
-
              ! Print concentrations at failure grid box
              PRINT*, REPEAT( '#', 79 )
              PRINT*, '### KPP DEBUG OUTPUT!'
@@ -1375,6 +1403,8 @@ CONTAINS
              !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
              ! Start skipping to end of loop upon 2 failures in a row
+             error       = .TRUE.
+             errorStatus = 5
              CYCLE
 #endif
           ENDIF
@@ -1426,7 +1456,12 @@ CONTAINS
             State_Met    = State_Met,                                        &
             Input_Opt    = Input_Opt,                                        &
             KPP_TotSteps = ISTATUS(3),                                       &
-            RC           = RC                                               )
+            RC           = EC                                               )
+       IF ( EC /= GC_SUCCESS ) THEN
+          error       = .TRUE.
+          errorStatus = 6
+          CYCLE
+       ENDIF
 
        !=====================================================================
        ! Check we have no negative values and copy the concentrations
@@ -1698,6 +1733,29 @@ CONTAINS
     ENDDO ! L
     !$OMP END PARALLEL DO
 
+    !=====================================================================
+    ! Break out of the loop if an error was encountered.
+    ! This is the correct thread-safe implementation.
+    !=====================================================================
+    IF ( error ) THEN
+       SELECT CASE( errorStatus )
+          CASE( 1 )
+             errMsg = 'Error encountered in "PhotRate_Adj"!'
+          CASE( 2 )
+             errMsg = 'Error encountered in "Set_Kpp_GridBox_Values"!'
+          CASE( 3 )
+             errMsg = 'Error encountered in "Set_Sulfur_Chem_Rates"!'
+          CASE( 4 )
+             errMsg = 'Error encountered in "fullchem_SetStateHet"!'
+          CASE( 5 )
+             errMsg = 'KPP integration failed twice, exiting!'
+          CASE( 6 )
+             errMsg = 'Error encountered in "KppSa_Write_Samples"!'
+       END SELECT
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
 #ifdef MPI_LOAD_BALANCE
     !=====================================================================
     ! Integrate the box forwards (if using MPI load balancing)
@@ -1769,7 +1827,7 @@ CONTAINS
        cell_status(I_CELL) = cell_status(I_CELL) + 1
 
        ! Skip to the end of the loop if we have failed integration twice
-       IF ( Failed2x ) CYCLE
+       IF ( error ) CYCLE
 
        ! Rosenbrock output
        ISTATUS = 0.0_dp
@@ -1907,7 +1965,7 @@ CONTAINS
              !
              ! Set a flag to break out of loop gracefully
              ! NOTE: You can set a GDB breakpoint here to examine the error
-             Failed2x = .TRUE.
+             error = .TRUE.
 
              ! Print concentrations at failure grid box
              PRINT*, REPEAT( '#', 79 )
@@ -2333,17 +2391,16 @@ CONTAINS
     ENDDO
     ENDDO
 
-#endif  ! MPI_LOAD_BALANCE
-
     !=======================================================================
     ! Return gracefully if integration failed 2x anywhere
-    ! (as we cannot break out of a parallel DO loop!)
     !=======================================================================
-    IF ( Failed2x ) THEN
+    IF ( error ) THEN
        ErrMsg = 'KPP failed to converge after 2 iterations!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
+
+#endif  ! MPI_LOAD_BALANCE
 
 #if defined( MODEL_GEOS )
     IF ( State_Diag%Archive_TropNOxTau ) THEN
@@ -2414,9 +2471,10 @@ CONTAINS
        ! Point to mapping obj specific to ConcAfterChem diagnostic collection
        mapData => State_Diag%Map_ConcAfterChem
 
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( N, S   )
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( N, S                                                  )&
+       !$OMP SCHEDULE( STATIC                                               )
        DO S = 1, mapData%nSlots
           N = mapData%slot2id(S)
           State_Diag%ConcAfterChem(:,:,:,S) = State_Chm%Species(N)%Conc(:,:,:)
@@ -2571,11 +2629,11 @@ CONTAINS
        RETURN
     ENDIF
 
-    !$OMP PARALLEL DO        &
-    !$OMP DEFAULT( SHARED )  &
-    !$OMP PRIVATE( I, J, L ) &
-    !$OMP PRIVATE( KMIN, SO4OXID, BINACT1, BINACT2 ) &
-    !$OMP SCHEDULE( DYNAMIC )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I, J, L, KMIN, SO4OXID, BINACT1, BINACT2                 )&
+    !$OMP COLLAPSE( 3                                                       )&
+    !$OMP SCHEDULE( DYNAMIC, 8                                              )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
@@ -3058,17 +3116,17 @@ CONTAINS
        State_Diag%O3PconcAfterChem = 0.0_f4
     ENDIF
 
-!$OMP PARALLEL DO        &
-!$OMP DEFAULT( SHARED )  &
-!$OMP PRIVATE( I, J, L ) &
-!$OMP SCHEDULE( DYNAMIC )
+      !$OMP PARALLEL DO                                                      &
+      !$OMP DEFAULT( SHARED                                                 )&
+      !$OMP PRIVATE( I, J, L                                                )&
+      !$OMP COLLAPSE( 3                                                     )&
+      !$OMP SCHEDULE( DYNAMIC, 8                                            )
       DO L = 1, State_Grid%NZ
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
 
          ! Skip non-chemistry boxes
          IF ( .not. State_Met%InChemGrid(I,J,L) ) THEN
-            ! Skip to next grid box
             CYCLE
          ENDIF
 
@@ -3238,7 +3296,7 @@ CONTAINS
       ENDDO
       ENDDO
       ENDDO
-!$OMP END PARALLEL DO
+      !$OMP END PARALLEL DO
 
       ! Free pointers
       AirNumDen => NULL()
