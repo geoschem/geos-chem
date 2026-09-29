@@ -25,6 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added GitHub language-detection overrides to `.gitattributes` to avoid spurious CodeQL GitHub Action errors
 - Separated `CH4/CO2/CO/OCS_DATA` switches in `HEMCO_Config.rc.carbon` for GCHP to note they are not editable
 - Updated `keyValueUpdate` in `run/shared/singleCarbonSpecies.sh` to be tolerant of TABs and variable spacing; Added an error check as well.
+- Updated `SET_SO2` in `KPP/fullchem/fullchem_SulfurChemFuncs.F90` to ensure `RC` and `size_res` are defined before exiting
 
 ### Fixed
 - Fixed parallelization errors in `GeosCore/apm_driv_mod.F90`
@@ -37,8 +38,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed bug preventing GC-Classic instantaneous diagnostics with frequency, duration, and heartbeat all equal
 - Fixed thread-unsafe error handling in the KPP parallel loops of `GeosCore/fullchem_mod.F90`, `GeosCore/mercury_mod.F90`, and `GeosCore/carbon_gases_mod.F90`
 - Fixed thread-unsafe error handling in several routines
-- Fixed the `KppTime` diagnostic in `GeosCore/carbon_gases_mod.F90`, which mixed `Omp_Get_Wtime` and `CPU_Time` in OpenMP builds
-- Fixed `SET_SO2` in `KPP/fullchem/fullchem_SulfurChemFuncs.F90` returning before its `RC` and `size_res` output arguments were set
 
 ### Removed
 - Removed invalid OpenMP directives from the `MPI_LOAD_BALANCE` block of `GeosCore/fullchem_mod.F90`, which caused GCHP compilation to fail with `-DOMP=ON`
@@ -46,6 +45,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Took out (((METEOROLOGY brackets in HEMCO_Config.rc.carbon, as GCHP uses ExtData instead. 
 - Removed TAB characters in `HEMCO_Config.rc.carbon` templates for GC-Classic and GCHP
 - Removed unused variables `ISTATUS`, `RCNTRL`, and `RSTATE` from `GeosCore/carbon_gases_mod.F90`
+- Removed nested parallel loops in `GeosCore/vdiff_mod.F90`; they just add overhead
 
 ## [14.8.0] - 2026-09-11
 ### Added

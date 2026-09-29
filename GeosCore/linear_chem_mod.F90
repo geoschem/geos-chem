@@ -211,7 +211,6 @@ CONTAINS
     REAL(fp)           :: MW_g
     LOGICAL            :: LLINOZ
     LOGICAL            :: LSYNOZ
-    LOGICAL            :: LCYCLE
     LOGICAL            :: ISBR2
 #if defined( MODEL_GEOS ) || defined( MODEL_CESM ) || defined( MODEL_BCC )
     LOGICAL            :: SKIP
@@ -331,8 +330,10 @@ CONTAINS
        dt = DTCHEM
 
        !$OMP PARALLEL DO                                                     &
-       !$OMP DEFAULT( SHARED )                                               &
-       !$OMP PRIVATE( I, J, L, N, NN, k, P, M0, MW_g, Num, Den )
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( I, J, L, N, NN, k, P, M0, MW_g, Num, Den              )&
+       !$OMP COLLAPSE( 2                                                    )&
+       !$OMP SCHEDULE( DYNAMIC, 8                                           )
        DO J=1,State_Grid%NY
           DO I=1,State_Grid%NX
 
@@ -466,9 +467,11 @@ CONTAINS
        !   (3) CH3Br
        !--------------------------------------------------------------------
 
-       !$OMP PARALLEL DO &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I, J, L, M, TK, RC, RDLOSS, T1L, mOH, BOXVL )
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( I, J, L, M, TK, RC, RDLOSS, T1L, mOH, BOXVL           )&
+       !$OMP COLLAPSE( 2                                                    )&
+       !$OMP SCHEDULE( DYNAMIC, 8                                           )
        DO J=1,State_Grid%NY
           DO I=1,State_Grid%NX
 
@@ -522,67 +525,65 @@ CONTAINS
                                               Spc(id_CH2Br2)%Conc(I,J,L) - T1L
                 ENDIF
 
-             ENDDO ! J
+             ENDDO ! L
           ENDDO ! I
-       ENDDO ! L
+       ENDDO ! J
        !$OMP END PARALLEL DO
 
        !--------------------------------------------------------------------
        ! Prescribe Br_y concentrations
        !--------------------------------------------------------------------
 
-       !$OMP PARALLEL DO                                           &
-       !$OMP DEFAULT( SHARED                                     ) &
-       !$OMP PRIVATE( NN, ISBR2, L, J, I, LCYCLE, BryTmp )
-       DO NN = 1,6
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( I, J, L, NN, ISBR2, BryTmp                            )&
+       !$OMP COLLAPSE( 3                                                    )&
+       !$OMP SCHEDULE( DYNAMIC, 8                                           )
+       DO L = 1, State_Grid%NZ
+       DO J = 1, State_Grid%NY
+       DO I = 1, State_Grid%NX
 
-          IF ( GC_Bry_TrID(NN) > 0 ) THEN
+          ! NOTE: For compatibility w/ the GEOS-5 GCM, we can no longer
+          ! assume a minimum tropopause level.  Loop from 1,State_Grid%NZ
+          ! instead. (bmy, 7/18/12)
+          IF ( State_Met%InChemGrid(I,J,L) ) CYCLE
+
+          DO NN = 1, 6
+
+             IF ( GC_Bry_TrID(NN) <= 0 ) CYCLE
 
              ! Is this Br2?
              ISBR2  = ( Gc_Bry_TrId(NN) == id_Br2 )
 
-             ! NOTE: For compatibility w/ the GEOS-5 GCM, we can no longer
-             ! assume a minimum tropopause level.  Loop from 1,State_Grid%NZ
-             ! instead. (bmy, 7/18/12)
-             DO L = 1, State_Grid%NZ
-             DO J = 1, State_Grid%NY
-             DO I = 1, State_Grid%NX
+             ! Now get Br data through HEMCO pointers (ckeller, 12/30/14).
+             IF ( State_Met%SUNCOS(I,J) > 0.e+0_fp ) THEN
+                ! daytime [ppt] -> [kg]
+                BryTmp = BrPtrDay(NN)%MR(I,J,L)   &
+                       * 1.e-12_fp                & ! convert from [ppt]
+                       * AD(I,J,L)                &
+                       / ( AIRMW                  &
+                       / State_Chm%SpcData(GC_Bry_TrID(NN))%Info%MW_g )
 
-                LCYCLE = State_Met%InChemGrid(I,J,L)
-                IF ( LCYCLE ) CYCLE
+             ELSE
+                ! nighttime [ppt] -> [kg]
+                BryTmp = BrPtrNight(NN)%MR(I,J,L) &
+                       * 1.e-12_fp                & ! convert from [ppt]
+                       * AD(I,J,L)                &
+                       /  ( AIRMW                 &
+                       / State_Chm%SpcData(GC_Bry_TrID(NN))%Info%MW_g )
+             ENDIF
 
-                ! Now get Br data through HEMCO pointers (ckeller, 12/30/14).
-                IF ( State_Met%SUNCOS(I,J) > 0.e+0_fp ) THEN
-                   ! daytime [ppt] -> [kg]
-                   BryTmp = BrPtrDay(NN)%MR(I,J,L)   &
-                          * 1.e-12_fp                & ! convert from [ppt]
-                          * AD(I,J,L)                &
-                          / ( AIRMW                  &
-                          / State_Chm%SpcData(GC_Bry_TrID(NN))%Info%MW_g )
+             ! Special adjustment for G-C Br2,
+             ! which is BrCl above the strat (ckeller, 1/2/15)
+             IF ( ISBR2 ) BryTmp = BryTmp / 2.0_fp
 
-                ELSE
-                   ! nighttime [ppt] -> [kg]
-                   BryTmp = BrPtrNight(NN)%MR(I,J,L) &
-                          * 1.e-12_fp                & ! convert from [ppt]
-                          * AD(I,J,L)                &
-                          /  ( AIRMW                 &
-                          / State_Chm%SpcData(GC_Bry_TrID(NN))%Info%MW_g )
-                ENDIF
+             ! Pass to Spc array
+             Spc(GC_Bry_TrID(NN))%Conc(I,J,L) = BryTmp
 
-                ! Special adjustment for G-C Br2,
-                ! which is BrCl above the strat (ckeller, 1/2/15)
-                IF ( ISBR2 ) BryTmp = BryTmp / 2.0_fp
-
-                ! Pass to Spc array
-                Spc(GC_Bry_TrID(NN))%Conc(I,J,L) = BryTmp
-
-             ENDDO
-             ENDDO
-             ENDDO
-
-          ENDIF
-
-       ENDDO ! NN
+          ENDDO ! NN
+       ENDDO
+       ENDDO
+       ENDDO
        !$OMP END PARALLEL DO
 
        ! Free pointers
@@ -1463,10 +1464,11 @@ CONTAINS
     IF ( FIRST ) STFLUX = 0e+0_fp
 
     ! Loop over latitude and longitude
-    !$OMP PARALLEL DO                               &
-    !$OMP DEFAULT( SHARED )                         &
-    !$OMP PRIVATE( I,  J,  L,  P2,  L70mb, P1, P3 ) &
-    !$OMP PRIVATE( T2, T1, DZ, ZUP, H70mb, PO3    )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I,  J,  L,  P2,  L70mb, P1, P3                           )&
+    !$OMP PRIVATE( T2, T1, DZ, ZUP, H70mb, PO3                              )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO J = 1, State_Grid%NY
 
        ! Skip grid boxes outside of O3 release region (30S -> 30N)
@@ -1476,6 +1478,10 @@ CONTAINS
        ENDIF
 
        DO I = 1, State_Grid%NX
+
+          ! For safety's sake, initialize L70mb here, in case no
+          ! level has a pressure below 70 hPa
+          L70mb = State_Grid%NZ
 
           DO L = 1, State_Grid%NZ
 
