@@ -2967,29 +2967,26 @@ CONTAINS
        ENDIF
     ENDIF
 
+    ! Maximum extent of the PBL [model level]
+    HCO_PBL_MAX = State_Met%PBL_MAX_L
+
+    ! Current SZA divided by total daily SZA (2D field only)
+    ! (This is mostly needed for offline simulations where a diurnal
+    ! scale factor has to be imposed on monthly mean OH concentrations.)
     ! Compute SZAFACT on MODEL GRID
-!$OMP PARALLEL DO                                                 &
-!$OMP DEFAULT( SHARED )                                           &
-!$OMP PRIVATE( I, J, L )
-    ! Loop over all grid boxes
-    DO L = 1, State_Grid%NZ
-    DO J = 1, State_Grid%NY
-    DO I = 1, State_Grid%NX
-
-       ! Current SZA divided by total daily SZA (2D field only)
-       ! (This is mostly needed for offline simulations where a diurnal
-       ! scale factor has to be imposed on monthly mean OH concentrations.)
-       IF ( ExtState%SZAFACT%DoUse .AND. L==1 ) THEN
+    IF ( ExtState%SZAFACT%DoUse ) THEN
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( I, J                                                  )&
+       !$OMP COLLAPSE( 2                                                    )&
+       !$OMP SCHEDULE( STATIC                                               )
+       DO J = 1, State_Grid%NY
+       DO I = 1, State_Grid%NX
           State_Met%SZAFACT(I,J) = GET_SZAFACT(I,J,State_Met)
-       ENDIF
-
-       ! Maximum extent of the PBL [model level]
-       HCO_PBL_MAX = State_Met%PBL_MAX_L
-
-    ENDDO
-    ENDDO
-    ENDDO
-!$OMP END PARALLEL DO
+       ENDDO
+       ENDDO
+       !$OMP END PARALLEL DO
+    ENDIF
 
 #if defined ( MODEL_CLASSIC )
     IF ( Input_Opt%LIMGRID ) THEN
@@ -3545,9 +3542,11 @@ CONTAINS
 #if defined( MODEL_CLASSIC )
     IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
-!$OMP PARALLEL DO                                                 &
-!$OMP DEFAULT( SHARED )                                           &
-!$OMP PRIVATE( I, J )
+      !$OMP PARALLEL DO                                                      &
+      !$OMP DEFAULT( SHARED                                                 )&
+      !$OMP PRIVATE( I, J                                                   )&
+      !$OMP COLLAPSE( 2                                                     )&
+      !$OMP SCHEDULE( STATIC                                                )
       DO J=1,State_Grid%NY
       DO I=1,State_Grid%NX
          PBLM(I,J) = State_Met%PBL_TOP_m(I,J)
@@ -4812,9 +4811,11 @@ CONTAINS
       ENDIF
 
       !$OMP PARALLEL DO                                                      &
-      !$OMP DEFAULT( SHARED )                                                &
-      !$OMP PRIVATE( I,       J,       topMix                               )&
-      !$OMP PRIVATE( tmpFlx,  found,   emis,      dep                       )
+      !$OMP DEFAULT( SHARED                                                 )&
+      !$OMP PRIVATE( I,       J,       L,         topMix                    )&
+      !$OMP PRIVATE( tmpFlx,  found,   emis,      dep                       )&
+      !$OMP COLLAPSE( 2                                                     )&
+      !$OMP SCHEDULE( GUIDED                                                )
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
 
@@ -4907,7 +4908,8 @@ CONTAINS
     !$OMP PRIVATE( I,       J,            N                                 )&
     !$OMP PRIVATE( thisSpc, dep,          S                                 )&
     !$OMP PRIVATE( ND,      fracNoHg0Dep, zeroHg0Dep                        )&
-    !$OMP COLLAPSE( 2                                                       )
+    !$OMP COLLAPSE( 2                                                       )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -5122,7 +5124,8 @@ CONTAINS
              !$OMP PARALLEL DO                                               &
              !$OMP DEFAULT( SHARED                                          )&
              !$OMP PRIVATE( I, J, tmpFlx                                    )&
-             !$OMP COLLAPSE( 2                                              )
+             !$OMP COLLAPSE( 2                                              )&
+             !$OMP SCHEDULE( STATIC                                         )
              DO J = 1, State_Grid%NY
              DO I = 1, State_Grid%NX
                 tmpFlx = dflx(I,J,N) / MW_kg * AVO * 1.e-4_fp                &
@@ -5306,7 +5309,8 @@ CONTAINS
              !$OMP PARALLEL DO                                               &
              !$OMP DEFAULT( SHARED                                          )&
              !$OMP PRIVATE( I, J, pbl_top_l, dep, height, found, L          )&
-             !$OMP COLLAPSE( 2                                              )
+             !$OMP COLLAPSE( 2                                              )&
+             !$OMP SCHEDULE( GUIDED                                         )
              DO J = 1, State_Grid%NY
              DO I = 1, State_Grid%NX
 
@@ -5372,7 +5376,8 @@ CONTAINS
        !$OMP PARALLEL DO                                                     &
        !$OMP DEFAULT( SHARED                                                )&
        !$OMP PRIVATE( I, J, ND, N, S, A                                     )&
-       !$OMP COLLAPSE( 3                                                    )
+       !$OMP COLLAPSE( 3                                                    )&
+       !$OMP SCHEDULE( STATIC                                               )
        DO ND = 1, State_Chm%nDryDep
        DO J  = 1, State_Grid%NY
        DO I  = 1, State_Grid%NX
