@@ -36,6 +36,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed CodeQL security alert `py/incomplete-url-substring-sanitization` by using the `urlparse` in `run/shared/download_data.py`
 - Fixed bug preventing GC-Classic instantaneous diagnostics with frequency, duration, and heartbeat all equal
 - Fixed thread-unsafe error handling in the KPP parallel loops of `GeosCore/fullchem_mod.F90`, `GeosCore/mercury_mod.F90`, and `GeosCore/carbon_gases_mod.F90`
+- Fixed thread-unsafe error handling in several routines
 - Fixed the `KppTime` diagnostic in `GeosCore/carbon_gases_mod.F90`, which mixed `Omp_Get_Wtime` and `CPU_Time` in OpenMP builds
 - Fixed `SET_SO2` in `KPP/fullchem/fullchem_SulfurChemFuncs.F90` returning before its `RC` and `size_res` output arguments were set
 
