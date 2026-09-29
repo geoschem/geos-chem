@@ -172,6 +172,9 @@ CONTAINS
     USE GcKpp_Util,               ONLY : Get_OHreactivity
     USE Input_Opt_Mod,            ONLY : OptInput
     USE KppSa_Interface_Mod
+#ifndef NO_OMP
+    USE Omp_Lib,                  ONLY : Omp_Get_Wtime
+#endif
     USE Photolysis_Mod,           ONLY : Do_Photolysis, PhotRate_Adj
     USE PhysConstants,            ONLY : AVO, AIRMW
     USE PRESSURE_MOD
@@ -196,6 +199,7 @@ CONTAINS
     USE TOMAS_MOD,                ONLY : H2SO4_RATE
     USE TOMAS_MOD,                ONLY : PSO4AQ_RATE
 #endif
+
 !
 ! !INPUT PARAMETERS:
 !
@@ -606,16 +610,16 @@ CONTAINS
     !========================================================================
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I,        J,        L,       N                           )&
+    !$OMP PRIVATE( I,        J,        L,         N                         )&
     !$OMP PRIVATE( ICNTRL,   C_before_integrate                             )&
-    !$OMP PRIVATE( KPPH_before_integrate,       local_RCONST                )&
-    !$OMP PRIVATE( SO4_FRAC, IERR,     RCNTRL,  ISTATUS,   RSTATE           )&
-    !$OMP PRIVATE( SpcID,    KppID,    F,       P,         Vloc             )&
-    !$OMP PRIVATE( Aout,     Thread,   RC,      S,         LCH4             )&
-    !$OMP PRIVATE( OHreact,  PCO_TOT,  PCO_CH4, PCO_NMVOC, SR               )&
-    !$OMP PRIVATE( SIZE_RES, LWC                                            )&
+    !$OMP PRIVATE( KPPH_before_integrate,          local_RCONST             )&
+    !$OMP PRIVATE( SO4_FRAC, IERR,     RCNTRL,     ISTATUS,   RSTATE        )&
+    !$OMP PRIVATE( SpcID,    KppID,    F,          P,         Vloc          )&
+    !$OMP PRIVATE( Aout,     Thread,   RC,         S,         LCH4          )&
+    !$OMP PRIVATE( OHreact,  PCO_TOT,  PCO_CH4,    PCO_NMVOC, SR            )&
+    !$OMP PRIVATE( SIZE_RES, LWC,      TimeStart,  TimeEnd                  )&
 #ifdef MODEL_GEOS
-    !$OMP PRIVATE( NOxTau,     NOxConc, NOx_weight, NOx_tau_weighted        )&
+    !$OMP PRIVATE( NOxTau,   NOxConc,  NOx_weight, NOx_tau_weighted         )&
 #endif
     !$OMP COLLAPSE( 3                                                       )&
     !$OMP SCHEDULE( DYNAMIC, 24                                             )&
@@ -677,7 +681,11 @@ CONTAINS
 
        ! Start measuring KPP-related routine timing for this grid box
        IF ( State_Diag%Archive_KppTime ) THEN
-          call cpu_time(TimeStart)
+#ifdef NO_OMP
+          CALL Cpu_Time( TimeStart )    ! When OpenMP is not used
+#else
+          TimeStart = omp_get_wtime()   ! When OpenMP is used
+#endif
        ENDIF
 
        !=====================================================================
@@ -1392,7 +1400,11 @@ CONTAINS
        ! Save cpu time spent for bulk of KPP-related routines for 
        ! History archival (hplin, 11/8/21)
        IF ( State_Diag%Archive_KppTime ) THEN
-          call cpu_time(TimeEnd)
+#ifdef NO_OMP
+          CALL Cpu_Time( TimeEnd )    ! When OpenMP is not used
+#else
+          TimeEnd = Omp_Get_Wtime()   ! When OpenMP is used
+#endif
           State_Diag%KppTime(I,J,L) = TimeEnd - TimeStart
        ENDIF
 

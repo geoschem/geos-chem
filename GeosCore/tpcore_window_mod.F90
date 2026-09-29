@@ -2397,7 +2397,6 @@ CONTAINS
  integer i, k, l, ll, k0
  real  pl, pr, qsum, delp, esl
  real       r3, r23
- real temp
  parameter (r3 = 1./3., r23 = 2./3.)
 
  ! Initialize local arrays (bmy, 7/10/17)
@@ -2411,11 +2410,9 @@ CONTAINS
          enddo
       enddo
 
-      temp = sum(q4)
 ! Compute vertical subgrid distribution
       call ppm2m( q4, dp1, km, i1, i2, iv, kord )
 
-      temp = sum(q2)
 ! Mapping
       do 1000 i=i1,i2
          k0 = 1
