@@ -1,7 +1,7 @@
 #include "MAPL.h"
 
 #ifdef MAPL3
-module GCHPctmEnv_GridCompMod
+module GEOSChem_GridCompMod
 
   use ESMF
   use MAPL
@@ -11,9 +11,6 @@ module GCHPctmEnv_GridCompMod
   private
 
   public SetServices
-
-  integer,  parameter :: r4 = REAL4
-  integer,  parameter :: r8 = REAL8
 
 contains
 
@@ -43,6 +40,10 @@ contains
     ! Include auto-generated code for declaring exports
 #include "GEOSChem_Export___.h"
 
+    ! Include auto-generated code for declaring internal state
+#include "GEOSChem_Internal___.h"
+
+    
     call logger%debug("GEOSChem_GridCompMod.F90::SetServices done")
 
     _RETURN(_SUCCESS)
@@ -85,6 +86,7 @@ contains
 
     integer      :: status
     type(ESMF_HConfig) :: hconfig
+    type(ESMF_State) :: internal
     class(logger_t), pointer :: logger
 
     ! Include auto-generated code to declare non-vector import/export pointers
@@ -93,6 +95,8 @@ contains
     call MAPL_GridCompGet(gc, logger=logger, _RC)
     call logger%debug("GEOSChem_GridCompMod.F90:: Run starting...")
 
+    call MAPL_GridCompGetInternalState(gc, internal, _RC)
+    
     ! Include auto-generated code to get non-vector import/export pointers
     ! Pointers to vectors will be done conditionally later on
 #include "GEOSChem_GetPointer___.h"
@@ -125,12 +129,6 @@ contains
     _RETURN(ESMF_SUCCESS)
 
   end subroutine Finalize
-
-  !=============================================================================
-  ! Extract -- Description
-  subroutine Extract(gc )
-
-  end subroutine Extract
 
 end module GEOSChem_GridCompMod
 
