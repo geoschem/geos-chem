@@ -991,11 +991,15 @@ CONTAINS
     !========================================================================
     ! SET_SO2 begins here!
     !========================================================================
-    IF ( id_H2O2 < 0 .or. id_SO2 < 0  ) RETURN
 
-    ! Initialize
+    ! Initialize output arguments
     RC       = GC_SUCCESS
     size_res = .FALSE.
+
+    ! Exit if H2O2 or SO2 are not defined
+    IF ( id_H2O2 < 0 .or. id_SO2 < 0  ) RETURN
+
+    ! Continue initializing
     ErrMsg   = ''
     ThisLoc  = &
       ' -> at SET_SO2 (in module KPP/fullchem/fullchem_SulfurChemFuncs.F90)'

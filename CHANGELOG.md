@@ -15,10 +15,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed parallelization errors in `GeosCore/apm_driv_mod.F90`
 - Fixed several more parallelization issues in `GeosCore/*.F90` modules
 - Fixed date range in `HEMCO_Config.rc.gmao_metfields_0125`
+- Fixed thread-unsafe error handling in the KPP parallel loops of `GeosCore/fullchem_mod.F90`, `GeosCore/mercury_mod.F90`, and `GeosCore/carbon_gases_mod.F90`
+- Fixed the `KppTime` diagnostic in `GeosCore/carbon_gases_mod.F90`, which mixed `Omp_Get_Wtime` and `CPU_Time` in OpenMP builds
+- Fixed `SET_SO2` in `KPP/fullchem/fullchem_SulfurChemFuncs.F90` returning before its `RC` and `size_res` output arguments were set
 
 ### Removed
 - Removed invalid OpenMP directives from the `MPI_LOAD_BALANCE` block of `GeosCore/fullchem_mod.F90`, which caused GCHP compilation to fail with `-DOMP=ON`
 - Removed confusing comments from `KPP/fullchem/fullchem_HetStateFuncs.F90`
+- Removed unused variables `ISTATUS`, `RCNTRL`, and `RSTATE` from `GeosCore/carbon_gases_mod.F90`
 
 ## [14.8.0] - 2026-09-11
 ### Added
