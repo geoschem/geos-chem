@@ -2336,6 +2336,7 @@ CONTAINS
     USE State_Diag_Mod,       ONLY : DgnState
     USE State_Grid_Mod,       ONLY : GrdState
     USE State_Met_Mod,        ONLY : MetState
+    USE Time_Mod,             ONLY : Get_Ts_Emis
     USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
@@ -2367,7 +2368,7 @@ CONTAINS
     INTEGER                :: NA,           S
     INTEGER                :: drydep_top,   pbl_top,      previous_units
     REAL(fp)               :: air2sea_freq, denom
-    REAL(fp)               :: drydep_dt,    flux_kgm2s,   flux_mcm2s
+    REAL(fp)               :: drydep_dt,    flux_kgm2,    flux_mcm2s
     REAL(fp)               :: frac,         fracNoHg0Dep, freq
     REAL(fp)               :: mass,         mw_kg,        paranox_loss
 
@@ -2394,7 +2395,7 @@ CONTAINS
     ! Continue initializing
     is_loss_HNO3      = .FALSE.
     is_loss_O3        = .FALSE.
-    drydep_dt         =  DBLE( Input_Opt%TS_CHEM )
+    drydep_dt         =  Get_Ts_Emis()
     ptr_2d            => NULL()
     paranox_loss_o3   => NULL()
     paranox_loss_hno3 => NULL()
@@ -2432,7 +2433,7 @@ CONTAINS
             RC          = RC                                                )
 
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Emissions/dry deposition budget diagnostics error 1'
+          ErrMsg = 'Dry deposition budget diagnostics error 1'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
@@ -2462,8 +2463,9 @@ CONTAINS
     ! conversion (and its reverse) for the sake of a removal that only
     ! ever touches 1-2 levels.
     !========================================================================
-    N                  =  State_Chm%Map_Advect(1)
-    skipGlobalUnitConv = ( State_Chm%Species(N) == KG_SPECIES_PER_KG_DRY_AIR )
+    N                      =  State_Chm%Map_Advect(1)
+    skipGlobalUnitConv     = ( State_Chm%Species(N)%Units ==                 &
+                               KG_SPECIES_PER_KG_DRY_AIR                    )
 
     IF ( skipGlobalUnitConv ) THEN
        previous_units      = KG_SPECIES_PER_KG_DRY_AIR
@@ -2529,7 +2531,10 @@ CONTAINS
     IF ( ASSOCIATED( ptr_2d ) ) THEN
        ALLOCATE( paranox_loss_HNO3( State_Grid%NX, State_Grid%NY ), STAT=AC )
        CALL GC_CheckVar( "paranox_loss_hno3", 0, AC )
-       IF ( AC /= GC_SUCCESS ) RETURN
+       IF ( AC /= GC_SUCCESS ) THEN
+          RC = AC
+          RETURN
+       ENDIF
        paranox_loss_HNO3 = ptr_2d
        is_loss_HNO3      = .TRUE.
     ENDIF
@@ -2547,7 +2552,10 @@ CONTAINS
     IF ( ASSOCIATED( ptr_2d ) ) THEN
        ALLOCATE( paranox_loss_o3( State_Grid%NX, State_Grid%NY ), STAT=AC )
        CALL GC_CheckVar( "paranox_loss_o3", 0, AC )
-       IF ( AC /= GC_SUCCESS ) RETURN
+       IF ( AC /= GC_SUCCESS ) THEN
+          RC = AC
+          RETURN
+       ENDIF
        paranox_loss_O3 = ptr_2d
        is_loss_O3     = .TRUE.
     ENDIF
@@ -2613,9 +2621,10 @@ CONTAINS
        !$OMP DEFAULT( SHARED                                                )&
        !$OMP PRIVATE( I,            J,            found_air2sea_freq        )&
        !$OMP PRIVATE( air2sea_freq, pbl_top,      drydep_top                )&
-       !$OMP PRIVATE( L,            denom,        flux_kgm2s                )&
+       !$OMP PRIVATE( L,            denom,        flux_kgm2                 )&
        !$OMP PRIVATE( flux_mcm2s,   frac,         fracNoHg0Dep              )&
        !$OMP PRIVATE( freq,         paranox_loss, mass                      )&
+       !$OMP PRIVATE( S                                                     )&
        !$OMP COLLAPSE( 2                                                    )
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
@@ -2653,7 +2662,7 @@ CONTAINS
              
              ! Initialize loop variables
              denom        = 0.0_fp
-             flux_kgm2s   = 0.0_fp
+             flux_kgm2    = 0.0_fp
              flux_mcm2s   = 0.0_fp
              frac         = 0.0_fp
              fracNoHg0Dep = 0.0_fp
@@ -2707,13 +2716,13 @@ CONTAINS
                           ( ( 1.0_fp - frac ) * ( 1.0_fp - fracNoHg0Dep ) )
                 ENDIF
 
-                ! Compute drydep flux [kg/m2/s].  If we skipped the global
+                ! Compute drydep flux [kg/m2].  If we skipped the global
                 ! unit conversion above, then Conc is still in [kg/kg dry],
-                ! so apply a unit conv to [kg/m2/s] just for this grid box.
-                flux_kgm2s = ( 1.0_fp - frac )                               &
+                ! so apply a unit conv to [kg/m2] just for this grid box.
+                flux_kgm2  = ( 1.0_fp - frac )                               &
                            * State_Chm%Species(N)%Conc(I,J,L)
                 IF ( skipGlobalUnitConv ) THEN
-                   flux_kgm2s = flux_kgm2s                                   &
+                   flux_kgm2 = flux_kgm2                                     &
                               * ( g0_100 * State_Met%DELP_DRY(I,J,L) )
                 ENDIF
 
@@ -2733,7 +2742,7 @@ CONTAINS
                 ! paranox_loss is in [kg/m2].  If we skipped the global
                 ! unit conversion above, we need to convert to [kg/kg dry].
                 IF ( paranox_loss > 0.0_fp ) THEN
-                   IF ( skipUnitConv ) THEN
+                   IF ( skipGlobalUnitConv ) THEN
                       State_Chm%Species(N)%Conc(I,J,L) =                     &
                       State_Chm%Species(N)%Conc(I,J,L) -                     &
                       ( paranox_loss /                                       &
@@ -2748,15 +2757,15 @@ CONTAINS
                 !------------------------------------------------------------
                 ! Compute drydep flux for diagnostics in [molec/cm2/s]
                 !------------------------------------------------------------
-                flux_kgm2s = flux_kgm2s + paranox_loss
+                flux_kgm2 = flux_kgm2 + paranox_loss
 
                 ! Convert to [molec/cm2/s]
                 denom      = ( mw_kg * drydep_dt * 1.0e+4_fp ) / AVO
                 flux_mcm2s = Safe_Div( flux_kgm2s, denom, 0.0_fp )
 
-                ! Add drydep flux [kg/m2/s] to the soil drydep tracker
+                ! Add drydep flux [molec/cm2/s] to the soil drydep tracker
                 IF ( Input_Opt%LSOILNOX ) THEN
-                   CALL Soil_DryDep( I, J, N, flux_kgm2s, State_Chm )
+                   CALL Soil_DryDep( I, J, N, flux_mcm2s, State_Chm )
                 ENDIF
 
                 !------------------------------------------------------------
@@ -2767,7 +2776,8 @@ CONTAINS
                    IF ( drydep_id > 0 ) THEN
                       S = State_Diag%Map_DryDepFlx%id2slot(drydep_id)
                       IF ( S > 0 ) THEN
-                         State_Diag%DryDepFlx(I,J,S) = flux_mcm2s
+                         State_Diag%DryDepFlx(I,J,S) =                       &
+                         State_Diag%DryDepFlx(I,J,S) + flux_mcm2s
                       ENDIF
                    ENDIF
                 ENDIF
@@ -2778,7 +2788,7 @@ CONTAINS
                 IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
                    ! Deposition mass, kg
-                   mass = flux_kgm2s * State_Grid%Area_M2(I,J) * drydep_dt
+                   mass = flux_kgm2 * State_Grid%Area_M2(I,J)
 
                    IF ( SpcInfo%Is_Hg2 ) THEN
 
@@ -2888,7 +2898,7 @@ CONTAINS
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Emissions/dry deposition budget diagnostics error 2'
+          ErrMsg = 'Dry deposition budget diagnostics error 2'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
