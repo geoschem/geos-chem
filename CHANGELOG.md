@@ -10,10 +10,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Changed
 - Updated the Hg0 soil emissions parameterization to improve the response of emissions to light availability
+- Disallowed the GC-Classic `SatDiagn` and `SatDiagnEdge` collections from being subset, or from being specified without `hrrange`
+- Improved error checks in GC-Classic History modules to mitigate side-effects caused by bad or missing input in `HISTORY.rc`
+- Standardized the format of error messages in GC-Classic History modules
 
 ### Fixed
 - Fixed parallelization errors in `GeosCore/apm_driv_mod.F90`
 - Fixed date range in `HEMCO_Config.rc.gmao_metfields_0125`
+- Fixed minor issues with longer intervals in GC-Classic History diagnostics
+- Fixed vertical coordinate variables in `History/history_netcdf_mod.F90` for collections whose `levels` do not start at 1
 
 ### Removed
 - Removed invalid OpenMP directives from the `MPI_LOAD_BALANCE` block of `GeosCore/fullchem_mod.F90`, which caused GCHP compilation to fail with `-DOMP=ON`
