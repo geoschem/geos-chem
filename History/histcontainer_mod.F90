@@ -301,7 +301,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: ThisId, C
+    INTEGER            :: ThisId
 
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc, TempStr
@@ -496,76 +496,57 @@ CONTAINS
     ! File ExpId (the dir name plus
     ! beginning of file name)
     !----------------------------------
-    IF ( LEN_TRIM( FileExpId ) > 0 ) THEN
-       TempStr             = FileExpId
-       Container%FileExpId = TempStr
-    ELSE
-       Container%FileExpId = 'GEOSChem'
+    Container%FileExpId = 'GEOSChem'
+    IF ( PRESENT( FileExpId ) ) THEN
+       IF ( LEN_TRIM( FileExpId ) > 0 ) THEN
+          TempStr             = FileExpId
+          Container%FileExpId = TempStr
+       ENDIF
     ENDIF
 
     ! Add an error check.  The netCDF routines apparently cannot write
-    ! files with "./" in the file path.  Strip out such occurrences.
-    C = INDEX( Container%FileExpId, './' )
-    IF ( C > 0 ) THEN
-       Container%FileExpId = Container%FileExpId(C+2:)
+    ! files with leading "./" in the file path.  Strip out such occurrences.
+    IF ( Container%FileExpId(1:2) == './' ) THEN
+       Container%FileExpId = Container%FileExpId(3:)
     ENDIF
 
     !----------------------------------
     ! File Prefix
     !----------------------------------
-    IF ( LEN_TRIM( FilePrefix ) > 0 ) THEN
-       TempStr              = FilePrefix
-       Container%FilePrefix = TempStr
-    ELSE
-       Container%FilePrefix = TRIM( Container%FileExpId ) // '.' //         &
-                              TRIM( Name                ) // '.'
+    Container%FilePrefix = TRIM( Container%FileExpId ) // '.' //             &
+                           TRIM( Name                ) // '.'
+    IF ( PRESENT( FilePrefix ) ) THEN
+       IF ( LEN_TRIM( FilePrefix ) > 0 ) THEN
+          TempStr              = FilePrefix
+          Container%FilePrefix = TempStr
+       ENDIF
     ENDIF
 
     !----------------------------------
     ! File Template
     !----------------------------------
-    IF ( LEN_TRIM( FileTemplate ) > 0 ) THEN
-
-       ! If the FILETEMPLATE argument is passed (and not the undefined
-       ! string) then use it.  Otherwise, construct a default template.
-       IF ( TRIM( FileTemplate ) /= UNDEFINED_STR ) THEN
+    Container%FileTemplate = '%y4%m2%d2_%h2%n2z.nc4'
+    IF ( PRESENT( FileTemplate ) ) THEN
+       IF ( LEN_TRIM( FileTemplate ) > 0           .and.                     &
+            TRIM( FileTemplate ) /= UNDEFINED_STR ) THEN
           TempStr                = FileTemplate
           Container%FileTemplate = TempStr
-       ELSE
-          Container%FileTemplate = '%y4%m2%d2_%h2%n2z.nc4'
        ENDIF
-
-    ELSE
-
-       ! If the FILETEMPLATE argument isn't passed,
-       ! then construct a default template
-       Container%FileTemplate = '%y4%m2%d2_%h2%n2z.nc4'
-
     ENDIF
 
     !----------------------------------
     ! File Name
     !----------------------------------
-    IF ( LEN_TRIM( FileName ) > 0 ) THEN
-
-       ! If the FILENAME argument is passed, then use it,
-       ! otherwise, construct a default file name
-       IF ( TRIM( FileName ) /= UNDEFINED_STR ) THEN
+    Container%FileName = TRIM( Container%FilePrefix   ) //                   &
+                         TRIM( Container%FileTemplate )
+    IF ( PRESENT( FileName ) ) THEN
+       IF ( LEN_TRIM( FileName ) > 0         .and.                           &
+            TRIM( FileName ) /= UNDEFINED_STR ) THEN
           TempStr                = FileName
           Container%FileName     = TempStr
           Container%FilePrefix   = UNDEFINED_STR
           Container%FileTemplate = UNDEFINED_STR
-       ELSE
-          Container%FileName = TRIM( Container%FilePrefix   ) // &
-                               TRIM( Container%FileTemplate )
        ENDIF
-
-    ELSE
-
-       ! If the FILENAME argument isn't passed,
-       ! construct a default file name
-       Container%FileName = TRIM( Container%FilePrefix   ) // &
-                            TRIM( Container%FileTemplate )
     ENDIF
 
     !----------------------------------
@@ -912,7 +893,7 @@ CONTAINS
        WRITE( 6, 160 ) 'HeartBeatDtSec   : ', Container%HeartBeatDtSec
        WRITE( 6, 135 ) 'ReferenceYmd     : ', Container%ReferenceYmd
        WRITE( 6, 145 ) 'ReferenceHms     : ', Container%ReferenceHms
-       WRITE( 6, 160 ) 'ReferenceJsec    : ', Container%ReferenceJd
+       WRITE( 6, 160 ) 'ReferenceJsec    : ', Container%ReferenceJsec
        WRITE( 6, 160 ) 'ReferenceJd      : ', Container%ReferenceJd
        WRITE( 6, 135 ) 'FileWriteYmd     : ', Container%FileWriteYmd
        WRITE( 6, 145 ) 'FileWriteHms     : ', Container%FileWriteHms
@@ -1152,14 +1133,14 @@ CONTAINS
        IF ( IncMonth > 0 .or. IncDay > 0 ) THEN
           newYmd = ( IncMonth * 100 ) + IncDay
           CALL AlarmIncrementMonths( IntervalYmd = newYmd,                   &
-                                     Year        = Year,                     &
+                                     Year        = Year + IncYear,           &
                                      Month       = Month,                    &
                                      Increment   = extraIval                )
 
           Container%UpdateIvalSec = Container%UpdateIvalSec + extraIval
        ENDIF
 
-    ELSE IF ( Container%UpdateYmd <  001200  .and.                           &
+    ELSE IF ( Container%UpdateYmd <= 001200  .and.                           &
               Container%UpdateYmd >= 000100 ) THEN
 
        !--------------------------------------------------------------------
@@ -1285,14 +1266,14 @@ CONTAINS
        IF ( IncMonth > 0 .or. IncDay > 0 ) THEN
           newYmd = ( IncMonth * 100 ) + IncDay
           CALL AlarmIncrementMonths( IntervalYmd = newYmd,                   &
-                                     Year        = Year,                     &
+                                     Year        = Year + IncYear,           &
                                      Month       = Month,                    &
                                      Increment   = extraIval                )
 
           Container%FileCloseIvalSec = Container%FileCloseIvalSec + extraIval
        ENDIF
 
-    ELSE IF ( Container%FileCloseYmd <  001200  .and.                        &
+    ELSE IF ( Container%FileCloseYmd <= 001200  .and.                        &
               Container%FileCloseYmd >= 000100 ) THEN
 
        !--------------------------------------------------------------------
@@ -1418,14 +1399,14 @@ CONTAINS
        IF ( IncMonth > 0 .or. IncDay > 0 ) THEN
           newYmd = ( IncMonth * 100 ) + IncDay
           CALL AlarmIncrementMonths( IntervalYmd = newYmd,                   &
-                                     Year        = Year,                     &
+                                     Year        = Year + IncYear,           &
                                      Month       = Month,                    &
                                      Increment   = extraIval                )
 
           Container%FileWriteIvalSec = Container%FileWriteIvalSec + extraIval
        ENDIF
 
-    ELSE IF ( Container%FileWriteYmd <  001200  .and.                        &
+    ELSE IF ( Container%FileWriteYmd <= 001200  .and.                        &
               Container%FileWriteYmd >= 000100 ) THEN
 
        !--------------------------------------------------------------------
@@ -1598,18 +1579,14 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    ! SAVEd scalars
-    LOGICAL :: FirstLeap
-
     ! Scalars
-    INTEGER :: ivalYears, ivalMonths, ivalDays, nYears, T, M, YYYY
+    INTEGER :: ivalYears, ivalMonths, ivalDays, nYears, T, YYYY
 
     !=======================================================================
     ! AlarmIncrementYears begins here!
     !=======================================================================
 
     ! Initialize
-    FirstLeap = .TRUE.
     Increment = 0.0_fp
     nYears    = IntervalYmd / 10000
 
@@ -1619,37 +1596,20 @@ CONTAINS
     ! Loop over the requested # of years
     DO T = 0, nYears-1
 
-       ! Increment the year from the starting year
-       YYYY = Year + T
-
-       ! Compute the increment, accounting for leap years
-       IF ( Its_A_LeapYear( YYYY ) ) THEN
-
-          ! It's the first leap year
-          IF ( FirstLeap ) THEN
-
-             ! If we start after March 1st, the interval is 365 days
-             ! Otherwise, the interval is 366 days.
-             IF ( Month > 2 ) THEN
-                Increment = Increment + ( 365.0_f8 * SECONDS_PER_DAY )
-             ELSE
-                Increment = Increment + ( 366.0_f8 * SECONDS_PER_DAY )
-             ENDIF
-
-             ! Reset first leap year flag
-             FirstLeap  = .FALSE.
-
-          ELSE
-
-             ! For each successive leap year, the interval is 366 days.
-             Increment = Increment + ( 366.0_f8 * SECONDS_PER_DAY )
-
-          ENDIF
-
+       ! A year-long step starting in January or February spans that
+       ! year's February; one starting in March or later spans the
+       ! following year's February.  The step has 366 days only if
+       ! that February has a leap day.
+       IF ( Month <= 2 ) THEN
+          YYYY = Year + T
        ELSE
-          ! If it's not a leap year, the interval is 365 days.
-          Increment = Increment + ( 365.0_f8 * SECONDS_PER_DAY )
+          YYYY = Year + T + 1
+       ENDIF
 
+       IF ( Its_A_LeapYear( YYYY ) ) THEN
+          Increment = Increment + ( 366.0_f8 * SECONDS_PER_DAY )
+       ELSE
+          Increment = Increment + ( 365.0_f8 * SECONDS_PER_DAY )
        ENDIF
 
     ENDDO
