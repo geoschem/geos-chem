@@ -698,7 +698,7 @@ CONTAINS
     do I = 1, plonl
 
        ! total mass in the PBL (ignoring the v/v -> m/m conversion)
-       !   including pre-mixing mass and surface flux (emis+drydep)
+       !   including pre-mixing mass and surface flux (emis)
        sum_qp0 = sum(qp0(I,ntopfl:plev,M) * &
                  State_Met%AD(I,lat,plev-ntopfl+1:1:-1)) &
                + (cflx(I,M) * State_Grid%AREA_M2(I,lat) * ztodt)
@@ -1691,7 +1691,6 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
     USE Input_Opt_Mod,      ONLY : OptInput
     USE PBL_MIX_MOD,        ONLY : COMPUTE_PBL_HEIGHT
     USE Species_Mod,        ONLY : Species

@@ -29,17 +29,18 @@ MODULE DRYDEP_MOD
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: CLEANUP_DRYDEP
-  PUBLIC :: DO_DRYDEP
-  PUBLIC :: INIT_DRYDEP
-  PUBLIC :: INIT_WEIGHTSS
+  PUBLIC :: Cleanup_Drydep
+  PUBLIC :: Do_Drydep
+  PUBLIC :: Do_Drydep_Removal
+  PUBLIC :: Init_DryDep
+  PUBLIC :: Init_WeightsS
 #if defined( MODEL_CESM )
-  PUBLIC :: UPDATE_DRYDEPFREQ
+  PUBLIC :: Update_DryDepFreq
 #else
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-  PRIVATE :: UPDATE_DRYDEPFREQ
+  PRIVATE :: Update_DryDepFreq
 #endif
 !
 ! !PUBLIC DATA MEMBERS:
@@ -1419,7 +1420,7 @@ CONTAINS
              ! Equivalent dry deposition land type:
              ! 11 in GEOS-Chem dry dep; 73 in Olson landcover type
              II     = IDEP(IOLSON)
-             
+
              ! Over snow or ice, set drydep landcover type to 1
              IF ((State_Met%isSnow(I,J)).OR.(State_Met%isIce(I,J))) II=1
 
@@ -1513,7 +1514,7 @@ CONTAINS
                 ENDIF
 
                 RIX = RIX*GFACT*GFACI
-                
+
                 ! Apply scaling factor to RIX when CO2 effect is turned on
                 ! (ayhwong, 6/25/19)
                 IF (Input_Opt%CO2_EFFECT) THEN
@@ -1582,7 +1583,7 @@ CONTAINS
 
                          ! Assume lower reactivity
                          F0_K = 3.0e-05_f8
-                   
+
                          ! But if this is the rainforest land type and we fall
                          ! within the bounding box of the Amazon rainforest,
                          ! then implicit nonecrease reactivity as inferred
@@ -1699,7 +1700,7 @@ CONTAINS
 
                          ! Particle diameter, convert [m] -> [um]
                          DIAM  = A_RADI(K) * 2.e+0_f8
-                      
+
                          ! Particle density [kg/m3]
                          DEN   = A_DEN(K)
 
@@ -1713,7 +1714,7 @@ CONTAINS
                          BIN  = NTRAIND(K) - id_NK01 + 1
                          DIAM = SIZ_DIA( I, J, BIN )     ! Diameter [m]
                          DEN  = SIZ_DEN( I, J, BIN )     ! Density  [kg/m3]
-                      
+
                       ENDIF
 #else
                       !-------------------------------
@@ -1722,7 +1723,7 @@ CONTAINS
 
                       ! Particle diameter, convert [m] -> [um]
                       DIAM  = A_RADI(K) * 2.e+0_f8
-                
+
                       ! Particle density [kg/m3]
                       DEN   = A_DEN(K)
 #endif
@@ -1989,7 +1990,7 @@ CONTAINS
                    CORR2 = LOG(-CORR1)
                 ENDIF
              ENDIF
-             
+
              IF (CKUSTR.EQ.0.0e+0_f8) THEN
                 WRITE(6,212) I,J,CKUSTR,VON_KARMAN,USTAR(I,J)
 212             FORMAT(1X,'I,J= ',2I4,1X,'CKUSTR=',E10.1,1X, &
@@ -2043,7 +2044,7 @@ CONTAINS
                       DUMMY3 = ABS((DUMMY1 - 1.e+0_f8)/(DUMMY1 + 1.e+0_f8))
                       DUMMY4 = ABS((DUMMY2 - 1.e+0_f8)/(DUMMY2 + 1.e+0_f8))
                       RA = 0.74e+0_f8* (1.e+0_f8/CKUSTR) * LOG(DUMMY3/DUMMY4)
-                      
+
                    ELSEIF((CORR1.GT.0.0e+0_f8).AND.(.NOT.LRGERA(I,J)))  THEN
                       !... moderately stable conditions (z/zMO <1);
                       !... compute Ra as described above
@@ -2056,7 +2057,7 @@ CONTAINS
                    ! check that RA is positive; if RA is negative
                    ! (as occassionally happened in version 3.1) send a
                    ! warning message.
-                   
+
                 ELSE
 
                    IF (CORR1.LT.0.0e+0_f8) THEN
@@ -2080,7 +2081,7 @@ CONTAINS
                          RA_Alt     = ( 1.0_f8 / CKUSTR )                    &
                               * LOG( DUMMY3 / DUMMY4_Alt )
                       ENDIF
-                     
+
                    ELSEIF((CORR1.GE.0.0e+0_f8).AND.(CORR1.LE.1.0e+0_f8)) THEN
                       !coef_a=1.e+0_f8
                       !coef_b=5.e+0_f8
@@ -2095,7 +2096,7 @@ CONTAINS
                               * ( 1.0_f8 * LOG( CORR1 / Z0OBK_Alt ) &
                               + 5.0_f8 * ( CORR1 - Z0OBK_Alt ))
                       ENDIF
-                     
+
                    ELSE ! CORR1 .GT. 1.0D0
                       !coef_a=5e+0_f8
                       !coef_b=1.e+0_f8
@@ -2111,7 +2112,7 @@ CONTAINS
                               + 1.0_f8 *( CORR1 - Z0OBK_Alt ) )
                       ENDIF
                    ENDIF
-                  
+
                 ENDIF   ! LNLPBL condition
 
                 RA   = MIN(RA,1.e+4_f8)
@@ -2126,7 +2127,7 @@ CONTAINS
                 !----------------------------------------------------
                 IF ( State_Diag%Archive_ConcAboveSfc ) THEN
                    RA_Alt = MIN( RA_Alt, 1.0e+4_f8 )
-                   
+
                    ! Make sure RA_Alt is not negative
                    IF ( RA_Alt <  0.0_f8 ) THEN
                       IF ( Input_Opt%amIRoot ) THEN
@@ -2148,7 +2149,7 @@ CONTAINS
                    ENDIF
 
                 ENDIF
-               
+
                 ! Get total resistance for deposition
                 ! loop over species.
                 DO K = 1,NUMDEP
@@ -2167,7 +2168,7 @@ CONTAINS
 
              ! Smooth surface:
              ELSE IF ( REYNO <  0.1e+0_f8 ) THEN
-            
+
                 ! ... aerodynamically smooth surface
                 ! BUG FIX -- suppress drydep over smooth surfaces by setting
                 ! Ra to a large value (1e4).  This prevents negative dry
@@ -2180,7 +2181,7 @@ CONTAINS
                    ENDIF
                 ENDDO
              ENDIF   ! Rough versus smooth surface based on REYNO
-             
+
              !
              ! IUSE is the fraction of the grid square occupied by surface LDT
              ! in units of per mil (IJUSE=500 -> 50% of the grid square).  Add
@@ -2191,11 +2192,11 @@ CONTAINS
                 IF ( LDEP(K) ) THEN
                    VK(K) = VD(K)
                    VD(K) = VK(K) +.001D0* DBLE( IUSE(I,J,LDT) )/C1X(K)
-                   
+
                    IF (AEROSOL (K)) THEN
                       SpcId   =  NTRAIND(K)
                       SpcInfo => State_Chm%SpcData(SpcId)%Info
-                      
+
                       IF ( SpcInfo%DD_AeroDryDep ) THEN
                          VD(K) = VK(K) +.001D0* DBLE( IUSE(I,J,LDT) )   &
                               /C1X(K) + .001D0* DBLE( IUSE(I,J,LDT) ) * &
@@ -2298,6 +2299,510 @@ CONTAINS
     NULLIFY( XLAI  )
 
   END SUBROUTINE DEPVEL
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: do_drydep_removal
+!
+! !DESCRIPTION: Applies removal of species by dry deposition.  Includes
+!  sea-air exchange from the HEMCO SeaFlux extension and loss of O3 and
+!  HNO3 by from the HEMCO ParaNOx extension.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Do_DryDep_Removal( Input_Opt,  State_Chm, State_Diag,           &
+                                State_Grid, State_Met, RC                   )
+!
+! !USES:
+!
+    USE Depo_Mercury_Mod,     ONLY : Add_Hg2_DD
+    USE Depo_Mercury_Mod,     ONLY : Add_HgP_DD
+    USE Depo_Mercury_Mod,     ONLY : Add_Hg2_SnowPack
+    USE Diagnostics_Mod,      ONLY : Compute_Budget_Diagnostics
+    USE ErrCode_Mod
+    USE ERROR_MOD,            ONLY : SAFE_DIV
+    USE GET_NDEP_MOD,         ONLY : SOIL_DRYDEP
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_GetDiagn
+    USE HCO_Utilities_GC_Mod, ONLY : GetHcoValDep, InquireHco
+    USE HCO_Utilities_GC_Mod, ONLY : LoadHcoValDep
+    USE Input_Opt_Mod,        ONLY : OptInput
+    USE PhysConstants,        ONLY : AVO, g0_100
+    USE Species_Mod,          ONLY : Species
+    USE State_Chm_Mod,        ONLY : ChmState
+    USE State_Diag_Mod,       ONLY : DgnState
+    USE State_Grid_Mod,       ONLY : GrdState
+    USE State_Met_Mod,        ONLY : MetState
+    USE Time_Mod,             ONLY : Get_Ts_Emis
+    USE UnitConv_Mod,         ONLY : Check_Units
+    USE UnitConv_Mod,         ONLY : KG_SPECIES_PER_KG_DRY_AIR
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput),   INTENT(IN)    :: Input_Opt   ! Input Options object
+    TYPE(MetState),   INTENT(IN)    :: State_Met   ! Meteorology State object
+    TYPE(GrdState),   INTENT(IN)    :: State_Grid  ! Grid State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState),   INTENT(INOUT) :: State_Chm   ! Chemistry State object
+    TYPE(DgnState),   INTENT(INOUT) :: State_Diag  ! Diagnostics State object
+    INTEGER,          INTENT(INOUT) :: RC          ! Success or failure?
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    LOGICAL                :: found_air2sea_freq
+    LOGICAL                :: is_drydep_species
+    LOGICAL                :: is_loss_hno3
+    LOGICAL                :: is_loss_o3
+    INTEGER                :: AC,           drydep_id,    I
+    INTEGER                :: J,            L,            N
+    INTEGER                :: NA,           S
+    INTEGER                :: drydep_top,   pbl_top
+    REAL(fp)               :: air2sea_freq, denom
+    REAL(fp)               :: drydep_dt,    flux_kgm2,    flux_mcm2s
+    REAL(fp)               :: frac,         fracNoHg0Dep, freq
+    REAL(fp)               :: mass,         mw_kg,        paranox_loss
+    REAL(fp)               :: to_kgm2
+
+    ! Pointers and objects
+    REAL(f4),      POINTER :: ptr_2d(:,:)
+    REAL(f4),      POINTER :: paranox_loss_O3(:,:)
+    REAL(f4),      POINTER :: paranox_loss_HNO3(:,:)
+    TYPE(Species), POINTER :: SpcInfo
+
+    ! Strings
+    CHARACTER(LEN=255)     :: errMsg
+    CHARACTER(LEN=255)     :: thisLoc
+
+    !=================================================================
+    ! Do_DryDep_Removal begins here!
+    !=================================================================
+
+    ! Assume success
+    RC = GC_SUCCESS
+
+    ! Skip if drydep is turned off
+    IF ( .not. Input_Opt%LDRYD ) RETURN
+
+    ! Continue initializing
+    is_loss_HNO3      = .FALSE.
+    is_loss_O3        = .FALSE.
+    drydep_dt         =  Get_Ts_Emis()
+    ptr_2d            => NULL()
+    paranox_loss_o3   => NULL()
+    paranox_loss_hno3 => NULL()
+    SpcInfo           => NULL()
+    errMsg            =  ''
+    thisLoc           =  &
+      ' -> at Do_DryDep_Removal (in module GeosCore/drydep_mod.F90)'
+
+    ! Make sure species have units of [kg/kg dry air]
+    IF ( .not. Check_Units( State_Chm, KG_SPECIES_PER_KG_DRY_AIR ) ) THEN
+       errMsg = 'Not all species are in kg/kg dry air!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !========================================================================
+    ! Dry deposition budget diagnostics - Part 1 of 2
+    !========================================================================
+    IF ( State_Diag%Archive_BudgetDryDep ) THEN
+
+       ! Get initial column masses (full, trop, PBL)
+       CALL Compute_Budget_Diagnostics(                                      &
+            Input_Opt   = Input_Opt,                                         &
+            State_Chm   = State_Chm,                                         &
+            State_Diag  = State_Diag,                                        &
+            State_Grid  = State_Grid,                                        &
+            State_Met   = State_Met,                                         &
+            isFull      = State_Diag%Archive_BudgetDryDepFull,               &
+            diagFull    = NULL(),                                            &
+            mapDataFull = State_Diag%Map_BudgetDryDepFull,                   &
+            isTrop      = State_Diag%Archive_BudgetDryDepTrop,               &
+            diagTrop    = NULL(),                                            &
+            mapDataTrop = State_Diag%Map_BudgetDryDepTrop,                   &
+            isPBL       = State_Diag%Archive_BudgetDryDepPBL,                &
+            diagPBL     = NULL(),                                            &
+            mapDataPBL  = State_Diag%Map_BudgetDryDepPBL,                    &
+            isLevs      = State_Diag%Archive_BudgetDryDepLevs,               &
+            diagLevs    = NULL(),                                            &
+            mapDataLevs = State_Diag%Map_BudgetDryDepLevs,                   &
+            colMass     = State_Diag%BudgetColumnMass,                       &
+            before_op   = .TRUE.,                                            &
+            RC          = RC                                                )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Dry deposition budget diagnostics error 1'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+#ifdef ADJOINT
+    ! Get time step [s]
+    IF ( Input_Opt%Is_Adjoint ) drydep_dt = -drydep_dt
+#endif
+
+#ifndef MODEL_CESM
+    !========================================================================
+    ! Get pointers to HEMCO fields 'PARANOX_O3_DEPOSITION_FLUX' and
+    ! 'PARANOX_HNO3_DEPOSITION_FLUX'. The call below links the pointers
+    ! parnaox_loss_o3 and paranox_loss_hno3 to the data values stored in
+    ! the respective diagnostics. The pointers will remain unassociated
+    ! if the diagnostics do not exist.
+    !========================================================================
+
+    ! HNO3 deposition from ParaNOx
+    CALL HCO_GC_GetDiagn(                                                    &
+         Input_Opt      = Input_Opt,                                         &
+         State_Grid     = State_Grid,                                        &
+         DiagnName      = 'PARANOX_HNO3_DEPOSITION_FLUX',                    &
+         StopIfNotFound = .FALSE.,                                           &
+         Ptr2D          = ptr_2d,                                            &
+         RC             = RC                                                )
+
+    IF ( ASSOCIATED( ptr_2d ) ) THEN
+       ALLOCATE( paranox_loss_HNO3( State_Grid%NX, State_Grid%NY ), STAT=AC )
+       CALL GC_CheckVar( "paranox_loss_hno3", 0, AC )
+       IF ( AC /= GC_SUCCESS ) THEN
+          RC = AC
+          RETURN
+       ENDIF
+       paranox_loss_HNO3 = ptr_2d
+       is_loss_HNO3      = .TRUE.
+    ENDIF
+    ptr_2d => NULL()
+
+    ! O3 deposition from ParaNOx
+    CALL HCO_GC_GetDiagn(                                                    &
+         Input_Opt      = Input_Opt,                                         &
+         State_Grid     = State_Grid,                                        &
+         DiagnName      = 'PARANOX_O3_DEPOSITION_FLUX',                      &
+         StopIfNotFound = .FALSE.,                                           &
+         Ptr2D          = ptr_2d,                                            &
+         RC             = RC                                                )
+
+    IF ( ASSOCIATED( ptr_2d ) ) THEN
+       ALLOCATE( paranox_loss_o3( State_Grid%NX, State_Grid%NY ), STAT=AC )
+       CALL GC_CheckVar( "paranox_loss_o3", 0, AC )
+       IF ( AC /= GC_SUCCESS ) THEN
+          RC = AC
+          RETURN
+       ENDIF
+       paranox_loss_O3 = ptr_2d
+       is_loss_O3     = .TRUE.
+    ENDIF
+    ptr_2d => NULL()
+#endif
+
+    !=======================================================================
+    ! Do for every advected species and grid box
+    !
+    ! Note: For GEOS-Chem Classic HEMCO "Intermediate Grid" feature,
+    ! where HEMCO is running on a distinct grid from the model, the
+    ! on-demand regridding is most optimized when contiguous accesses
+    ! to GetHcoValEmis and GetHcoValDep are performed for the given species.
+    ! Therefore, it is most optimal to call in the following fashion (IJKN)
+    !    Emis(1,1,1,1) -> Emis(1,1,2,1) -> ... -> Dep(1,1,1,1) -> Dep(1,1,2,1)
+    ! By switching emis/dep or the species # LAST, as either of these changing
+    ! WILL trigger a new regrid and thrashing of the old buffer.
+    !
+    ! Therefore, the loop below has been adjusted to run serially for each
+    ! species, and parallelizing the inner I, J loop instead (hplin, 6/27/20)
+    ! Also, moved some non-I,J specific variables outside of the loop for
+    ! optimization
+    !=======================================================================
+    DO NA = 1, State_Chm%nAdvect
+
+       ! Initialize PRIVATE loop variables
+       N        =  State_Chm%Map_Advect(NA)   ! Species ID
+       SpcInfo  => State_Chm%SpcData(N)%Info  ! Species Database object
+       mw_kg    =  SpcInfo%MW_g * 1.e-3_fp    ! Mol wt. in kg
+
+       !--------------------------------------------------------------------
+       ! Check if we need to do dry deposition for this species
+       !--------------------------------------------------------------------
+
+       ! Get drydep ID from the species database
+       drydep_id = SpcInfo%DryDepId
+
+       ! If the species does not have a drydep velocity computed in
+       ! drydep_mod.F90, it may have still have a deposition velocity
+       ! computed by HEMCO.  Check if this is the case.
+       is_drydep_species = ( drydep_id > 0 )
+       IF ( .NOT. is_drydep_species ) THEN
+          CALL InquireHco( N, dep=is_drydep_species )
+       ENDIF
+       IF ( N == id_HNO3 .AND. is_loss_HNO3 ) is_drydep_species = .TRUE.
+       IF ( N == id_O3   .AND. is_loss_O3   ) is_drydep_species = .TRUE.
+
+       ! If there is drydep for this species, it must be loaded into memory
+       ! first.  This is achieved by attempting to retrieve a grid box while
+       ! NOT in a parallel loop. Failure to load this will result in severe
+       ! performance issues!! (hplin, 9/27/20)
+       IF ( is_drydep_species ) THEN
+          CALL LoadHcoValDep( Input_Opt, State_Grid, N )
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Go to next species if this species doesn't dry-deposit
+       !--------------------------------------------------------------------
+       IF ( .not. is_drydep_species ) CYCLE
+
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( I,            J,            found_air2sea_freq        )&
+       !$OMP PRIVATE( air2sea_freq, pbl_top,      drydep_top                )&
+       !$OMP PRIVATE( L,            denom,        flux_kgm2                 )&
+       !$OMP PRIVATE( flux_mcm2s,   frac,         fracNoHg0Dep              )&
+       !$OMP PRIVATE( freq,         paranox_loss, mass                      )&
+       !$OMP PRIVATE( to_kgm2,      S                                       )&
+       !$OMP COLLAPSE( 2                                                    )
+       DO J = 1, State_Grid%NY
+       DO I = 1, State_Grid%NX
+
+          !------------------------------------------------------------------
+          ! Obtain quantities at the surface
+          !------------------------------------------------------------------
+
+          ! Air-to-sea dep freq [s-1] from the HEMCO "SeaFlux" extension
+          found_air2sea_freq = .FALSE.
+          air2sea_freq       = 0.0_fp
+          CALL GetHcoValDep(                                                 &
+               Input_Opt  = Input_Opt,                                       &
+               State_Grid = State_Grid,                                      &
+               I          = I,                                               &
+               J          = J,                                               &
+               L          = 1,                                               &
+               trcId      = N,                                               &
+               found      = found_air2sea_freq,                              &
+               dep        = air2sea_freq                                    )
+
+          ! Get the level at which the PBL top occurs and the level
+          ! up to which drydep removal will be applied.
+          pbl_top = MAX( 1, FLOOR( State_Met%PBL_TOP_L(I,J) ) )
+          IF ( Input_Opt%PBL_DRYDEP ) THEN
+             drydep_top = pbl_top
+          ELSE
+             drydep_top = 1
+          ENDIF
+
+          !------------------------------------------------------------------
+          ! Loop over vertical levels
+          !------------------------------------------------------------------
+          DO L = 1, drydep_top
+
+             ! Initialize loop variables
+             denom        = 0.0_fp
+             flux_kgm2    = 0.0_fp
+             flux_mcm2s   = 0.0_fp
+             frac         = 0.0_fp
+             fracNoHg0Dep = 0.0_fp
+             freq         = 0.0_fp
+             mass         = 0.0_fp
+             paranox_loss = 0.0_fp
+             to_kgm2      = 0.0_fp
+
+             !--------------------------------------------------------------
+             ! Get drydep frequencies
+             !--------------------------------------------------------------
+
+             ! Start with the drydep frequency [s-1] from drydep_mod.F90
+             IF ( drydep_id > 0 ) THEN
+                freq = State_Chm%DryDepFreq(I,J,drydep_id)
+             ENDIF
+
+             ! Then add the air-to-sea dep freq [s-1] from HEMCO
+             IF ( found_air2sea_freq ) freq = freq + air2sea_freq
+
+#ifndef MODEL_CESM
+             ! Get PARANOX deposition loss [kg/m2/s], which will be
+             ! applied to the surface level only.  Convert to [kg/m2].
+             IF ( L == 1 ) THEN
+                IF ( N == id_O3 .AND. is_loss_O3 ) THEN
+                   paranox_loss = paranox_loss_O3(I,J) * drydep_dt
+                ENDIF
+                IF ( N == id_HNO3 .AND. is_loss_HNO3 ) THEN
+                   paranox_loss = paranox_loss_HNO3(I,J) * drydep_dt
+                ENDIF
+             ENDIF
+#endif
+
+             ! Only proceed if there is a deposition flux
+             IF ( freq > 0.0_fp .or. paranox_loss > 0.0_fp ) THEN
+
+                !------------------------------------------------------------
+                ! Perform removal of species by drydep
+                !------------------------------------------------------------
+
+                ! Compute fraction of species left after drydep [1]
+                frac = EXP( -freq * drydep_dt )
+
+                ! Suppress Hg0 dry deposition over ocean, snow, and land ice.
+                ! Hg0 exchange with the ocean is handled by ocean_mercury_mod,
+                ! so drydep loss for Hg0 should not be double-counted here.
+                IF ( Input_Opt%ITS_A_MERCURY_SIM .and. SpcInfo%Is_Hg0 ) THEN
+                   fracNoHg0Dep = MIN( State_Met%FROCEAN(I,J)  +             &
+                                       State_Met%FRSNOW(I,J)   +             &
+                                       State_Met%FRLANDICE(I,J), 1.0_fp     )
+                   frac = 1.0_fp -                                           &
+                          ( ( 1.0_fp - frac ) * ( 1.0_fp - fracNoHg0Dep ) )
+                ENDIF
+
+                ! Factor to convert Conc from [kg/kg dry] to [kg/m2]
+                to_kgm2   = g0_100 * State_Met%DELP_DRY(I,J,L)
+
+                ! Compute drydep flux [kg/m2]
+                flux_kgm2 = ( 1.0_fp - frac )                                &
+                          * State_Chm%Species(N)%Conc(I,J,L) * to_kgm2
+
+                ! Compute the species left after dry deposition [kg/kg dry]
+                State_Chm%Species(N)%Conc(I,J,L) =                           &
+                State_Chm%Species(N)%Conc(I,J,L) * frac
+#ifdef ADJOINT
+                IF ( Input_Opt%Is_Adjoint) THEN
+                   State_Chm%SpeciesAdj(I,J,L,N) =                           &
+                   State_Chm%SpeciesAdj(I,J,L,N) * frac
+                ENDIF
+#endif
+
+#ifndef MODEL_CESM
+                ! Apply ParaNOx loss [kg/m2] to O3 or HNO3, but never
+                ! remove more than what is left after drydep.
+                IF ( paranox_loss > 0.0_fp ) THEN
+                   paranox_loss = MIN( paranox_loss,                         &
+                                       State_Chm%Species(N)%Conc(I,J,L)      &
+                                       * to_kgm2                            )
+                   State_Chm%Species(N)%Conc(I,J,L) =                        &
+                      MAX( State_Chm%Species(N)%Conc(I,J,L)                  &
+                           - ( paranox_loss / to_kgm2 ), 0.0_fp             )
+                ENDIF
+#endif
+
+                !------------------------------------------------------------
+                ! Compute drydep flux for diagnostics in [molec/cm2/s]
+                !------------------------------------------------------------
+                flux_kgm2 = flux_kgm2 + paranox_loss
+
+                ! Convert to [molec/cm2/s]
+                denom      = ( mw_kg * drydep_dt * 1.0e+4_fp ) / AVO
+                flux_mcm2s = Safe_Div( flux_kgm2, denom, 0.0_fp )
+
+                ! Add drydep flux [molec/cm2/s] to the soil drydep tracker
+                IF ( Input_Opt%LSOILNOX ) THEN
+                   CALL Soil_DryDep( I, J, N, flux_mcm2s, State_Chm )
+                ENDIF
+
+                !------------------------------------------------------------
+                ! HISTORY: Archive drydep flux loss [molec/cm2/s]
+                !------------------------------------------------------------
+                IF ( State_Diag%Archive_DryDep      .or.                     &
+                     State_Diag%Archive_DryDepFlx ) THEN
+                   IF ( drydep_id > 0 ) THEN
+                      S = State_Diag%Map_DryDepFlx%id2slot(drydep_id)
+                      IF ( S > 0 ) THEN
+                         State_Diag%DryDepFlx(I,J,S) =                       &
+                         State_Diag%DryDepFlx(I,J,S) + flux_mcm2s
+                      ENDIF
+                   ENDIF
+                ENDIF
+
+                !-------------------------------------------------------------
+                ! Archive Hg deposition for surface reservoirs
+                !-------------------------------------------------------------
+                IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
+
+                   ! Deposition mass, kg
+                   mass = flux_kgm2 * State_Grid%Area_M2(I,J)
+
+                   IF ( SpcInfo%Is_Hg2 ) THEN
+
+                      ! Archive dry-deposited Hg2
+                      CALL ADD_Hg2_DD( I, J, mass                            )
+                      CALL ADD_Hg2_SNOWPACK( I,         J,                   &
+                                             mass,      State_Met,           &
+                                             State_Chm, State_Diag          )
+
+                   ELSE IF ( SpcInfo%Is_HgP ) THEN
+
+                      ! Archive dry-deposited HgP
+                      CALL ADD_HgP_DD( I, J, mass                            )
+                      CALL ADD_Hg2_SNOWPACK( I,         J,                   &
+                                             mass,      State_Met,           &
+                                             State_Chm, State_Diag          )
+
+                   ENDIF
+                ENDIF
+             ENDIF
+          ENDDO
+       ENDDO
+       ENDDO
+       !$OMP END PARALLEL DO
+
+       ! Nullify pointer
+       SpcInfo  => NULL()
+
+    ENDDO !N
+
+    !=======================================================================
+    ! Dry deposition budget diagnostics - Part 2 of 2
+    !=======================================================================
+    IF ( State_Diag%Archive_BudgetDryDep ) THEN
+
+       ! Compute change in column masses (after drydep - before drydep)
+       ! and store in diagnostic arrays.  Units are [kg/s].
+       CALL Compute_Budget_Diagnostics(                                      &
+            Input_Opt   = Input_Opt,                                         &
+            State_Chm   = State_Chm,                                         &
+            State_Diag  = State_Diag,                                        &
+            State_Grid  = State_Grid,                                        &
+            State_Met   = State_Met,                                         &
+            isFull      = State_Diag%Archive_BudgetDryDepFull,               &
+            diagFull    = State_Diag%BudgetDryDepFull,                       &
+            mapDataFull = State_Diag%Map_BudgetDryDepFull,                   &
+            isTrop      = State_Diag%Archive_BudgetDryDepTrop,               &
+            diagTrop    = State_Diag%BudgetDryDepTrop,                       &
+            mapDataTrop = State_Diag%Map_BudgetDryDepTrop,                   &
+            isPBL       = State_Diag%Archive_BudgetDryDepPBL,                &
+            diagPBL     = State_Diag%BudgetDryDepPBL,                        &
+            mapDataPBL  = State_Diag%Map_BudgetDryDepPBL,                    &
+            isLevs      = State_Diag%Archive_BudgetDryDepLevs,               &
+            diagLevs    = State_Diag%BudgetDryDepLevs,                       &
+            mapDataLevs = State_Diag%Map_BudgetDryDepLevs,                   &
+            colMass     = State_Diag%BudgetColumnMass,                       &
+            timeStep    = drydep_dt,                                         &
+            RC          = RC                                                )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Dry deposition budget diagnostics error 2'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    !=======================================================================
+    ! Cleanup & quit
+    !=======================================================================
+
+    ! Free memory
+    IF ( ASSOCIATED( paranox_loss_O3   ) ) DEALLOCATE( paranox_loss_O3   )
+    IF ( ASSOCIATED( paranox_loss_HNO3 ) ) DEALLOCATE( paranox_loss_HNO3 )
+
+    ! Nullify pointers
+    paranox_loss_O3   => NULL()
+    paranox_loss_HNO3 => NULL()
+
+  END SUBROUTINE Do_DryDep_Removal
 !EOC
 #ifdef LUO_WETDEP
 !------------------------------------------------------------------------------
@@ -3243,9 +3748,6 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-
-    ! SAVEd scalars
-    LOGICAL, SAVE :: FIRST = .TRUE.
 
     !Scalars
     INTEGER       :: N
@@ -4493,7 +4995,7 @@ CONTAINS
     ! Constant for settling velocity calculation
     ! Add effects of dust nonsphericity for gravitational settling
     ! (D. Zhang, Mar 3, 2025)
-    CONST = 1.0_f8 / KAI * DEN * DIAM**2 * g0 / 18.e+0_f8 
+    CONST = 1.0_f8 / KAI * DEN * DIAM**2 * g0 / 18.e+0_f8
 
     !=================================================================
     !   # air molecule number density
@@ -4691,24 +5193,25 @@ CONTAINS
     !=================================================================
     ! For regular simulations, continue to initialize drydep
     !=================================================================
+    IS_Hg      = Input_Opt%ITS_A_MERCURY_SIM
+    LDRYD      = Input_Opt%LDRYD
+    NUMDEP     = 0
 
-    IS_Hg     = Input_Opt%ITS_A_MERCURY_SIM
-    LDRYD     = Input_Opt%LDRYD
-    NUMDEP    = 0
-    id_ACET   = 0
-    id_O3     = 0
-    id_ALD2   = 0
-    id_MENO3  = 0
-    id_ETNO3  = 0
-    id_MOH    = 0
-    id_Hg0    = 0
-    id_HNO3   = Ind_('HNO3'  )
-    id_PAN    = Ind_('PAN'   )
-    id_IHN1   = Ind_('IHN1'  )
-    id_H2O2   = Ind_('H2O2'  )
-    id_SO2    = Ind_('SO2'   )
-    id_NH3    = Ind_('NH3'   )
-    id_NK01   = Ind_('NK01'  )
+    ! Species ID flags
+    id_ACET    = Ind_( 'ACET'         )
+    id_ALD2    = Ind_( 'ALD2'         )
+    id_ETNO3   = Ind_( 'ETNO3'        )
+    id_H2O2    = Ind_( 'H2O2'         )
+    id_Hg0     = 0
+    id_HNO3    = Ind_( 'HNO3'         )
+    id_MENO3   = Ind_( 'MENO3'        )
+    id_IHN1    = Ind_( 'IHN1'         )
+    id_NH3     = Ind_( 'NH3'          )
+    id_NK01    = Ind_( 'NK01'         )
+    id_MOH     = Ind_( 'MOH'          )
+    id_O3      = Ind_( 'O3'           )
+    id_PAN     = Ind_( 'PAN'          )
+    id_SO2     = Ind_( 'SO2'          )
 
     ! Drydep ID flags
     idd_BCPO   = Ind_('BCPI',   'D')
@@ -4868,32 +5371,8 @@ CONTAINS
           !-----------------------------------------------------
           SELECT CASE ( TRIM( SpcInfo%Name ) )
 
-             CASE( 'ACET' )
-                ! Flag the species ID of ACET for use above.
-                id_ACET = SpcInfo%ModelId
-
-             CASE( 'O3' )
-                ! Flag the species ID of O3 for use above
-                ID_O3 = SpcInfo%ModelId
-
-             CASE( 'ALD2' )
-                ! Flag the species ID of ALD2 for use above.
-                id_ALD2 = SpcInfo%ModelId
-
-             CASE( 'MENO3' )
-                ! Flag the species ID of MENO3 for use above.
-                id_MENO3 = SpcInfo%ModelId
-
-             CASE( 'ETNO3' )
-                ! Flag the species ID of ETNO3 for use above.
-                id_ETNO3 = SpcInfo%ModelId
-
-             CASE( 'MOH' )
-                ! Flag the species ID of MOH for use above.
-                id_MOH = SpcInfo%ModelId
-
              CASE( 'HG0', 'Hg0' )
-                ! for finding Hg0 drydep veloc
+                ! for finding Hg0 drydep velocity
                 id_Hg0 = SpcInfo%ModelId
 
              CASE( 'NITs', 'NITS' )

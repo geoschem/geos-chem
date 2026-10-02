@@ -166,7 +166,7 @@ CONTAINS
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
           State_Diag%DryDep(I,J,S) = State_Diag%DryDepChm(I,J,S)             &
-                                   + State_Diag%DryDepMix(I,J,S)
+                                   + State_Diag%DryDepFlx(I,J,S)
        ENDDO
        ENDDO
        ENDDO
@@ -185,7 +185,7 @@ CONTAINS
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
           State_Diag%SatDiagnDryDep(I,J,S) = State_Diag%DryDepChm(I,J,S)  &
-                                           + State_Diag%DryDepMix(I,J,S)
+                                           + State_Diag%DryDepFlx(I,J,S)
        ENDDO
        ENDDO
        ENDDO
@@ -310,7 +310,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Zero_Diagnostics_StartofTimestep( Input_Opt, State_Diag, RC )
+  SUBROUTINE Zero_Diagnostics_StartofTimestep( Input_Opt, State_Diag,        &
+                                               RC,        isChemTime        )
 !
 ! !USES:
 !
@@ -320,15 +321,16 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),   INTENT(IN)    :: Input_Opt    ! Input Options object
+   TYPE(OptInput), INTENT(IN)     :: Input_Opt    ! Input Options object
+   LOGICAL,        OPTIONAL       :: IsChemTime   ! Chemistry step? (GCHP)
 !
 ! !INPUT AND OUTPUT PARAMETERS:
 !
-    TYPE(DgnState),   INTENT(INOUT) :: State_Diag     ! Diagnostics state obj
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag   ! Diagnostics state obj
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(OUT)   :: RC
+    INTEGER,        INTENT(OUT)   :: RC
 !
 ! !REVISION HISTORY:
 !  01 Feb 2018 - E. Lundgren - initial version
@@ -339,6 +341,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    LOGICAL            :: doZeroChem
     CHARACTER(LEN=255) :: ErrMsg, thisLoc
 
     !=======================================================================
@@ -351,12 +354,19 @@ CONTAINS
     ThisLoc = &
     ' -> at Zero_Diagnostics_StartofTimestep (in GeosCore/diagnostics_mod.F90)'
 
+    ! GCHP passes its chemistry alarm; GC-Classic uses time_mod
+    IF ( PRESENT( IsChemTime ) ) THEN
+       doZeroChem = IsChemTime
+    ELSE
+       doZeroChem = Its_Time_For_Chem()
+    ENDIF
+
     !---------------------
     ! Mercury simulation
     !---------------------
     IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
-       IF ( Its_Time_For_Chem() ) THEN
+       IF ( doZeroChem ) THEN
           IF ( State_Diag%Archive_DryDepChm   .or.                           &
                State_Diag%Archive_DryDep    ) THEN
              State_Diag%DryDepChm = 0.0_f4
@@ -382,21 +392,23 @@ CONTAINS
     !---------------------
     IF ( Input_Opt%LDRYD ) THEN
 
-       ! Initialize the DryDepMix and DryDepChm diagnostic arrays for the
+       ! Initialize the DryDepFlx and DryDepChm diagnostic arrays for the
        ! History diagnostics.  This will prevent leftover values from being
        ! carried over to this timestep. (For example, if on the last
        ! iteration, the PBL height was higher than it is now, then we will
        ! have stored drydep fluxes up to that height, so we need to zero
        ! these out.)
-       IF ( Its_Time_For_Chem() )THEN
+       IF ( doZeroChem ) THEN
           IF ( State_Diag%Archive_DryDepChm   .or.                           &
                State_Diag%Archive_DryDep    ) THEN
              State_Diag%DryDepChm = 0.0_f4
           ENDIF
+          IF ( State_Diag%Archive_DryDepFlx   .or.                           &
+               State_Diag%Archive_DryDep    ) THEN
+             State_Diag%DryDepFlx = 0.0_f4
+          ENDIF
        ENDIF
-       IF ( State_Diag%Archive_DryDepMix .or. State_Diag%Archive_DryDep ) THEN
-          State_Diag%DryDepMix = 0.0_f4
-       ENDIF
+
     ENDIF
 
   END SUBROUTINE Zero_Diagnostics_StartofTimestep
