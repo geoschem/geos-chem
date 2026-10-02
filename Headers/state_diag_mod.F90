@@ -14825,7 +14825,7 @@ CONTAINS
                                          // TRIM(budgetBotLev_str) // 'TO'   &
                                          // TRIM(budgetTopLev_str) ) THEN
           IF ( isDesc    ) Desc =                                            &
-                           'Total mass rate of change in column  levels ' // &
+                           'Total mass rate of change in column levels '  // &
                             TRIM(budgetBotLev_str) // ' to '              // &
                             TRIM(budgetTopLev_str) // ' for transport'
 

@@ -388,15 +388,17 @@ CONTAINS
        ! iteration, the PBL height was higher than it is now, then we will
        ! have stored drydep fluxes up to that height, so we need to zero
        ! these out.)
-       IF ( Its_Time_For_Chem() )THEN
+       IF ( Its_Time_For_Chem() ) THEN
           IF ( State_Diag%Archive_DryDepChm   .or.                           &
                State_Diag%Archive_DryDep    ) THEN
              State_Diag%DryDepChm = 0.0_f4
           ENDIF
+          IF ( State_Diag%Archive_DryDepFlx   .or.                           &
+               State_Diag%Archive_DryDep    ) THEN
+             State_Diag%DryDepFlx = 0.0_f4
+          ENDIF
        ENDIF
-       IF ( State_Diag%Archive_DryDepFlx .or. State_Diag%Archive_DryDep ) THEN
-          State_Diag%DryDepFlx = 0.0_f4
-       ENDIF
+
     ENDIF
 
   END SUBROUTINE Zero_Diagnostics_StartofTimestep
