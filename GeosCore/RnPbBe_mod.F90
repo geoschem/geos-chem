@@ -212,9 +212,11 @@ CONTAINS
 
     ! Make sure Rn222 is a defined species
     IF ( id_Rn222 > 0 ) THEN
-       !$OMP PARALLEL DO           &
-       !$OMP DEFAULT( SHARED     ) &
-       !$OMP PRIVATE( I, J, L, S )
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( I, J, L, S                                            )&
+       !$OMP COLLAPSE( 3                                                    )&
+       !$OMP SCHEDULE( STATIC                                               )
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
@@ -250,9 +252,11 @@ CONTAINS
 
     ! Make sure Pb210 is a defined species
     IF ( id_Pb210 > 0 .or. id_Pb210s > 0 ) THEN
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I, J, L, ADD_Pb210, Pb210_LOST, Pb210s_LOST, S )
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( I, J, L, ADD_Pb210, Pb210_LOST, Pb210s_LOST, S        )&
+       !$OMP COLLAPSE( 3                                                    )&
+       !$OMP SCHEDULE( STATIC                                               )
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
@@ -330,9 +334,11 @@ CONTAINS
 
     ! Make sure Be7 is a defined species
     IF ( id_Be7 > 0 .or. id_Be7s > 0 ) THEN
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I, J, L, Be7_LOST, Be7s_LOST, S )
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( I, J, L, Be7_LOST, Be7s_LOST, S                       )&
+       !$OMP COLLAPSE( 3                                                    )&
+       !$OMP SCHEDULE( STATIC                                               )
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
@@ -387,9 +393,11 @@ CONTAINS
 
     ! Make sure Be10 is a defined species
     IF ( id_Be10 > 0 .or. id_Be10s > 0 ) THEN
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I, J, L, Be10_LOST, Be10s_LOST, S )
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( I, J, L, Be10_LOST, Be10s_LOST, S                     )&
+       !$OMP COLLAPSE( 3                                                    )&
+       !$OMP SCHEDULE( STATIC                                               )
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
