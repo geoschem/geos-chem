@@ -248,14 +248,14 @@ CONTAINS
 !
     ! Scalars
     INTEGER                 :: I, J, L, L1, L2, N, D, NN, NA, nAdvect, S
-    INTEGER                 :: DRYDEPID, previous_units
+    INTEGER                 :: DRYDEPID, previous_units, EC
     INTEGER                 :: PBL_TOP, DRYD_TOP, EMIS_TOP
     REAL(fp)                :: TS, TMP, FRQ, RKT, FRAC, FLUX, AREA_M2
     REAL(fp)                :: MWkg, DENOM
     LOGICAL                 :: FND
     LOGICAL                 :: PBL_DRYDEP, LINEAR_CHEM, ChemGridOnly
     LOGICAL                 :: LEMIS,      LDRYD
-    LOGICAL                 :: DryDepSpec, EmisSpec
+    LOGICAL                 :: DryDepSpec, EmisSpec,    error
     REAL(f8)                :: DT_Tend
 
     ! PARANOX loss fluxes (kg/m2/s). These are obtained from the
@@ -582,15 +582,20 @@ CONTAINS
        !--------------------------------------------------------------------
        IF ( .NOT. DryDepSpec .AND. .NOT. EmisSpec ) CYCLE
 
-!$OMP PARALLEL DO                                                           &
-!$OMP DEFAULT( SHARED                                                     ) &
-!$OMP PRIVATE( I,        J,            L,          L1,       L2           ) &
-!$OMP PRIVATE( PBL_TOP,  FND,          TMP                                ) &
-!$OMP PRIVATE( FRQ,      RKT,          FRAC,       FLUX,     Area_m2      ) &
-!$OMP PRIVATE( DRYD_TOP, EMIS_TOP,     PNOXLOSS,   DENOM                  ) &
-!$OMP PRIVATE( S,        ErrorMsg                                         )
+       ! Initialize the error flag for the parallel loop below
+       error = .FALSE.
 
        ! Loop over all grid boxes
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( I,        J,            L,          L1,       L2      )&
+       !$OMP PRIVATE( PBL_TOP,  FND,          TMP                           )&
+       !$OMP PRIVATE( FRQ,      RKT,          FRAC,       FLUX,     Area_m2 )&
+       !$OMP PRIVATE( DRYD_TOP, EMIS_TOP,     PNOXLOSS,   DENOM             )&
+       !$OMP PRIVATE( S,        EC                                          )&
+       !$OMP COLLAPSE( 2                                                    )&
+       !$OMP SCHEDULE( GUIDED                                               )&
+       !$OMP REDUCTION( .OR. : error                                        )
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
 
@@ -793,13 +798,9 @@ CONTAINS
 #else
 
                 IF ( N /= id_CO2 ) THEN
-                   Print*, 'WARNING: Negative concentration for species ',    &
+                   Print*, 'WARNING: Negative concentration for species ',   &
                             TRIM( SpcInfo%Name), ' at (I,J,L) = ', I, J, L
-                   ErrorMsg = 'Negative species concentations encountered.'// &
-                            ' This may be fixed by increasing the'        //  &
-                            ' background concentration or by shortening'  //  &
-                            ' the transport time step.'
-                   RC = GC_FAILURE
+                   error = .TRUE.
                 ENDIF
 #endif
              ENDIF
@@ -809,8 +810,13 @@ CONTAINS
        ENDDO !I
 !$OMP END PARALLEL DO
 
-       ! Exit with error condition
-       IF ( RC /= GC_SUCCESS ) THEN
+       ! Exit with error condition if any thread found a negative
+       ! concentration.  This is the thread-safe implementation.
+       IF ( error ) THEN
+          ErrorMsg = 'Negative species concentations encountered.'        // &
+                     ' This may be fixed by increasing the'               // &
+                     ' background concentration or by shortening'         // &
+                     ' the transport time step.'
           CALL GC_Error( ErrorMsg, RC, ThisLoc )
           RETURN
        ENDIF

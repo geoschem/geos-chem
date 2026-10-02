@@ -2311,7 +2311,6 @@ CONTAINS
 ! Local arrays:
   real pe2(im,km+1)
 
-  real temp
   integer i, j, k, iq
   integer ixj, jp, it, i1, i2
   integer kord
@@ -2350,7 +2349,6 @@ CONTAINS
         pe2(i,km+1) = ps(i,j)
      enddo
 
-     temp = sum(q)
      do iq=1,nq
         call map1_ppm ( km,   pe(1,1,j),   q(1,jfirst-ng,1,iq),   &
                         km,   pe2,         q(1,jfirst-ng,1,iq),   &
