@@ -2071,7 +2071,7 @@ CONTAINS
        !$OMP PRIVATE( I, J, L, RAER, REFF                                   )&
        !$OMP PRIVATE( SADSTRAT, XSASTRAT                                    )&
        !$OMP COLLAPSE( 3                                                    )&
-       !$OMP SCHEDULE( DYNAMIC, 8 )
+       !$OMP SCHEDULE( DYNAMIC, 8                                           )
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX

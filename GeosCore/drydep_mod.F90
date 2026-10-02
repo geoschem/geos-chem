@@ -427,9 +427,11 @@ CONTAINS
     !=================================================================
     ! Compute dry deposition frequencies; archive diagnostics
     !=================================================================
-    !$OMP PARALLEL DO                                           &
-    !$OMP DEFAULT( SHARED                                     ) &
-    !$OMP PRIVATE( I, J, THIK, D, N, NDVZ, DVZ, SpcInfo )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I, J, THIK, D, N, NDVZ, DVZ, SpcInfo                     )&
+    !$OMP COLLAPSE( 2                                                       )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -867,7 +869,8 @@ CONTAINS
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
     !$OMP PRIVATE( I, J, THIK, SP, SFCWINDSQR                               )&
-    !$OMP COLLAPSE( 2                                                       )
+    !$OMP COLLAPSE( 2                                                       )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -1303,7 +1306,8 @@ CONTAINS
     !$OMP PRIVATE( BIN                                                      )&
 #endif
     !$OMP PRIVATE( SpcId,   SpcInfo,    F0_K                                )&
-    !$OMP COLLAPSE( 2                                                       )
+    !$OMP COLLAPSE( 2                                                       )&
+    !$OMP SCHEDULE( GUIDED                                                  )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -2374,7 +2378,8 @@ CONTAINS
        !$OMP PARALLEL DO                                                     &
        !$OMP DEFAULT( SHARED                                                )&
        !$OMP PRIVATE( K,       SpcId,    J,     I,   Hplus, tAq             )&
-       !$OMP PRIVATE( inv_tAq, t298_tAq, coeff, ks1, ks2                    )
+       !$OMP PRIVATE( inv_tAq, t298_tAq, coeff, ks1, ks2                    )&
+       !$OMP SCHEDULE( STATIC                                               )
        DO K = 1, NUMDEP
 
           ! Get the modelId from the drydep Id

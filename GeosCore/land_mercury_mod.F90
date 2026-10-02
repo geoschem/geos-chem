@@ -108,7 +108,8 @@ CONTAINS
     !$OMP DEFAULT( SHARED                                                   )&
     !$OMP PRIVATE( I,                J,                  REEMFRAC           )&
     !$OMP PRIVATE( FRAC_SNOW_OR_ICE, FRAC_SNOWFREE_LAND, IS_LAND_OR_ICE     )&
-    !$OMP COLLAPSE( 2                                                       )
+    !$OMP COLLAPSE( 2                                                       )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO J  = 1, State_Grid%NY
     DO I  = 1, State_Grid%NX
 
@@ -555,7 +556,8 @@ CONTAINS
     !$OMP PRIVATE( I,          J,    SOIL_EMIS, LDT                         )&
     !$OMP PRIVATE( DRYSOIL_HG, TAUZ, LIGHTFRAC, AREA_M2, SUNCOSVALUE        )&
     !$OMP PRIVATE( IS_SNOWFREE_LAND, FRAC_SNOWFREE_LAND                     )&
-    !$OMP COLLAPSE( 2                                                       )
+    !$OMP COLLAPSE( 2                                                       )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO J=1, State_Grid%NY
     DO I=1, State_Grid%NX
 
@@ -726,7 +728,8 @@ CONTAINS
     !$OMP DEFAULT( SHARED                                                   )&
     !$OMP PRIVATE( I,     J,              SNOW_HG_OC_NEW, K_EMIT            )& 
     !$OMP PRIVATE( SWRAD, SNOW_HG_LN_NEW, FLUX_TMP                          )&
-    !$OMP COLLAPSE( 2                                                       )
+    !$OMP COLLAPSE( 2                                                       )&
+    !$OMP SCHEDULE( DYNAMIC, 8                                              )
     DO J  = 1, State_Grid%NY
     DO I  = 1, State_Grid%NX
 
