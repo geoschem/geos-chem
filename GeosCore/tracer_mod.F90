@@ -310,7 +310,8 @@ CONTAINS
           !$OMP PARALLEL DO                                                  &
           !$OMP DEFAULT( SHARED                                             )&
           !$OMP PRIVATE( I, J, L                                            )&
-          !$OMP COLLAPSE( 3                                                 )
+          !$OMP COLLAPSE( 3                                                 )&
+          !$OMP SCHEDULE( STATIC                                            )
           DO L = 1, State_Grid%NZ
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
@@ -322,6 +323,7 @@ CONTAINS
           ENDDO
           ENDDO
           ENDDO
+          !$OMP END PARALLEL DO
 
        ELSE IF ( TRIM(SpcInfo%Src_Vert) == 'stratosphere' ) THEN
 

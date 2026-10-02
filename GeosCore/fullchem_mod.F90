@@ -618,11 +618,14 @@ CONTAINS
     !$OMP PRIVATE( SO4_FRAC, IERR,     RCNTRL,     ISTATUS,   RSTATE        )&
     !$OMP PRIVATE( SpcID,    KppID,    F,          P,         Vloc          )&
     !$OMP PRIVATE( Aout,     Thread,   EC,         S,         LCH4          )&
-    !$OMP PRIVATE( errMsg                                                  )&
+    !$OMP PRIVATE( errMsg                                                   )&
     !$OMP PRIVATE( OHreact,  PCO_TOT,  PCO_CH4,    PCO_NMVOC, SR            )&
     !$OMP PRIVATE( SIZE_RES, LWC,      TimeStart,  TimeEnd                  )&
 #ifdef MODEL_GEOS
     !$OMP PRIVATE( NOxTau,   NOxConc,  NOx_weight, NOx_tau_weighted         )&
+#endif
+#ifdef MODEL_CESM
+    !$OMP PRIVATE( ScaleCESMLossRate                                        )&
 #endif
     !$OMP COLLAPSE( 3                                                       )&
     !$OMP SCHEDULE( DYNAMIC, 24                                             )&

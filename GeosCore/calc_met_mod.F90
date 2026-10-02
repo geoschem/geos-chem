@@ -699,8 +699,8 @@ CONTAINS
        !$OMP SCHEDULE( STATIC                                               )
        DO N = 1, State_Chm%nSpecies
 
-          ! Tell OpenMP to vectorize this loop
-          !$OMP SIMD
+          ! Vectorize these loops
+          !$OMP SIMD COLLAPSE( 3 )
           DO L = 1, State_Grid%NZ
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
