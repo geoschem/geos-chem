@@ -276,10 +276,11 @@ CONTAINS
     IF ( PRESENT(update_mixing_ratio) ) UpdtMR = update_mixing_ratio
 
     ! Pre-compute local solar time = UTC + Lon/15
-    !$OMP PARALLEL DO                                                       &
-    !$OMP DEFAULT( SHARED                                                  )&
-    !$OMP PRIVATE( I, J, FRLAND_NOSNOW_NOICE, FRWATER, FRICE, FRSNOW       )&
-    !$OMP COLLAPSE( 2                                                      )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I, J, FRLAND_NOSNOW_NOICE, FRWATER, FRICE, FRSNOW        )&
+    !$OMP COLLAPSE( 2                                                       )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -336,7 +337,8 @@ CONTAINS
     !$OMP PRIVATE( I,       J,         L,       Pedge_Top                   )&
     !$OMP PRIVATE( EsatA,   EsatB,     EsatC,   EsatD                       )&
     !$OMP PRIVATE( Esat,    SPHU_kgkg, XH2O,    ADmoist                     )&
-    !$OMP COLLAPSE( 3                                                       )
+    !$OMP COLLAPSE( 3                                                       )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
@@ -600,7 +602,8 @@ CONTAINS
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
     !$OMP PRIVATE( I, J, L_CG, L_TP, H, Pb, Pt, FRAC                        )&
-    !$OMP COLLAPSE( 2                                                       )
+    !$OMP COLLAPSE( 2                                                       )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -692,7 +695,8 @@ CONTAINS
 
        !$OMP PARALLEL DO                                                     &
        !$OMP DEFAULT( SHARED                                                )&
-       !$OMP PRIVATE( I, J, L, N                                            )
+       !$OMP PRIVATE( I, J, L, N                                            )&
+       !$OMP SCHEDULE( STATIC                                               )
        DO N = 1, State_Chm%nSpecies
 
           ! Tell OpenMP to vectorize this loop
@@ -789,9 +793,11 @@ CONTAINS
        TC2 = TC2 - 1.0e+0_fp
     ENDIF
 
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I, J, L, YSOUTH, YNORTH )
+    !$OMP PARALLEL DO                                                       &
+    !$OMP DEFAULT( SHARED                                                  )&
+    !$OMP PRIVATE( I, J, L, YSOUTH, YNORTH                                 )&
+    !$OMP COLLAPSE( 3                                                      )&
+    !$OMP SCHEDULE( STATIC                                                 )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
@@ -1025,9 +1031,11 @@ CONTAINS
 
     ! Calculate dry surface pressure from GMAO wet pressure as the
     ! column sum of wet delta pressures with humidity removed
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I, J, L, PEDGE_BOT, PEDGE_TOP )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I, J, L, PEDGE_BOT, PEDGE_TOP                            )&
+    !$OMP COLLAPSE( 2                                                       )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
     DO L = 1, State_Grid%NZ
@@ -1041,9 +1049,11 @@ CONTAINS
     !$OMP END PARALLEL DO
 
     ! If dry pressure is negative, set equal to moist pressure
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I, J )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I, J                                                     )&
+    !$OMP COLLAPSE( 2                                                       )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
        IF ( PS_DRY(I,J) < 0.e+0_fp) THEN
@@ -1342,10 +1352,12 @@ CONTAINS
     !=================================================================
     ! Compute cosine of solar zenith angle
     !=================================================================
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I,      J,   YMID_R, S_YMID_R,  C_YMID_R ) &
-    !$OMP PRIVATE( TIMLOC, AHR, SUNCOS, SUNCOS_MID          )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I,      J,   YMID_R, S_YMID_R,  C_YMID_R                 )&
+    !$OMP PRIVATE( TIMLOC, AHR, SUNCOS, SUNCOS_MID                          )&
+    !$OMP COLLAPSE( 2                                                       )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -1602,9 +1614,11 @@ CONTAINS
        FIRST = .FALSE.
     ENDIF
 
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I, J, L )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I, J, L                                                  )&
+    !$OMP COLLAPSE( 3                                                       )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO L=1,State_Grid%NZ
     DO J=1,State_Grid%NY
     DO I=1,State_Grid%NX

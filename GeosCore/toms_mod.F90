@@ -247,9 +247,11 @@ CONTAINS
        ! climatology with the TOMS/SBUV O3 columns (where data exists)
        !---------------------------------------------------------------
        ! Interpolate O3 to current day (w/in 2nd half of month)
-       !$OMP PARALLEL DO     &
-       !$OMP PRIVATE( I, J ) &
-       !$OMP DEFAULT( SHARED )
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( I, J                                                  )&
+       !$OMP COLLAPSE( 2                                                    )&
+       !$OMP SCHEDULE( STATIC                                               )
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
           State_Chm%TO3_DAILY(I,J) = State_Chm%TOMS1(I,J) + (DAY - 1) * &

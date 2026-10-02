@@ -1903,9 +1903,11 @@ CONTAINS
           SUNTMP = 0e+0_fp
 
           ! Loop over surface grid boxes
-          !$OMP PARALLEL DO       &
-          !$OMP DEFAULT( SHARED ) &
-          !$OMP PRIVATE( I, J, YMID_R, TIMLOC, AHR )
+          !$OMP PARALLEL DO                                                  &
+          !$OMP DEFAULT( SHARED                                             )&
+          !$OMP PRIVATE( I, J, YMID_R, TIMLOC, AHR                          )&
+          !$OMP COLLAPSE( 2                                                 )&
+          !$OMP SCHEDULE( STATIC                                            )
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
 
