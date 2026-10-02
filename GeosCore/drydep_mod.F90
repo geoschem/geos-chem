@@ -2761,7 +2761,7 @@ CONTAINS
 
                 ! Convert to [molec/cm2/s]
                 denom      = ( mw_kg * drydep_dt * 1.0e+4_fp ) / AVO
-                flux_mcm2s = Safe_Div( flux_kgm2s, denom, 0.0_fp )
+                flux_mcm2s = Safe_Div( flux_kgm2, denom, 0.0_fp )
 
                 ! Add drydep flux [molec/cm2/s] to the soil drydep tracker
                 IF ( Input_Opt%LSOILNOX ) THEN

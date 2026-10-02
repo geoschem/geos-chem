@@ -14824,10 +14824,10 @@ CONTAINS
        ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETTRANSPORTLEVS'               &
                                          // TRIM(budgetBotLev_str) // 'TO'   &
                                          // TRIM(budgetTopLev_str) ) THEN
-          IF ( isDesc    ) THEN 
-             Desc  = 'Total mass rate of change in column  levels '       // &
-                      TRIM(budgetBotLev_str) // ' to '                    // &
-                      TRIM(budgetTopLev_str) // ' for transport'
+          IF ( isDesc    ) Desc =                                            &
+                           'Total mass rate of change in column  levels ' // &
+                            TRIM(budgetBotLev_str) // ' to '              // &
+                            TRIM(budgetTopLev_str) // ' for transport'
 
        ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETDRYDEPFULL' ) THEN
           IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
