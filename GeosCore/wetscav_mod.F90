@@ -425,18 +425,19 @@ CONTAINS
     ! Initialize
     RC = GC_SUCCESS
 
-    !$OMP PARALLEL DO        &
-    !$OMP DEFAULT( SHARED  ) &
-    !$OMP PRIVATE( I, J, L ) &
-    !$OMP COLLAPSE( 3      )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I, J, L                                                  )&
+    !$OMP COLLAPSE( 3                                                       )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
        ! Rate of new precipitation formation in grid box (I,J,L)
        ! [cm3 H2O/cm3 air/s]
-       State_Met%QQ(L,I,J) = ( State_Met%DQRLSAN(I,J,L)                 ) &
-                           * ( State_Met%MAIRDEN(I,J,L)     / 1000.0_fp )
+       State_Met%QQ(L,I,J) = ( State_Met%DQRLSAN(I,J,L)                    ) &
+                           * ( State_Met%MAIRDEN(I,J,L)     / 1000.0_fp    )
 #ifdef LUO_WETDEP
        ! Luo et al scheme: save QQ to State_Chm for further use
        State_Chm%QQ3D(I,J,L) = MAX(0.0_fp,State_Met%QQ(L,I,J))
@@ -444,8 +445,8 @@ CONTAINS
 
        ! Rate of re-evaporation in grid box (I,J,L)
        ! [cm3 H2O/cm3 air/s]
-       State_Met%REEVAP(L,I,J) = ( State_Met%REEVAPLS(I,J,L)                ) &
-                               * ( State_Met%AIRDEN(I,J,L)      / 1000.0_fp )
+       State_Met%REEVAP(L,I,J) = ( State_Met%REEVAPLS(I,J,L)               ) &
+                               * ( State_Met%AIRDEN(I,J,L)   / 1000.0_fp   )
 
        ! Column precipitation [cm3 H2O/cm2 air/s]
 #ifdef LUO_WETDEP
@@ -6011,11 +6012,11 @@ END FUNCTION WASHFRAC_DUSTBIN
     ! Only do computation if wetdep or convection is turned on
     IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) THEN
 
-       !$OMP PARALLEL DO               &
-       !$OMP DEFAULT( SHARED          )&
-       !$OMP PRIVATE( I, J, L, TK, PL )&
-       !$OMP COLLAPSE( 3              )&
-       !$OMP SCHEDULE( DYNAMIC, 24    )
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( I, J, L, TK, PL                                       )&
+       !$OMP COLLAPSE( 3                                                    )&
+       !$OMP SCHEDULE( DYNAMIC, 24                                          )
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX

@@ -221,25 +221,27 @@ CONTAINS
        BR_MERGE  = BR_TROP
        BRO_MERGE = BRO_TROP
 
-       !$OMP PARALLEL DO        &
-       !$OMP DEFAULT( SHARED )  &
-       !$OMP PRIVATE( I, J, TPL )
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( I, J, TPL                                             )&
+       !$OMP COLLAPSE( 2                                                    )&
+       !$OMP SCHEDULE( DYNAMIC, 8                                           )
        DO J=1, State_Grid%NY
        DO I=1, State_Grid%NX
 
           ! First layer in the stratosphere
           TPL = State_Met%TropLev(I,J)
 
-          BR_MERGE(I,J,TPL:State_Grid%NZ) = MERGE(      &
-               BR_STRAT(I,J,TPL:State_Grid%NZ),         &
-               BR_TROP(I,J,TPL:State_Grid%NZ),          &
-               MASK = BR_STRAT(I,J,TPL:State_Grid%NZ) > &
+          BR_MERGE(I,J,TPL:State_Grid%NZ) = MERGE(                           &
+               BR_STRAT(I,J,TPL:State_Grid%NZ),                              &
+               BR_TROP(I,J,TPL:State_Grid%NZ),                               &
+               MASK = BR_STRAT(I,J,TPL:State_Grid%NZ) >                      &
                       BR_TROP(I,J,TPL:State_Grid%NZ) )
 
-          BRO_MERGE(I,J,TPL:State_Grid%NZ) = MERGE(     &
-               BRO_STRAT(I,J,TPL:State_Grid%NZ),        &
-               BRO_TROP(I,J,TPL:State_Grid%NZ),         &
-               MASK = BR_STRAT(I,J,TPL:State_Grid%NZ) > &
+          BRO_MERGE(I,J,TPL:State_Grid%NZ) = MERGE(                          &
+               BRO_STRAT(I,J,TPL:State_Grid%NZ),                             &
+               BRO_TROP(I,J,TPL:State_Grid%NZ),                              &
+               MASK = BR_STRAT(I,J,TPL:State_Grid%NZ) >                      &
                       BR_TROP(I,J,TPL:State_Grid%NZ) )
 
        ENDDO

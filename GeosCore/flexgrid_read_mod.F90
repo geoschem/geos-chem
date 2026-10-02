@@ -283,9 +283,11 @@ CONTAINS
 
     ! The import FRSNO is fraction of land with snow cover. Convert to
     ! fraction of grid box with snow cover for storage in State_Met.
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED  )&
-    !$OMP PRIVATE( I, J    )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I, J                                                     )&
+    !$OMP COLLAPSE( 2                                                       )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
        State_Met%FRSNOW(I,J) = Q(I,J) * State_Met%FRLAND(I,J)
