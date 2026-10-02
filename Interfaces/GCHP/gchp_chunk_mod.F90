@@ -892,7 +892,7 @@ CONTAINS
     ! however, the tendencies become automatically applied within the PBL
     ! mixing routines (DO_MIXING), so we should never apply the tendencies
     ! in this case.
-    DoTend = ( DoEmis .OR. DoDryDep ) .AND. .NOT. Input_Opt%LTURB
+    DoTend = DoEmis .AND. .NOT. Input_Opt%LTURB
 
     ! testing only
     IF ( NCALLS < 10 ) THEN
@@ -915,7 +915,8 @@ CONTAINS
     ! call since this can erase diagnostics filled during phase 1 (e.g., drydep)
     ! (ckeller, 1/21/2022).
     IF ( Phase /= 2 ) THEN
-       CALL Zero_Diagnostics_StartOfTimestep( Input_Opt, State_Diag, RC )
+       CALL Zero_Diagnostics_StartOfTimestep( Input_Opt, State_Diag,         &
+                                              RC,        isChemTime         )
     ENDIF
 
     ! Pass time values obtained from the ESMF environment to GEOS-Chem

@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Renamed `State_Diag%DryDepMix` to `State_Diag%DryDepFlx` to denote that this field is no longer updated in mixing.
 - Renamed routine `Init_NoRegister_DryDepChemMix` to `Init_NoRegister_DryDepChmFlx`
 - Dry deposition is now done after PBL mixing for both GC-Classic and GCHP
+- Pass `isChemTime` from `GCHP_Chunk_Run` to`Zero_Diagnostics_StartOfTimestep` to zero drydep diags on chem timesteps only in GCHP
 
 ### Removed
 - Removed dry deposition loss code from routine `Do_Tend` (in `GeosCore/mixing_mod.F90`)
