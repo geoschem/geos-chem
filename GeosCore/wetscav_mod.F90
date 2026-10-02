@@ -3263,16 +3263,15 @@ END FUNCTION WASHFRAC_DUSTBIN
 !
     ! SAVEd Scalars
     LOGICAL, SAVE          :: FIRST = .TRUE.
-    LOGICAL                :: printErr
 
     ! Scalars
-    LOGICAL                :: errPrint
+    LOGICAL                :: error
     LOGICAL                :: IS_Hg
     LOGICAL                :: KIN
     LOGICAL                :: IS_RAINOUT, IS_WASHOUT, IS_BOTH
     INTEGER                :: I,     IDX,    J,         L
     INTEGER                :: N,     NW,     Hg_Cat,    EC
-    INTEGER                :: previous_units
+    INTEGER                :: errorStatus,   previous_units
     REAL(fp)               :: Q,     QDOWN,  DT,        DT_OVER_TAU
     REAL(fp)               :: K,     K_MIN,  K_RAIN,    RAINFRAC
     REAL(fp)               :: F,     FTOP,   F_PRIME,   WASHFRAC
@@ -3301,7 +3300,6 @@ END FUNCTION WASHFRAC_DUSTBIN
 
     ! Initialize
     RC        = GC_SUCCESS
-    errPrint  = .TRUE.
     errorMsg  = ''
     ThisLoc   = ' -> at WetDep (in module GeosCore/wetscav_mod.F90)'
 
@@ -3381,22 +3379,28 @@ END FUNCTION WASHFRAC_DUSTBIN
     !=================================================================
     ! (2)  L o o p   O v e r   (I, J)   S u r f a c e   B o x e s
     !=================================================================
-    !$OMP PARALLEL DO                                                 &
-    !$OMP DEFAULT( SHARED                                           ) &
-    !$OMP PRIVATE( I,           J,          FTOP,        L          ) &
-    !$OMP PRIVATE( NW,          ErrorMsg,   F,           F_PRIME    ) &
-    !$OMP PRIVATE( F_RAINOUT,   F_WASHOUT,  K_RAIN,      Q          ) &
-    !$OMP PRIVATE( QDOWN,       IS_RAINOUT, IS_WASHOUT,  N          ) &
-    !$OMP PRIVATE( DEP_HG,      SpcInfo,    Hg_Cat,      EC         ) &
-    !$OMP PRIVATE( COND_WATER_CONTENT                               ) &
-    !$OMP COLLAPSE( 2                                               ) &
-    !$OMP SCHEDULE( DYNAMIC, 24                                     )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I,           J,          FTOP,        L                  )&
+    !$OMP PRIVATE( NW,          F,          F_PRIME                         )&
+    !$OMP PRIVATE( F_RAINOUT,   F_WASHOUT,  K_RAIN,      Q                  )&
+    !$OMP PRIVATE( QDOWN,       IS_RAINOUT, IS_WASHOUT,  N                  )&
+    !$OMP PRIVATE( DEP_HG,      SpcInfo,    Hg_Cat,      EC                 )&
+    !$OMP PRIVATE( COND_WATER_CONTENT                                       )&
+    !$OMP COLLAPSE( 2                                                       )&
+    !$OMP SCHEDULE( DYNAMIC, 24                                             )&
+    !$OMP REDUCTION( .OR. : error                                           )&
+    !$OMP REDUCTION( MAX  : errorStatus                                     )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
+       ! Skip to the end of the loop if any of the threads returned
+       ! with error.  Then exit this routine with failure status
+       ! outside of the parallel loop, as this is thread-safe.
+       IF ( error ) CYCLE
+
        ! Initialize PRIVATE error-handling variables
-       EC        = GC_SUCCESS
-       ErrorMsg  = ''
+       EC = GC_SUCCESS
 
        ! Don't do wetdep in nested-grid buffer zone (lzh, 4/1/15)
        IF ( State_Grid%NestedGrid ) THEN
@@ -3498,16 +3502,13 @@ END FUNCTION WASHFRAC_DUSTBIN
                                    State_Diag = State_Diag,                  &
                                    State_Grid = State_Grid,                  &
                                    State_Met  = State_Met,                   &
-                                   errPrint   = errPrint,                    &
                                    RC         = EC                          )
 
              ! Trap potential errors
              IF ( EC /= GC_SUCCESS ) THEN
-                IF( errPrint ) THEN
-                   ErrorMsg = 'Error encountered in "Do_Rainout_Only (3)"!'
-                ENDIF
-                RC       = EC
-                errPrint = .FALSE.
+                error       = .TRUE.
+                errorStatus = 1
+                CYCLE                ! Go to next box
              ENDIF
           ENDIF
 
@@ -3666,18 +3667,14 @@ END FUNCTION WASHFRAC_DUSTBIN
                                    State_Diag = State_Diag,                  &
                                    State_Grid = State_Grid,                  &
                                    State_Met  = State_Met,                   &
-                                   errPrint   = errPrint,                    &
                                    RC         = EC                          )
 
              ! Trap potential errors
              IF ( EC /= GC_SUCCESS ) THEN
-                IF ( errPrint ) THEN
-                   ErrorMsg = 'Error encountered in "Do_Rainout_Only (4)!'
-                ENDIF
-                RC       = EC
-                errPrint = .FALSE.
+                error       = .TRUE.
+                errorStatus = 2
+                EXIT                 ! Break out of the L loop
              ENDIF
-
           ENDIF
 
 #ifdef LUO_WETDEP
@@ -3693,34 +3690,31 @@ END FUNCTION WASHFRAC_DUSTBIN
              !--------------------------------------------------------
 
              ! Do the washout
-             CALL DO_WASHOUT_ONLY( LS         = LS,              &
-                                   I          = I,               &
-                                   J          = J,               &
-                                   L          = L,               &
-                                   IDX        = IDX,             &
-                                   ERRMSG     = 'WASHOUT',       &
-                                   QDOWN      = QDOWN,           &
-                                   Q          = Q,               &
-                                   F_WASHOUT  = F_WASHOUT,       &
-                                   F_RAINOUT  = F_RAINOUT,       &
-                                   DT         = DT,              &
-                                   PDOWN      = State_Met%PDOWN, &
-                                   DSpc       = DSpc,            &
-                                   Input_Opt  = Input_Opt,       &
-                                   State_Chm  = State_Chm,       &
-                                   State_Diag = State_Diag,      &
-                                   State_Grid = State_Grid,      &
-                                   State_Met  = State_Met,       &
-                                   errPrint   = errPrint,        &
-                                   RC         = EC )
+             CALL DO_WASHOUT_ONLY( LS         = LS,                          &
+                                   I          = I,                           &
+                                   J          = J,                           &
+                                   L          = L,                           &
+                                   IDX        = IDX,                         &
+                                   ERRMSG     = 'WASHOUT',                   &
+                                   QDOWN      = QDOWN,                       &
+                                   Q          = Q,                           &
+                                   F_WASHOUT  = F_WASHOUT,                   &
+                                   F_RAINOUT  = F_RAINOUT,                   &
+                                   DT         = DT,                          &
+                                   PDOWN      = State_Met%PDOWN,             &
+                                   DSpc       = DSpc,                        &
+                                   Input_Opt  = Input_Opt,                   &
+                                   State_Chm  = State_Chm,                   &
+                                   State_Diag = State_Diag,                  &
+                                   State_Grid = State_Grid,                  &
+                                   State_Met  = State_Met,                   &
+                                   RC         = EC                          )
 
              ! Trap potential errors
              IF ( EC /= GC_SUCCESS ) THEN
-                IF ( errPrint ) THEN
-                   ErrorMsg = 'Error encountered in "Do_Washout_Only (4)!'
-                ENDIF
-                RC       = EC
-                errPrint = .FALSE.
+                error       = .TRUE.
+                errorStatus = 3
+                EXIT                 ! Break out of the L loop
              ENDIF
           ENDIF
 
@@ -3759,16 +3753,13 @@ END FUNCTION WASHFRAC_DUSTBIN
                                       State_Diag = State_Diag,               &
                                       State_Grid = State_Grid,               &
                                       State_Met  = State_Met,                &
-                                      errPrint   = errPrint,                 &
                                       RC         = EC                       )
 
              ! Trap potential errors
              IF ( EC /= GC_SUCCESS ) THEN
-                IF ( errPrint ) THEN
-                   ErrorMsg = 'Error encountered in "Do_Complete_Reevap" (6)!'
-                ENDIF
-                RC       = EC
-                errPrint = .FALSE.
+                error       = .TRUE.
+                errorStatus = 4
+                EXIT                 ! Break out of the L loop
              ENDIF
           ENDIF
 
@@ -3776,6 +3767,9 @@ END FUNCTION WASHFRAC_DUSTBIN
           FTOP = F_RAINOUT + F_WASHOUT
 
        ENDDO
+
+       ! Skip the rest of this column if a routine above returned an error
+       IF ( error ) CYCLE
 
        !==============================================================
        ! (7)  W a s h o u t   i n   L e v e l   1
@@ -3823,16 +3817,13 @@ END FUNCTION WASHFRAC_DUSTBIN
                                      State_Diag = State_Diag,                &
                                      State_Grid = State_Grid,                &
                                      State_Met  = State_Met,                 &
-                                     errPrint   = errPrint,                  &
                                      RC         = EC                        )
 
              ! Trap potential errors
              IF ( EC /= GC_SUCCESS ) THEN
-                IF ( errPrint ) THEN
-                   ErrorMsg = 'Error encountered in "Do_Washout_at_Sfc (7)!'
-                ENDIF
-                RC       = EC
-                errPrint = .FALSE.
+                error       = .TRUE.
+                errorStatus = 5
+                CYCLE                ! Go to next grid box
              ENDIF
           ENDIF
        ENDIF
@@ -3893,8 +3884,23 @@ END FUNCTION WASHFRAC_DUSTBIN
     ENDDO
     !$OMP END PARALLEL DO
 
-    ! Exit with error condition
-    IF ( RC /= GC_SUCCESS ) THEN
+    !========================================================================
+    ! Exit with an error if any of the threads in the loop above had a
+    ! routine that exited abnormally.  This is thread-safe.
+    !========================================================================
+    IF ( error ) THEN
+       SELECT CASE( errorStatus )
+          CASE( 1 )
+             ErrorMsg = 'Error encountered in "Do_Rainout_Only (3)"!'
+          CASE( 2 )
+             ErrorMsg = 'Error encountered in "Do_Rainout_Only (4)"!'
+          CASE( 3 )
+             ErrorMsg = 'Error encountered in "Do_Washout_Only (4)"!'
+          CASE( 4 )
+             ErrorMsg = 'Error encountered in "Do_Complete_Reevap (6)"!'
+          CASE( 5 )
+             ErrorMsg = 'Error encountered in "Do_Washout_at_Sfc (7)"!'
+       END SELECT
        CALL GC_Error( ErrorMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -4100,7 +4106,7 @@ END FUNCTION WASHFRAC_DUSTBIN
                                ERRMSG,     F_RAINOUT,  K_RAIN,               &
                                DT,         DSpc,       Input_Opt,            &
                                State_Chm,  State_Diag, State_Grid,           &
-                               State_Met,  errPrint,   RC                   )
+                               State_Met,  RC                               )
 !
 ! !USES:
 !
@@ -4132,7 +4138,6 @@ END FUNCTION WASHFRAC_DUSTBIN
     TYPE(OptInput),   INTENT(IN)    :: Input_Opt     ! Input options
     TYPE(GrdState),   INTENT(IN)    :: State_Grid    ! Grid State object
     TYPE(MetState),   INTENT(IN)    :: State_Met     ! Met State object
-    LOGICAL,          INTENT(IN)    :: errPrint      ! Print error messages?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -4227,10 +4232,8 @@ END FUNCTION WASHFRAC_DUSTBIN
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
-          IF ( errPrint ) THEN
-             ErrorMsg = 'Error encountered in "Rainout"!'
-             CALL GC_Error( ErrorMsg, RC, ThisLoc )
-          ENDIF
+          ErrorMsg = 'Error encountered in "Rainout"!'
+          CALL GC_Error( ErrorMsg, RC, ThisLoc )
           Spc => NULL()
           RETURN
        ENDIF
@@ -4341,37 +4344,33 @@ END FUNCTION WASHFRAC_DUSTBIN
        !---------------------------------------------------------------------
        ! Error checks (only prints if this is the first error)
        !---------------------------------------------------------------------
-       IF ( IT_IS_NAN( Spc(N)%Conc(I,J,L) )  .or.                                  &
-            Spc(N)%Conc(I,J,L) < 0e+0_fp     .or.                                  &
+       IF ( IT_IS_NAN( Spc(N)%Conc(I,J,L) )  .or.                            &
+            Spc(N)%Conc(I,J,L) < 0e+0_fp     .or.                            &
             DSpc(NW,L,I,J) < 0e+0_fp ) THEN
 
           ! Print error message
-          IF ( errPrint ) THEN
-             CALL SAFETY( I, J, L, N, ERRMSG,                     &
-                          LS          = LS,                       &
-                          PDOWN       = State_Met%PDOWN(L,I,J),   &
-                          QQ          = State_Met%QQ(L,I,J),      &
-                          ALPHA       = 0e+0_fp,                  &
-                          ALPHA2      = 0e+0_fp,                  &
-                          RAINFRAC    = RAINFRAC,                 &
-                          WASHFRAC    = 0e+0_fp,                  &
-                          MASS_WASH   = 0e+0_fp,                  &
-                          MASS_NOWASH = 0e+0_fp,                  &
-                          WETLOSS     = WETLOSS,                  &
-                          GAINED      = 0e+0_fp,                  &
-                          LOST        = 0e+0_fp,                  &
-                          State_Grid  = State_Grid,               &
-                          DSpc        = DSpc(NW,:,I,J),           &
-                          Spc         = Spc(N)%Conc(I,J,:),       &
-                          RC          = RC )
-          ENDIF
+          CALL SAFETY( I, J, L, N, ERRMSG,                                   &
+                       LS          = LS,                                     &
+                       PDOWN       = State_Met%PDOWN(L,I,J),                 &
+                       QQ          = State_Met%QQ(L,I,J),                    &
+                       ALPHA       = 0e+0_fp,                                &
+                       ALPHA2      = 0e+0_fp,                                &
+                       RAINFRAC    = RAINFRAC,                               &
+                       WASHFRAC    = 0e+0_fp,                                &
+                       MASS_WASH   = 0e+0_fp,                                &
+                       MASS_NOWASH = 0e+0_fp,                                &
+                       WETLOSS     = WETLOSS,                                &
+                       GAINED      = 0e+0_fp,                                &
+                       LOST        = 0e+0_fp,                                &
+                       State_Grid  = State_Grid,                             &
+                       DSpc        = DSpc(NW,:,I,J),                         &
+                       Spc         = Spc(N)%Conc(I,J,:),                     &
+                       RC          = RC                                     )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
-             IF ( errPrint ) THEN
-                ErrorMsg = 'Error encountered in "Safety"!'
-                CALL GC_Error( ErrorMsg, RC, ThisLoc )
-             ENDIF
+             ErrorMsg = 'Error encountered in "Safety"!'
+             CALL GC_Error( ErrorMsg, RC, ThisLoc )
              Spc => NULL()
              RETURN
           ENDIF
@@ -4399,8 +4398,7 @@ END FUNCTION WASHFRAC_DUSTBIN
                               IDX,        ERRMSG,    QDOWN,     Q,           &
                               F_WASHOUT,  F_RAINOUT, DT,        PDOWN,       &
                               DSpc,       Input_Opt, State_Chm, State_Diag,  &
-                              State_Grid, State_Met, errPrint,  RC,          &
-                              REEVAP                                        )
+                              State_Grid, State_Met, RC,        REEVAP      )
 !
 ! !USES:
 !
@@ -4441,7 +4439,6 @@ END FUNCTION WASHFRAC_DUSTBIN
     TYPE(OptInput),   INTENT(IN)    :: Input_Opt     ! Input options
     TYPE(GrdState),   INTENT(IN)    :: State_Grid    ! Grid State object
     TYPE(MetState),   INTENT(IN)    :: State_Met     ! Met State object
-    LOGICAL,          INTENT(IN)    :: errPrint      ! Print error messages
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -4633,10 +4630,8 @@ END FUNCTION WASHFRAC_DUSTBIN
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
-          IF ( errPrint ) THEN
-             ErrorMsg = 'Error encountered in "Washout"!'
-             CALL GC_Error( ErrorMsg, RC, ThisLoc )
-          ENDIF
+          ErrorMsg = 'Error encountered in "Washout"!'
+          CALL GC_Error( ErrorMsg, RC, ThisLoc )
           RETURN
        ENDIF
 
@@ -4910,32 +4905,28 @@ END FUNCTION WASHFRAC_DUSTBIN
             DSpc(NW,L,I,J) < 0e+0_fp      ) THEN
 
           ! Print error message and stop simulaton
-          IF ( errPrint ) THEN
-             CALL SAFETY( I, J, L, N, ERRMSG,                     &
-                          LS          = LS,                       &
-                          PDOWN       = State_Met%PDOWN(L+1,I,J), &
-                          QQ          = State_Met%QQ(L,I,J),      &
-                          ALPHA       = ALPHA,                    &
-                          ALPHA2      = ALPHA2,                   &
-                          RAINFRAC    = 0e+0_fp,                  &
-                          WASHFRAC    = WASHFRAC,                 &
-                          MASS_WASH   = MASS_WASH,                &
-                          MASS_NOWASH = MASS_NOWASH,              &
-                          WETLOSS     = WETLOSS,                  &
-                          GAINED      = GAINED,                   &
-                          LOST        = LOST,                     &
-                          State_Grid  = State_Grid,               &
-                          DSpc        = DSpc(NW,:,I,J),           &
-                          Spc         = Spc(N)%Conc(I,J,:),       &
-                          RC          = RC )
-          ENDIF
+          CALL SAFETY( I, J, L, N, ERRMSG,                                   &
+                       LS          = LS,                                     &
+                       PDOWN       = State_Met%PDOWN(L+1,I,J),               &
+                       QQ          = State_Met%QQ(L,I,J),                    &
+                       ALPHA       = ALPHA,                                  &
+                       ALPHA2      = ALPHA2,                                 &
+                       RAINFRAC    = 0e+0_fp,                                &
+                       WASHFRAC    = WASHFRAC,                               &
+                       MASS_WASH   = MASS_WASH,                              &
+                       MASS_NOWASH = MASS_NOWASH,                            &
+                       WETLOSS     = WETLOSS,                                &
+                       GAINED      = GAINED,                                 &
+                       LOST        = LOST,                                   &
+                       State_Grid  = State_Grid,                             &
+                       DSpc        = DSpc(NW,:,I,J),                         &
+                       Spc         = Spc(N)%Conc(I,J,:),                     &
+                       RC          = RC                                     )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
-             IF ( errPrint ) THEN
-                ErrorMsg = 'Error encountered in "Safety"!'
-                CALL GC_Error( ErrorMsg, RC, ThisLoc )
-             ENDIF
+             ErrorMsg = 'Error encountered in "Safety"!'
+             CALL GC_Error( ErrorMsg, RC, ThisLoc )
              Spc => NULL()
              RETURN
           ENDIF
@@ -4960,11 +4951,11 @@ END FUNCTION WASHFRAC_DUSTBIN
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_COMPLETE_REEVAP( LS,         I,         J,                   &
-                                 L,          IDX,       ERRMSG,              &
-                                 DT,         DSpc,      errPrint,            &
-                                 Input_Opt,  State_Chm, State_Diag,          &
-                                 State_Grid, State_Met, RC                  )
+  SUBROUTINE DO_COMPLETE_REEVAP( LS,        I,          J,                    &
+                                 L,         IDX,        ERRMSG,               &
+                                 DT,        DSpc,       Input_Opt,            &
+                                 State_Chm, State_Diag, State_Grid,           &
+                                 State_Met, RC                               )
 !
 ! !USES:
 !
@@ -4991,7 +4982,6 @@ END FUNCTION WASHFRAC_DUSTBIN
     INTEGER,          INTENT(IN)    :: IDX           ! ND38 index
     CHARACTER(LEN=*), INTENT(IN)    :: ERRMSG        ! Error message
     REAL(fp),         INTENT(IN)    :: DT            ! Rainout timestep [s]
-    LOGICAL,          INTENT(IN)    :: errPrint      ! Print error messages
     TYPE(OptInput),   INTENT(IN)    :: Input_Opt     ! Input options
     TYPE(GrdState),   INTENT(IN)    :: State_Grid    ! Grid State object
     TYPE(MetState),   INTENT(IN)    :: State_Met     ! Met State object
@@ -5179,36 +5169,32 @@ END FUNCTION WASHFRAC_DUSTBIN
        !--------------------------------------------------------------------
        ! Error checks
        !--------------------------------------------------------------------
-       IF ( IT_IS_NAN( Spc(N)%Conc(I,J,L) ) .or.                           &
-            Spc(N)%Conc(I,J,L)   < 0e+0_fp  .or.                           &
+       IF ( IT_IS_NAN( Spc(N)%Conc(I,J,L) ) .or.                             &
+            Spc(N)%Conc(I,J,L)   < 0e+0_fp  .or.                             &
             DSpc(NW,L,I,J) < 0e+0_fp  ) THEN
           ! Print error message and stop simulaton
-          IF ( errPrint ) THEN
-             CALL SAFETY( I, J, L, N, ERRMSG,                                &
-                          LS          = LS,                                  &
-                          PDOWN       = 0e+0_fp,                             &
-                          QQ          = 0e+0_fp,                             &
-                          ALPHA       = 0e+0_fp,                             &
-                          ALPHA2      = 0e+0_fp,                             &
-                          RAINFRAC    = 0e+0_fp,                             &
-                          WASHFRAC    = 0e+0_fp,                             &
-                          MASS_WASH   = 0e+0_fp,                             &
-                          MASS_NOWASH = 0e+0_fp,                             &
-                          WETLOSS     = WETLOSS,                             &
-                          GAINED      = 0e+0_fp,                             &
-                          LOST        = 0e+0_fp,                             &
-                          State_Grid  = State_Grid,                          &
-                          DSpc        = DSpc(NW,:,I,J),                      &
-                          Spc         = Spc(N)%Conc(I,J,:),                  &
-                          RC          = RC                                  )
-          ENDIF
+          CALL SAFETY( I, J, L, N, ERRMSG,                                   &
+                       LS          = LS,                                     &
+                       PDOWN       = 0e+0_fp,                                &
+                       QQ          = 0e+0_fp,                                &
+                       ALPHA       = 0e+0_fp,                                &
+                       ALPHA2      = 0e+0_fp,                                &
+                       RAINFRAC    = 0e+0_fp,                                &
+                       WASHFRAC    = 0e+0_fp,                                &
+                       MASS_WASH   = 0e+0_fp,                                &
+                       MASS_NOWASH = 0e+0_fp,                                &
+                       WETLOSS     = WETLOSS,                                &
+                       GAINED      = 0e+0_fp,                                &
+                       LOST        = 0e+0_fp,                                &
+                       State_Grid  = State_Grid,                             &
+                       DSpc        = DSpc(NW,:,I,J),                         &
+                       Spc         = Spc(N)%Conc(I,J,:),                     &
+                       RC          = RC                                     )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
-             IF ( errPrint ) THEN
-                ErrorMsg = 'Error encountered in "Safety"!'
-                CALL GC_Error( ErrorMsg, RC, ThisLoc )
-             ENDIF
+             ErrorMsg = 'Error encountered in "Safety"!'
+             CALL GC_Error( ErrorMsg, RC, ThisLoc )
              Spc => NULL()
              RETURN
           ENDIF
@@ -5233,12 +5219,12 @@ END FUNCTION WASHFRAC_DUSTBIN
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_WASHOUT_AT_SFC( LS,        I,          J,                    &
-                                L,         IDX,        ERRMSG,               &
-                                QDOWN,     F,          DT,                   &
-                                DSpc,      errPrint,   Input_Opt,            &
-                                State_Chm, State_Diag, State_Grid,           &
-                                State_Met, RC                               )
+  SUBROUTINE DO_WASHOUT_AT_SFC( LS,         I,          J,                   &
+                                L,          IDX,        ERRMSG,              &
+                                QDOWN,      F,          DT,                  &
+                                DSpc,       Input_Opt,  State_Chm,           &
+                                State_Diag, State_Grid, State_Met,           &
+                                RC                                          )
 !
 ! !USES:
 !
@@ -5265,7 +5251,6 @@ END FUNCTION WASHFRAC_DUSTBIN
     REAL(fp),         INTENT(IN)    :: F             ! Fraction of grid box
                                                      !  undergoing precip
     REAL(fp),         INTENT(IN)    :: DT            ! Rainout timestep [s]
-    LOGICAL,          INTENT(IN)    :: errPrint      ! Print error message?
     TYPE(OptInput),   INTENT(IN)    :: Input_Opt     ! Input options
     TYPE(GrdState),   INTENT(IN)    :: State_Grid    ! Grid State object
     TYPE(MetState),   INTENT(IN)    :: State_Met     ! Met State object
@@ -5381,10 +5366,8 @@ END FUNCTION WASHFRAC_DUSTBIN
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
-          IF ( errPrint ) THEN
-             ErrorMsg = 'Error encountered in "Washout"!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-          ENDIF
+          ErrorMsg = 'Error encountered in "Washout"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
           Spc => NULL()
           RETURN
        ENDIF
@@ -5487,32 +5470,28 @@ END FUNCTION WASHFRAC_DUSTBIN
           !PRINT*, 'F        = ', F
 
           ! Print error message and stop simulaton
-          IF ( errPrint ) THEN
-             CALL SAFETY( I, J, L, N, ERRMSG,                                &
-                          LS          = LS,                                  &
-                          PDOWN       = 0e+0_fp,                             &
-                          QQ          = 0e+0_fp,                             &
-                          ALPHA       = 0e+0_fp,                             &
-                          ALPHA2      = 0e+0_fp,                             &
-                          RAINFRAC    = 0e+0_fp,                             &
-                          WASHFRAC    = 0e+0_fp,                             &
-                          MASS_WASH   = 0e+0_fp,                             &
-                          MASS_NOWASH = 0e+0_fp,                             &
-                          WETLOSS     = WETLOSS,                             &
-                          GAINED      = 0e+0_fp,                             &
-                          LOST        = 0e+0_fp,                             &
-                          State_Grid  = State_Grid,                          &
-                          DSpc        = DSpc(NW,:,I,J),                      &
-                          Spc         = Spc(N)%Conc(I,J,:),                  &
-                          RC          = RC                                  )
-          ENDIF
+          CALL SAFETY( I, J, L, N, ERRMSG,                                   &
+                       LS          = LS,                                     &
+                      PDOWN       = 0e+0_fp,                                 &
+                      QQ          = 0e+0_fp,                                 &
+                      ALPHA       = 0e+0_fp,                                 &
+                      ALPHA2      = 0e+0_fp,                                 &
+                      RAINFRAC    = 0e+0_fp,                                 &
+                      WASHFRAC    = 0e+0_fp,                                 &
+                      MASS_WASH   = 0e+0_fp,                                 &
+                      MASS_NOWASH = 0e+0_fp,                                 &
+                      WETLOSS     = WETLOSS,                                 &
+                      GAINED      = 0e+0_fp,                                 &
+                      LOST        = 0e+0_fp,                                 &
+                      State_Grid  = State_Grid,                              &
+                      DSpc        = DSpc(NW,:,I,J),                          &
+                      Spc         = Spc(N)%Conc(I,J,:),                      &
+                      RC          = RC                                      )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
-             IF ( errPrint ) THEN
-                ErrorMsg = 'Error encountered in "Safety"!'
-                CALL GC_Error( ErrorMsg, RC, ThisLoc )
-             ENDIF
+             ErrorMsg = 'Error encountered in "Safety"!'
+             CALL GC_Error( ErrorMsg, RC, ThisLoc )
              Spc => NULL()
              RETURN
           ENDIF
