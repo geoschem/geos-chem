@@ -737,12 +737,11 @@ CONTAINS
 #endif
 #endif
 
-!$omp parallel do                                   &
-!$omp default( shared ) &
-!$omp private( i, j, k, q2 )
-
-! Vertical_OMP:
-
+   !$OMP PARALLEL DO                                                         &
+   !$OMP DEFAULT( SHARED                                                    )&
+   !$OMP PRIVATE( i, j, k, q2                                               )&
+   !$OMP SCHEDULE( STATIC                                                   )
+   ! Vertical_OMP:
    do k=1,km
 
 
@@ -807,6 +806,7 @@ CONTAINS
 ! enddo Multi_Tracer
 
    enddo
+   !$OMP END PARALLEL DO
    enddo
 
 !---------------------------------------------------------------
@@ -1036,8 +1036,10 @@ CONTAINS
  FACTY = DTDY5(JM/2)
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-!$omp parallel do private(i, j, k, vt, UT )
-
+  !$OMP PARALLEL DO                                                          &
+  !$OMP DEFAULT( SHARED                                                     )&
+  !$OMP PRIVATE( i, j, k, vt, UT                                            )&
+  !$OMP SCHEDULE( STATIC                                                    )
   do k=1,km
 
      do j=js2g0, jn1g1
@@ -1106,7 +1108,7 @@ CONTAINS
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
   enddo
-
+  !$OMP END PARALLEL DO
 
 #if defined(SPMD)
 ! No buffer version (km calls to mpi_sendrecv)
@@ -1125,10 +1127,10 @@ CONTAINS
 ! Compute background mass-flux (fx, fy) and (cx, cy)
 !---------------------------------------------------
 
-!$omp parallel do                             &
-!$omp shared(im,jm,iord,jord,mg,jfirst,jlast) &
-!$omp private(i, j, k, dak, dbk)
-
+  !$OMP PARALLEL DO                                                          &
+  !$OMP SHARED( im, jm, iord, jord, mg, jfirst, jlast                       )&
+  !$OMP PRIVATE( i, j, k, dak, dbk                                          )&
+  !$OMP SCHEDULE( STATIC                                                    )
   do k=1,km
 
      do j=js2gd,jn2gd                ! ffsl needed on N*ng S*ng
@@ -1201,13 +1203,16 @@ CONTAINS
      endif
 
   enddo
+  !$OMP END PARALLEL DO
 
 !--------------
 ! Compute ps:
 !--------------
 
-!$omp parallel do private(i, j, k)
-
+  !$OMP PARALLEL DO                                                          &
+  !$OMP DEFAULT( SHARED                                                     )&
+  !$OMP PRIVATE( i, j, k                                                    )& 
+  !$OMP SCHEDULE( STATIC                                                    )
   do j=jfirst,jlast
      do i=1,im
         pe(i,1,j) = ak(1)
@@ -1223,7 +1228,8 @@ CONTAINS
         ps(i,j) = pe(i,km+1,j)
      enddo
   enddo
-
+  !$OMP END PARALLEL DO
+  
 !--------------------------------------------------------------
 ! Apply mass_flux adjuster to nudge predicted ps towards "data"
 !--------------------------------------------------------------
@@ -2321,10 +2327,10 @@ CONTAINS
 
 
 
-!$omp parallel do                           &
-!$omp shared(im,km,jfirst,jlast,ng,iv,kord) &
-!$omp private(i, j, k, iq, i1, i2, ixj, pe2)
-
+  !$OMP PARALLEL DO                                                          &
+  !$OMP SHARED( im, km, jfirst, jlast, ng, iv, kord                         )&
+  !$OMP PRIVATE(i, j, k, iq, i1, i2, ixj, pe2                               )&
+  !$OMP SCHEDULE( STATIC                                                    )
 ! do 2000 j=jfirst,jlast
   do 2000 ixj=1,jp
 
@@ -2355,6 +2361,7 @@ CONTAINS
                         im, i1, i2,  j, jfirst, jlast, ng, iv, kord)
      enddo
 2000  continue
+  !$OMP END PARALLEL DO   
 
  end subroutine qmap
 
@@ -3248,11 +3255,11 @@ CONTAINS
 #endif
 #endif
 
-!$omp parallel do &
-!$omp shared(im)  &
-!$omp private(i, j, k, dbk, dps, dpy, tmpf, fx, fy)
-
 !--- adjust fx ----
+   !$OMP PARALLEL DO                                                         &
+   !$OMP SHARED( im                                                         )&
+   !$OMP PRIVATE( i, j, k, dbk, dps, dpy, tmpf, fx, fy                      )&
+   !$OMP SCHEDULE( STATIC                                                   )
    do k=3,km
         dbk = bk(k+1) - bk(k)
     if( dbk > 0.001 ) then
@@ -3325,11 +3332,13 @@ CONTAINS
 
     endif
  enddo            ! k-loop
-
+ !$OMP END PARALLEL DO
 ! Update pe and ps
 
-!$omp parallel do private(i, j, k)
-
+  !$OMP PARALLEL DO                                                          &
+  !$OMP DEFAULT( SHARED                                                     )&
+  !$OMP PRIVATE( i, j, k                                                    )&
+  !$OMP SCHEDULE( STATIC                                                    )
   do j=jfirst,jlast
      do i=1,im
         pe(i,1,j) = ak(1)
@@ -3345,11 +3354,14 @@ CONTAINS
         ps(i,j) = pe(i,km+1,j)
      enddo
   enddo
+  !$OMP END PARALLEL DO
 
  enddo fx_iteration
 
-!$omp parallel do private(i, j, k, dbk, dps, tmpf, fx, er0, er1, dh)
-
+ !$OMP PARALLEL DO                                                           &
+ !$OMP DEFAULT( SHARED                                                      )&
+ !$OMP PRIVATE( i, j, k, dbk, dps, tmpf, fx, er0, er1, dh                   )&
+ !$OMP SCHEDULE( STATIC                                                     )
  do 2000 j=js2g0,jn2g0
  do k=km,3,-1
        dbk = bk(k+1) - bk(k)
@@ -3418,6 +3430,7 @@ CONTAINS
     endif
    enddo
 2000  continue
+ !$OMP END PARALLEL DO
 
 !* Copy adjusted surface pressure
 !* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
