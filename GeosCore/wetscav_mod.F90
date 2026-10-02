@@ -3300,9 +3300,11 @@ END FUNCTION WASHFRAC_DUSTBIN
     !=================================================================
 
     ! Initialize
-    RC        = GC_SUCCESS
-    errorMsg  = ''
-    ThisLoc   = ' -> at WetDep (in module GeosCore/wetscav_mod.F90)'
+    RC          = GC_SUCCESS
+    error       = .FALSE.
+    errorStatus = 0
+    errorMsg    = ''
+    ThisLoc     = ' -> at WetDep (in module GeosCore/wetscav_mod.F90)'
 
     ! Is this a mercury simulation?
     IS_Hg = ITS_A_MERCURY_SIM
