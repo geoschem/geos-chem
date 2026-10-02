@@ -726,7 +726,7 @@ CONTAINS
 
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I,     J,              SNOW_HG_OC_NEW, K_EMIT            )& 
+    !$OMP PRIVATE( I,     J,              SNOW_HG_OC_NEW, K_EMIT            )&
     !$OMP PRIVATE( SWRAD, SNOW_HG_LN_NEW, FLUX_TMP                          )&
     !$OMP COLLAPSE( 2                                                       )&
     !$OMP SCHEDULE( DYNAMIC, 8                                              )

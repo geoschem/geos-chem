@@ -161,7 +161,8 @@ CONTAINS
        !$OMP PARALLEL DO                                                     &
        !$OMP DEFAULT( SHARED                                                )&
        !$OMP PRIVATE( I, J, S                                               )&
-       !$OMP COLLAPSE( 3                                                    )
+       !$OMP COLLAPSE( 3                                                    )&
+       !$OMP SCHEDULE( STATIC                                               )
        DO S = 1, State_Diag%Map_DryDep%nSlots
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
@@ -180,7 +181,8 @@ CONTAINS
        !$OMP PARALLEL DO                                                     &
        !$OMP DEFAULT( SHARED                                                )&
        !$OMP PRIVATE( I, J, S                                               )&
-       !$OMP COLLAPSE( 3                                                    )
+       !$OMP COLLAPSE( 3                                                    )&
+       !$OMP SCHEDULE( STATIC                                               )
        DO S = 1, State_Diag%Map_SatDiagnDryDep%nSlots
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
@@ -198,9 +200,9 @@ CONTAINS
     IF ( State_Diag%Archive_FracOfTimeInTrop ) THEN
        !$OMP PARALLEL DO                                                     &
        !$OMP DEFAULT( SHARED                                                )&
-       !$OMP SCHEDULE( DYNAMIC, 8                                           )&
        !$OMP PRIVATE( I, J, L                                               )&
-       !$OMP COLLAPSE( 3                                                    )
+       !$OMP COLLAPSE( 3                                                    )&
+       !$OMP SCHEDULE( DYNAMIC, 8                                           )
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
@@ -279,9 +281,11 @@ CONTAINS
        State_Diag%IsLand  = 0.0_fp
        State_Diag%IsIce   = 0.0_fp
        State_Diag%IsSnow  = 0.0_fp
-       !$OMP PARALLEL DO        &
-       !$OMP DEFAULT( SHARED  ) &
-       !$OMP PRIVATE( I, J    )
+
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( I, J                                                  )&
+       !$OMP SCHEDULE( STATIC                                               )
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
           IF ( State_Met%IsWater(I,J) ) State_Diag%IsWater(I,J) = 1.0_fp
@@ -469,10 +473,9 @@ CONTAINS
     TYPE(DgnMap), POINTER :: mapData
 
 
-   ! Arrays 
-    REAL(fp)   :: TmpSpcArr(State_Grid%NX,State_Grid%NY, &
-                           State_Grid%NZ,State_Chm%nSpecies)
-
+    ! Arrays
+    !REAL(fp)   :: TmpSpcArr(State_Grid%NX,State_Grid%NY, &
+    !                        State_Grid%NZ,State_Chm%nSpecies)
 
     !====================================================================
     ! Set_SpcAdj_Diagnostic begins here!
@@ -497,9 +500,10 @@ CONTAINS
        ! Point to mapping obj specific to SpeciesAdj diagnostic collection
        mapData => State_Diag%Map_SpeciesAdj
 
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( N, S   )
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( N, S                                                  )&
+       !$OMP SCHEDULE( STATIC                                               )
        DO S = 1, mapData%nSlots
           N = mapData%slot2id(S)
           State_Diag%SpeciesAdj(:,:,:,S) = State_Chm%SpeciesAdj(:,:,:,N)
@@ -540,15 +544,16 @@ CONTAINS
 
           ENDIF
 
-          !$OMP PARALLEL DO       &
-          !$OMP DEFAULT( SHARED ) &
-          !$OMP PRIVATE( N, S   )
-          DO S = 1, mapData%nSlots
-             N = mapData%slot2id(S)
-     ! TmpSpcArr is not defined    
-             State_Diag%SatDiagnConc(I,:,:,S) = TmpSpcArr(I,:,:,N) * GOOD
-          ENDDO
-          !$OMP END PARALLEL DO
+!     ! TmpSpcArr is not defined, so disable this loop
+!          !$OMP PARALLEL DO                                                  &
+!          !$OMP DEFAULT( SHARED                                             )&
+!          !$OMP PRIVATE( N, S                                               )&
+!          !$OMP SCHEDULE( STATIC                                            )
+!          DO S = 1, mapData%nSlots
+!             N = mapData%slot2id(S)
+!             State_Diag%SatDiagnConc(I,:,:,S) = TmpSpcArr(I,:,:,N) * GOOD
+!          ENDDO
+!          !$OMP END PARALLEL DO
 
        ENDDO
 
@@ -647,9 +652,10 @@ CONTAINS
        ! Point to mapping obj specific to SpeciesConcVV diagnostic collection
        mapData => State_Diag%Map_SpeciesConcVV
 
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( N, S   )
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( N, S                                                  )&
+       !$OMP SCHEDULE( STATIC                                               )
        DO S = 1, mapData%nSlots
           N = mapData%slot2id(S)
           State_Diag%SpeciesConcVV(:,:,:,S) = State_Chm%Species(N)%Conc(:,:,:)
@@ -667,9 +673,10 @@ CONTAINS
     IF ( State_Diag%Archive_SatDiagnConc .AND. Its_Time_for_Chem() ) THEN
 
        ! Loop over longitudes
-       !$OMP PARALLEL DO                                                    &
-       !$OMP DEFAULT( SHARED                                               )&
-       !$OMP PRIVATE( I, LT, GOOD, S, N                                    )
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( I, LT, GOOD, S, N                                     )&
+       !$OMP SCHEDULE( STATIC                                               )
        DO I = 1, State_Grid%NX
 
           ! Get local time in hours
@@ -700,9 +707,10 @@ CONTAINS
        ! Point to mapping obj specific to species boundary conditions
        mapData => State_Diag%Map_SpeciesBC
 
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( N, S   )
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( N, S                                                  )&
+       !$OMP SCHEDULE( STATIC                                               )
        DO S = 1, mapData%nSlots
           N = mapData%slot2id(S)
           State_Diag%SpeciesBC(:,:,:,S) = State_Chm%Species(N)%Conc(:,:,:)
@@ -718,9 +726,10 @@ CONTAINS
     ! Copy species to SpeciesRst (restart file output) [v/v dry]
     !=======================================================================
     IF ( State_Diag%Archive_SpeciesRst ) THEN
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( N      )
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( N                                                     )&
+       !$OMP SCHEDULE( STATIC                                               )
        DO N = 1, State_Chm%nSpecies
           State_Diag%SpeciesRst(:,:,:,N) = State_Chm%Species(N)%Conc(:,:,:)
        ENDDO
@@ -760,23 +769,27 @@ CONTAINS
 
        ! Loop over the number of drydep species that we wish
        ! to save at a user-specified altitude above the surface
-       !$OMP PARALLEL DO                 &
-       !$OMP DEFAULT( SHARED           ) &
-       !$OMP PRIVATE( D, N, I, J, Conv )
        DO D = 1, State_Chm%nDryAlt
 
           ! Get the corresponding species index and drydep index
           N = State_Chm%Map_DryAlt(D)
 
-          ! Loop over surface locations
+          ! Parallelize over (I,J) grid boxes, which ensures that more work
+          ! will get done in parallel.  The loop over D usually has only a
+          ! few species, so it doesn't make sense to parallelize there.
+          !$OMP PARALLEL DO                                                  &
+          !$OMP DEFAULT( SHARED                                             )&
+          !$OMP PRIVATE( I, J, Conv                                         )&
+          !$OMP COLLAPSE( 2                                                 )&
+          !$OMP SCHEDULE( STATIC                                            )
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
 
              ! Conversion factor used to translate from
              ! lowest model layer (~60m) to the surface
-             Conv = ( 1.0_fp                                              &
-                  -   ( State_Diag%DryDepRaALT1(I,J) / 100.0_fp )         &
-                  *   State_Diag%DryDepVelForALT1(I,J,D)                 )
+             Conv = ( 1.0_fp                                                 &
+                  -   ( State_Diag%DryDepRaALT1(I,J) / 100.0_fp )            &
+                  *   State_Diag%DryDepVelForALT1(I,J,D)                    )
 
              ! Do not let CONV go negative
              IF ( Conv < 0.0_fp ) Conv = 1.0_fp
@@ -788,8 +801,8 @@ CONTAINS
 
           ENDDO
           ENDDO
+          !$OMP END PARALLEL DO
        ENDDO
-       !$OMP END PARALLEL DO
 
     ENDIF
 
@@ -881,9 +894,10 @@ CONTAINS
        ! Point to mapping obj specific to SpeciesConcMND diagnostic collection
        mapData => State_Diag%Map_SpeciesConcMND
 
-       !$OMP PARALLEL DO            &
-       !$OMP DEFAULT( SHARED      ) &
-       !$OMP PRIVATE( N, S, MW_kg )
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( N, S, MW_kg                                           )&
+       !$OMP SCHEDULE( STATIC                                               )
        DO S = 1, mapData%nSlots
           N = mapData%slot2id(S)
 
@@ -1109,10 +1123,11 @@ CONTAINS
     ENDIF
 
     ! Loop over NX and NY dimensions
-    !$OMP PARALLEL DO                               &
-    !$OMP DEFAULT( SHARED                          )&
-    !$OMP PRIVATE( I, J, S, N, L                   )&
-    !$OMP PRIVATE( colSum, spcMass, topLev, botLev )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I, J, S, N, L                                            )&
+    !$OMP PRIVATE( colSum, spcMass, topLev, botLev                          )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -1417,7 +1432,8 @@ CONTAINS
     ! Loop over longitudes
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I, J, locTime, good, S, N                                )
+    !$OMP PRIVATE( I, J, locTime, good, S, N                                )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO I = 1, State_Grid%NX
 
        !---------------------------------------------------------------------
@@ -2038,9 +2054,10 @@ CONTAINS
        State_Diag%TotalOC = 0.0_fp
     ENDIF
 
-    !$OMP PARALLEL DO         &
-    !$OMP DEFAULT( SHARED   ) &
-    !$OMP PRIVATE( I, J, L  )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I, J, L                                                  )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
