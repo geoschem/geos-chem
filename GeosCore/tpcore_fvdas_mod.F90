@@ -635,9 +635,10 @@ CONTAINS
        dbk(ik) = bk(ik+1) - bk(ik)
     enddo
 
-!$OMP PARALLEL DO        &
-!$OMP DEFAULT( SHARED  ) &
-!$OMP PRIVATE( IK, IQ, q_ptr )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( IK, IQ, q_ptr                                            )&
+    !$OMP SCHEDULE( STATIC                                                  )
     do ik=1,km
 
   ! ====================
@@ -725,9 +726,11 @@ CONTAINS
 
     if (advec_consrv_opt == 0) then
 
-       !$OMP PARALLEL DO           &
-       !$OMP DEFAULT( SHARED     ) &
-       !$OMP PRIVATE( IK, IJ, IL )
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( IK, IJ, IL                                            )&
+       !$OMP COLLAPSE( 3                                                    )&
+       !$OMP SCHEDULE( STATIC                                               )
        do ik = 1, km
        do ij = 1, jm
        do il = 1, im
@@ -744,9 +747,11 @@ CONTAINS
     else if ((advec_consrv_opt == 1) .or.  &
          (advec_consrv_opt == 2)) then
 
-       !$OMP PARALLEL DO           &
-       !$OMP DEFAULT( SHARED     ) &
-       !$OMP PRIVATE( IK, IJ, IL )
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( IK, IJ, IL                                            )&
+       !$OMP COLLAPSE( 3                                                    )&
+       !$OMP SCHEDULE( STATIC                                               )
        do ik = 1, km
        do ij = 1, jm
        do il = 1, im
@@ -773,9 +778,10 @@ CONTAINS
 ! to PRIVATE loop variables.  This seems to avoid small diffs in output.
 !   -- Bob Yantosca (04 Jan 2022)
 !---------------------------------------------------------------------------
-!$OMP PARALLEL DO                                                     &
-!$OMP DEFAULT( SHARED                                               ) &
-!$OMP PRIVATE( iq, dq1, ik, adx, ady, q_ptr, qqu, qqv, north, south )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( iq, dq1, ik, adx, ady, q_ptr, qqu, qqv, north, south     )&
+    !$OMP SCHEDULE( STATIC                                                  )
     do iq = 1, nq
 
        q_ptr => State_Chm%Species(iq)%Conc(:,:,km:1:-1)
@@ -982,9 +988,10 @@ CONTAINS
        JN2G0  = MIN( J2P, JLAST  )     !  No ghosting
 
        ! Loop over diagnostic slots
-       !$OMP PARALLEL DO                           &
-       !$OMP DEFAULT( SHARED                     ) &
-       !$OMP PRIVATE( S, IQ, K, J, I, Kflip )
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( S, IQ, K, J, I, Kflip                                 )&
+       !$OMP SCHEDULE( STATIC                                               )
        DO S = 1, State_Diag%Map_AdvFluxZonal%nSlots
 
           ! Get the advectId from the slotId
@@ -1025,22 +1032,22 @@ CONTAINS
        ! Zero netCDF diagnostic array
        State_Diag%AdvFluxMerid = 0.0_f4
 
-       !$OMP PARALLEL DO                           &
-       !$OMP DEFAULT( SHARED                     ) &
-       !$OMP PRIVATE( S, IQ, K, J, I, Kflip )
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( S, IQ, K, J, I, Kflip                                 )&
+       !$OMP SCHEDULE( STATIC                                               )
        DO S = 1, State_Diag%Map_AdvFluxMerid%nSlots
 
           ! Get the advectId from the slotId
           IQ = State_Diag%Map_AdvFluxMerid%slot2Id(S)
 
           ! Loop over grid boxes
+          !$OMP SIMD COLLAPSE( 3 )
           DO K = 1, KM
           DO J = 1, JM
           DO I = 1, IM
 
              ! Compute mass flux [kg/s]
-             
-
              ! Units: [kg/s]
              ! But consider changing to area-independent units [kg/m2/s]
              Kflip                                = KM - K + 1  ! flip vert
@@ -1078,15 +1085,17 @@ CONTAINS
        ! Zero netCDF diagnostic array
        State_Diag%AdvFluxVert  = 0.0_f4
 
-       !$OMP PARALLEL DO                           &
-       !$OMP DEFAULT( SHARED                     ) &
-       !$OMP PRIVATE( S, IQ, K, J, I, Kflip )
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( S, IQ, K, J, I, Kflip                                 )&
+       !$OMP SCHEDULE( STATIC                                               )
        DO S = 1, State_Diag%Map_AdvFluxVert%nSlots
 
           ! Get the advectId from the modelId
           IQ = State_Diag%Map_AdvFluxVert%slot2Id(S)
 
           ! Loop over grid boxes
+          !$OMP SIMD COLLAPSE( 3 )
           DO K = 1, KM
           DO J = 1, JM
           DO I = 1, IM
@@ -1452,9 +1461,11 @@ CONTAINS
 !   Compute vertical mass flux from mass conservation.
 !   --------------------------------------------------
 
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( IJ, IL )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( IJ, IL                                                   )&
+    !$OMP COLLAPSE( 2                                                       )&
+    !$OMP SCHEDULE( STATIC                                                  )
     do ij = ju1, j2
     do il = i1,  i2
        wz(il,ij,k1) =  &
@@ -1468,9 +1479,11 @@ CONTAINS
 
     do ik = k1 + 1, k2 - 1
 
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( IJ, IL )
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( IJ, IL                                                )&
+       !$OMP COLLAPSE( 2                                                    )&
+       !$OMP SCHEDULE( STATIC                                               )
        do ij = ju1, j2
        do il = i1,  i2
 
@@ -1886,19 +1899,14 @@ CONTAINS
 ! LOCAL VARIABLES:
 !
     INTEGER :: il, ij, ik
-    INTEGER :: ip
     INTEGER :: k1p1, k2m1
     REAL(fp)  :: dup, qup
     REAL(fp)  :: qly
-    REAL(fp)  :: sum
 
 
 !     ----------------
 !     Begin execution.
 !     ----------------
-
-    ip = 0
-
 
 !     ----------
 !     Top layer.
@@ -1906,15 +1914,10 @@ CONTAINS
 
     k1p1 = k1 + 1
 
-    !$OMP PARALLEL DO          &
-    !$OMP DEFAULT( SHARED )    &
-    !$OMP PRIVATE( IJ, IL, IP )
     do ij = j1p, j2p
        do il = i1, i2
 
           if (dq1(il,ij,k1) < 0.0e+0_fp) then
-
-             ip = ip + 1
 
              dq1(il,ij,k1p1) = dq1(il,ij,k1p1) + dq1(il,ij,k1)
              dq1(il,ij,k1)   = 0.0e+0_fp
@@ -1923,20 +1926,13 @@ CONTAINS
 
        end do
     end do
-    !$OMP END PARALLEL DO
 
 
     do ik = k1 + 1, k2 - 1
-
-       !$OMP PARALLEL DO                         &
-       !$OMP DEFAULT( SHARED )                   &
-       !$OMP PRIVATE( IJ, IL, IP, QUP, QLY, DUP )
        do ij = j1p, j2p
           do il = i1, i2
 
              if (dq1(il,ij,ik) < 0.0e+0_fp) then
-
-                ip = ip + 1
 
 !             -----------
 !             From above.
@@ -1960,8 +1956,6 @@ CONTAINS
 
           end do
        end do
-       !$OMP END PARALLEL DO
-
     end do
 
 
@@ -1969,21 +1963,13 @@ CONTAINS
 !     Bottom layer.
 !     -------------
 
-    sum  = 0.0e+0_fp
 
     k2m1 = k2 - 1
 
-    ! NOTE: Sum seems to be not used in the loop below!
-    !$OMP PARALLEL DO                          &
-    !$OMP DEFAULT( SHARED )                    &
-    !$OMP PRIVATE( IJ, IL, IP, QUP, QLY, DUP ) &
-    !$OMP REDUCTION( +:SUM )
     do ij = j1p, j2p
        do il = i1, i2
 
           if (dq1(il,ij,k2) < 0.0e+0_fp) then
-
-             ip = ip + 1
 
 !           -----------
 !           From above.
@@ -1999,7 +1985,6 @@ CONTAINS
 !           From "below" the surface.
 !           -------------------------
 
-             sum = sum + qly - dup
 
              dq1(il,ij,k2) = 0.0e+0_fp
 
@@ -2007,7 +1992,6 @@ CONTAINS
 
        end do
     end do
-    !$OMP END PARALLEL DO
 
 ! We don't want to replace zero values by 1e-30. (ccc, 11/20/08)
 !!     =======================================
