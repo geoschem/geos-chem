@@ -140,7 +140,10 @@ CONTAINS
        IF ( as /= 0 ) CALL ALLOC_ERR( 'map' )
 
        ! Populate the mapping weight object
-       !$OMP PARALLEL DO DEFAULT( SHARED ) PRIVATE( I, J )
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( I, J                                                  )&
+       !$OMP SCHEDULE( STATIC                                               )
        DO J = 1, J_COARSE
        DO I = 1, I_COARSE
 
@@ -338,7 +341,11 @@ CONTAINS
     IF ( ASSOCIATED( mapping ) ) THEN
 
        ! First deallocate the pointer fields of the MAP object
-       !$OMP PARALLEL DO DEFAULT( SHARED ) PRIVATE( I, J )
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )& 
+       !$OMP PRIVATE( I, J                                                  )&
+       !$OMP COLLAPSE( 2                                                    )&
+       !$OMP SCHEDULE( STATIC                                               ) 
        DO J = 1, SIZE( mapping, 2 )
        DO I = 1, SIZE( mapping, 1 )
           DEALLOCATE( mapping(I,J)%ii       )
