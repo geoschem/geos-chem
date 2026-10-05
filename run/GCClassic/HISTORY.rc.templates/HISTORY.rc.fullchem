@@ -53,8 +53,8 @@ COLLECTIONS: 'Restart',
              ##'StratBM',
              ##'Tomas',
              ##'UVFlux',
-             ##'WetLossConv',
-             ##'WetLossLS',
+             #'WetLossConv',
+             #'WetLossLS',
              ##'BoundaryConditions',
 ::
 ###############################################################################
