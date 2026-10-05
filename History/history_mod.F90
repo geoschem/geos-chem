@@ -616,9 +616,10 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-     ! Scalars
+    ! Scalars
+    LOGICAL                      :: isSatDiagn,     isSatDiagnEdge
     LOGICAL                      :: EOF,            Found
-    LOGICAL                      :: FileExists
+    LOGICAL                      :: hrRangeSet,     FileExists
     INTEGER                      :: yyyymmdd,       hhmmss
     INTEGER                      :: yyyymmdd_end,   hhmmss_end
     INTEGER                      :: DeltaYMD,       DeltaHMS
@@ -638,6 +639,7 @@ CONTAINS
     INTEGER                      :: Ind_Var,        Ind_Wet,       Ind
     INTEGER                      :: HbHrs,          HbMin,         HbSec
     INTEGER                      :: HeartBeatHms,   nTags
+    INTEGER                      :: iDot,           iColon
     REAL(f8)                     :: UpdateAlarm,    HeartBeatDtSec
     REAL(f8)                     :: FileWriteAlarm, FileCloseAlarm
     REAL(f8)                     :: JulianDate,     JulianDateEnd
@@ -661,6 +663,7 @@ CONTAINS
     CHARACTER(LEN=255)           :: Pattern,        ItemPrefix
     CHARACTER(LEN=255)           :: tagId,          tagName
     CHARACTER(LEN=512)           :: ErrMsg,         FileMsg
+    CHARACTER(LEN=255)           :: BlockName,      LinePrefix
 
     ! Arrays
     REAL(f8)                     :: Subset(2)
@@ -690,6 +693,7 @@ CONTAINS
 
        ! Initialize variables
        EOF            =  .FALSE.
+       hrRangeSet     =  .FALSE.
        IOS            =  0
        UpdateYmd      =  0
        UpdateHms      =  0
@@ -706,6 +710,7 @@ CONTAINS
        hhmmss_end     =  Input_Opt%NhmsE
        Subset         =  UNDEFINED_DBL
        Levels         =  UNDEFINED_INT
+       BlockName      = ''
 
        ! Compute the YMD and HMS intervals for collections specified with "End",
        ! such as for restart files.  NOTE: This algorithm should work with most
@@ -837,7 +842,33 @@ CONTAINS
        ! Skip if the line is commented out
        IF ( Line(1:1) == "#" ) CYCLE
 
+       !--------------------------------------------------------------------
+       ! Sanity check: raise an error if mistyped collection names (e.g.
+       ! "SpeciesConcVVV" among "SpeciesConcVV" entries) are encountered.
+       !--------------------------------------------------------------------
+       iDot   = INDEX( Line, '.' )
+       iColon = INDEX( Line, ':' )
+       IF ( iDot > 1 .and. iColon > iDot ) THEN
+          LinePrefix = Line(1:iDot-1)
+          IF ( LEN_TRIM( BlockName ) == 0 ) THEN
+             BlockName = LinePrefix
+          ELSE IF ( TRIM( LinePrefix ) /= TRIM( BlockName ) ) THEN
+             ErrMsg = 'Attribute "' // TRIM( Line(1:iColon-1) )           // &
+                      '" does not match the other attributes of '         // &
+                      'collection "' // TRIM( BlockName )                 // &
+                      '".  Check HISTORY.rc for a mistyped collection name.'
+             WRITE( ErrorLine, 250 ) LineNum
+             CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
+             RETURN
+          ENDIF
+
+          ! The ".fields" line ends the block; start fresh for the next one
+          IF ( Line(iDot:iDot+6) == '.fields' ) BlockName = ''
+       ENDIF
+
+       !---------------------------------------------------------------------
        ! Zero variables
+       !---------------------------------------------------------------------
        FileCloseYmd   = 0
        FileCloseHms   = 0
        FileWriteYmd   = 0
@@ -866,6 +897,7 @@ CONTAINS
                       'check the HISTORY.rc file for typos.'
              WRITE( ErrorLine, 250 ) LineNum
              CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
+             RETURN
           ENDIF
 
           ! Save the EXPID parameter
@@ -1014,6 +1046,7 @@ CONTAINS
        Pattern = 'LON_RANGE'
        Subset  =  UNDEFINED_DBL
        IF ( INDEX( TRIM( Line ), TRIM( Pattern ) ) > 0 ) THEN
+          CALL GetCollectionMetaData( Input_Opt, Line, Pattern, MetaData, C )
 
           ! First split the line by colon
           CALL StrSplit( Line, ":", Subs1, nSubs1 )
@@ -1027,7 +1060,7 @@ CONTAINS
              CALL StrSplit( CollectionLonRange(C), " ", Subs2, nSubs2 )
              IF ( nSubs2 == 2 ) THEN
                 DO N = 1, nSubs2
-                   READ( Subs2(N), '(f13.6)' ) Subset(N)
+                   READ( Subs2(N), * ) Subset(N)
                 ENDDO
              ELSE
                 ErrMsg = 'Subsets must be specified as: lonmin, lonmax!'
@@ -1048,6 +1081,16 @@ CONTAINS
                 ENDIF
              ENDDO
 
+             ! On a global grid the last longitude edge is 180 - dx/2
+             ! (e.g. 177.5 for 4x5), so a lonMax between that edge and
+             ! 180 matches no box.  Treat it as the last box.
+             IF ( CollectionSubsetInd(2,C) == UNDEFINED_INT        .and.     &
+                  .not. State_Grid%NestedGrid                      .and.     &
+                  Subset(2) >= State_Grid%LonE(State_Grid%NX+1)    .and.     &
+                  Subset(2) <= 180.0_f8                          ) THEN
+                CollectionSubsetInd(2,C) = State_Grid%NX
+             ENDIF
+
              ! Error check longitudes
              DO N = 1, 2
                 IF ( CollectionSubsetInd(N,C) < 1               .or.         &
@@ -1059,6 +1102,18 @@ CONTAINS
                    RETURN
                 ENDIF
              ENDDO
+
+             ! Ranges must run west to east; crossing the dateline
+             ! (e.g. 170, -170) is not supported
+             IF ( CollectionSubsetInd(1,C) > CollectionSubsetInd(2,C) ) THEN
+                ErrMsg = 'lonMin must not be east of lonMax for '         // &
+                         'collection "' // TRIM(CollectionName(C))        // &
+                         '"!  Ranges that cross the dateline are not '    // &
+                         'supported.'
+                WRITE( ErrorLine, 250 ) LineNum
+                CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
+                RETURN
+             ENDIF
           ENDIF
        ENDIF
 
@@ -1067,6 +1122,7 @@ CONTAINS
        Pattern = 'LAT_RANGE'
        Subset  =  UNDEFINED_DBL
        IF ( INDEX( TRIM( Line ), TRIM( Pattern ) ) > 0 ) THEN
+          CALL GetCollectionMetaData( Input_Opt, Line, Pattern, MetaData, C )
 
           ! First split the line by colon
           CALL StrSplit( Line, ":", Subs1, nSubs1 )
@@ -1080,7 +1136,7 @@ CONTAINS
              CALL StrSplit( CollectionLatRange(C), " ", Subs2, nSubs2 )
              IF ( nSubs2 == 2 ) THEN
                 DO N = 1, nSubs2
-                   READ( Subs2(N), '(f13.6)' ) Subset(N)
+                   READ( Subs2(N), * ) Subset(N)
                 ENDDO
              ELSE
                 ErrMsg = 'Subsets must be specified as: latMin, latMax!'
@@ -1101,6 +1157,15 @@ CONTAINS
                 ENDIF
              ENDDO
 
+             ! LatE(NY+1) is the top edge (90 on a global grid), which the
+             ! half-open search above never matches.  Treat a latMax equal
+             ! to it as the last box.
+             IF ( CollectionSubsetInd(4,C) == UNDEFINED_INT            .and. &
+                  ABS( Subset(2) - State_Grid%LatE(State_Grid%NY+1) )        &
+                       < 1.0e-6_f8                                    ) THEN
+                CollectionSubsetInd(4,C) = State_Grid%NY
+             ENDIF
+
              ! Error check latitudes
              DO N = 3, 4
                 IF ( CollectionSubsetInd(N,C) < 1               .or.         &
@@ -1112,12 +1177,22 @@ CONTAINS
                    RETURN
                 ENDIF
              ENDDO
+
+             ! Error check: Make sure latMin doesn't exceed latMax
+             IF ( CollectionSubsetInd(3,C) > CollectionSubsetInd(4,C) ) THEN
+                ErrMsg = 'latMin must not be north of latMax for '        // &
+                         'collection "' // TRIM(CollectionName(C)) // '"!'
+                WRITE( ErrorLine, 250 ) LineNum
+                CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
+                RETURN
+             ENDIF
           ENDIF
        ENDIF
 
        ! "levels: Specifies a vertical subset of the data grid
        Pattern  = 'levels'
        IF ( INDEX( TRIM( Line ), TRIM( Pattern ) ) > 0 ) THEN
+          CALL GetCollectionMetaData( Input_Opt, Line, Pattern, MetaData, C )
 
           ! First split the line by colon
           CALL StrSplit( Line, ":", Subs1, nSubs1 )
@@ -1132,10 +1207,12 @@ CONTAINS
              CALL StrSplit( CollectionLevels(C), " ", Subs2, nSubs2 )
              IF ( nSubs2 <= SIZE( Levels ) ) THEN
                 DO N = 1, nSubs2
-                   READ( Subs2(N), '(i10)' ) Levels(N)
-                   IF ( Levels(N) < 0 ) THEN
-                      ErrMsg = TRIM( CollectionName(C) ) // '.levels '    // &
-                               'must not have any negative values!'
+                   READ( Subs2(N), * ) Levels(N)
+                    IF ( Levels(N) < 1 .or. Levels(N) > State_Grid%NZ+1 ) THEN
+                        WRITE( ErrMsg, '(a,i0,a,i0,a)' )                     &
+                           TRIM( CollectionName(C) ) // '.levels values ' // &
+                           'must be between 1 and ', State_Grid%NZ+1,        &
+                           ' (got ', Levels(N), ')!'
                       WRITE( ErrorLine, 250 ) LineNum
                       CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
                       RETURN
@@ -1162,33 +1239,88 @@ CONTAINS
           ENDIF
        ENDIF
 
-       ! "hrrange": Specifies an hour range for the satellite
-       ! diagnostic. The required order is: hrMin, hrMax
+       ! "hrrange": Specifies the local-time window (hours) sampled by the
+       ! SatDiagn and SatDiagnEdge collections.  Order: hrMin, hrMax
        Pattern = 'hrrange'
        Subset  =  UNDEFINED_DBL
        IF ( INDEX( TRIM( Line ), TRIM( Pattern ) ) > 0 ) THEN
+          CALL GetCollectionMetaData( Input_Opt, Line, Pattern, MetaData, C )
 
-          ! First split the line by colon
-          CALL StrSplit( Line, ":", Subs1, nSubs1 )
+          ! Skip collections that are not active
+          IF ( C > 0 ) THEN
 
-          ! Split by spaces and convert to FLOAT:
-          CALL StrSplit( Subs1(2), " ", Subs2, nSubs2 )
-          IF ( nSubs2 == 2 ) THEN
-             DO N = 1, nSubs2
-                READ( Subs2(N), '(f6.0)' ) Subset(N)
-             ENDDO
-          ELSE
-             ErrMsg = 'Subsets must be specified as: hrmin, hrmax!'
-             WRITE( ErrorLine, 250 ) LineNum
-             CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
-             RETURN
+             ! Only the satellite diagnostic collections use hrrange
+             CALL SatDiagn_or_SatDiagnEdge( CollectionName(C),               &
+                                            isSatDiagn, isSatDiagnEdge      )
+             IF ( .not. ( isSatDiagn .or. isSatDiagnEdge ) ) THEN
+                ErrMsg = '"hrrange" is only valid for the SatDiagn and '  // &
+                         'SatDiagnEdge collections, not "'                // &
+                         TRIM( CollectionName(C) ) // '"!'
+                WRITE( ErrorLine, 250 ) LineNum
+                CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
+                RETURN
+             ENDIF
+
+             ! Split the line by colon, replace commas with spaces,
+             ! then split by spaces and convert to REAL
+             CALL StrSplit( Line, ":", Subs1, nSubs1 )
+             CALL StrRepl( Subs1(2), ",", " " )
+             CALL StrSplit( Subs1(2), " ", Subs2, nSubs2 )
+             IF ( nSubs2 == 2 ) THEN
+                DO N = 1, nSubs2
+                   READ( Subs2(N), *, IOSTAT=IOS ) Subset(N)
+                   IF ( IOS /= 0 ) THEN
+                      ErrMsg = 'Could not read "hrrange" value "'         // &
+                               TRIM( Subs2(N) ) // '"!'
+                      WRITE( ErrorLine, 250 ) LineNum
+                      CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
+                      RETURN
+                   ENDIF
+                ENDDO
+             ELSE
+                ErrMsg = 'Subsets must be specified as: hrmin, hrmax!'
+                WRITE( ErrorLine, 250 ) LineNum
+                CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
+                RETURN
+             ENDIF
+
+             ! The sampling test is LT >= hrMin .and. LT <= hrMax, so the
+             ! window must lie within one day (no wrapping past midnight)
+             IF ( Subset(1) < 0.0_f8                               .or.      &
+                  Subset(2) > 24.0_f8                              .or.      &
+                  Subset(1) > Subset(2)                          ) THEN
+                ErrMsg = '"hrrange" must satisfy 0 <= hrMin <= hrMax '    // &
+                         '<= 24 for collection "'                         // &
+                         TRIM( CollectionName(C) )                        // &
+                         '"!  Windows that wrap past midnight are not '   // &
+                         'supported.'
+                WRITE( ErrorLine, 250 ) LineNum
+                CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
+                RETURN
+             ENDIF
+
+             ! SatDiagn and SatDiagnEdge share one window in State_Diag,
+             ! so a second hrrange must agree with the first
+             IF ( hrRangeSet ) THEN
+                IF ( ABS( Subset(1) - State_Diag%SatDiagn_StartHr ) >        &
+                     1.0e-6_f8                                          .or. &
+                     ABS( Subset(2) - State_Diag%SatDiagn_EndHr   ) >        &
+                     1.0e-6_f8                                        ) THEN
+                   ErrMsg = 'SatDiagn and SatDiagnEdge share one '        // &
+                        'local-time window, but their "hrrange" '         // &
+                        'values differ!'
+                   WRITE( ErrorLine, 250 ) LineNum
+                   CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
+                   RETURN
+                ENDIF
+             ENDIF
+
+             ! Assign hour range to State_Diag
+             State_Diag%SatDiagn_StartHr = Subset(1)
+             State_Diag%SatDiagn_EndHr   = Subset(2)
+             hrRangeSet                  = .TRUE.
           ENDIF
-
-          ! Assign hour range to State_Diag:
-          State_Diag%SatDiagn_StartHr = Subset(1)
-          State_Diag%SatDiagn_EndHr   = Subset(2)
-             
-       ENDIF       
+       ENDIF
 
        !====================================================================
        ! NOTE: We assume FIELDS is the last metadata tag for the
@@ -1543,6 +1675,35 @@ CONTAINS
           ENDIF
 
           !=================================================================
+          ! Sanity check for the SatDiagn and SatDiagnEdge collections
+          !=================================================================
+          CALL SatDiagn_or_SatDiagnEdge( CollectionName(C),                  &
+                                         isSatDiagn, isSatDiagnEdge         )
+
+          IF ( isSatDiagn .or. isSatDiagnEdge ) THEN
+
+             ! Exit with error if either collection is subsetted with
+             ! LON_RANGE, LAT_RANGE, or levels, which aren't supported.
+             IF ( ANY( CollectionSubsetInd(:,C) /= UNDEFINED_INT )   .or.    &
+                  ANY( CollectionLevelInd(:,C)  /= UNDEFINED_INT ) ) THEN
+                ErrMsg = 'LON_RANGE, LAT_RANGE, and levels are not '      // &
+                         'supported for collection "'                     // &
+                         TRIM( CollectionName(C) )                        // &
+                         '".  Remove them from HISTORY.rc.'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
+             ENDIF
+
+             ! Exit with error if hrrange isn't set
+             IF ( .not. hrRangeSet ) THEN
+                ErrMsg = 'Collection "' // TRIM( CollectionName(C) )      // &
+                         '" requires an "hrrange" setting in HISTORY.rc.'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
+             ENDIF
+          ENDIF
+
+          !=================================================================
           ! Create a HISTORY CONTAINER object for this collection
           !=================================================================
 
@@ -1576,6 +1737,15 @@ CONTAINS
                                      EndTimeStamp   = EndTimeStamp,          &
                                      RC             = RC                    )
 
+          ! Trap errors
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "HistContainer_Create" '      // &
+                      'for collection "'// TRIM( CollectionName(C) )      // &
+                      '"!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+
           ! Update CollectionFileName
           CollectionFileName(C) = TRIM( Container%FileName )
 
@@ -1594,11 +1764,11 @@ CONTAINS
                                       HeartBeatDt = 0.0_f8,                  &
                                       RC          = RC                      )
 
-
           ! Trap potential error
           IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered in "HistContainer_SetTime"'      // &
-                      ' for collection: ' // TRIM( CollectionName(C) )
+             ErrMsg = 'Error encountered in "HistContainer_SetTime" '     // &
+                      'for collection "'// TRIM( CollectionName(C) )      // &
+                      '"!'
              WRITE( ErrorLine, 250 ) LineNum
              CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
              RETURN
@@ -1705,7 +1875,7 @@ CONTAINS
                 ItemPrefix = SubStrs(1)
 
                 ! Get number of tags for this wildcard
-                CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC, &
+                CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC,    &
                                   nTags=nTags )
                 IF ( RC /= GC_SUCCESS ) THEN
                    ErrMsg = 'Error retrieving # of tags for' //              &
@@ -1735,6 +1905,13 @@ CONTAINS
 
                    ! Update the ItemName if dependent on input parameters
                    CALL Get_NameInfo( Input_Opt, ItemName, OutputName, RC )
+                   IF ( RC /= GC_SUCCESS ) THEN
+                      ErrMsg = 'Error encountered in "Get_NameInfo" '      // &
+                               'for collection "'                          // &
+                               TRIM( CollectionName(C) ) // '"!'
+                      CALL GC_Error( ErrMsg, RC, ThisLoc )
+                      RETURN
+                   ENDIF
 
                    ! Increment the item count
                    ItemCount   = ItemCount + 1
@@ -1774,6 +1951,13 @@ CONTAINS
 
                 ! Update the ItemName if dependent on input parameters
                 CALL Get_NameInfo( Input_Opt, ItemName, OutputName, RC )
+                IF ( RC /= GC_SUCCESS ) THEN
+                   ErrMsg = 'Error encountered in "Get_NameInfo" '        // &
+                            'for collection "'                            // &
+                            TRIM( CollectionName(C) ) // '"!'
+                   CALL GC_Error( ErrMsg, RC, ThisLoc )
+                   RETURN
+                ENDIF
 
                 ! Increment the number of HISTORY items
                 ItemCount = ItemCount + 1
@@ -2333,10 +2517,21 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Error-check Z-dimension indices
+    ! Error-check Z-dimension indices.  For 3-D fields the requested
+    ! levels must lie within the field's own vertical extent, which is
+    ! NZ for level centers and NZ+1 for level edges.
     IF ( Z1 < Z0 ) THEN
        WRITE( ErrMsg, 120 ) Z0, Z1, TRIM( Collection%Name )
- 120   FORMAT(  'Invalid Y-dimension indices: ', 2i6, ' for collection', a )
+ 120   FORMAT(  'Invalid Z-dimension indices: ', 2i6, ' for collection ', a )
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    IF ( Rank == 3 .and. ( Z0 < 1 .or. Z1 > Dimensions(3) ) ) THEN
+       WRITE( ErrMsg, 125 ) Z0, Z1, TRIM( ItemName ), Dimensions(3),         &
+                            TRIM( Collection%Name )
+ 125   FORMAT( 'Levels ', i0, '-', i0, ' are outside field "', a,            &
+            '" (1-', i0, ') in collection ', a )
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -2605,7 +2800,8 @@ CONTAINS
        ! Trap error
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "HistContainer_SetTime" ' //        &
-                   ' for container : ' // TRIM( Collection%Container%Name )
+                   'for collection "'                              //        &
+                   TRIM( Collection%Container%Name )               // '"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
@@ -2678,8 +2874,8 @@ CONTAINS
     LOGICAL                          :: DoUpdate
 
     ! Strings
-    CHARACTER(LEN=255)               :: ErrMsg
     CHARACTER(LEN=255)               :: ThisLoc
+    CHARACTER(LEN=512)               :: ErrMsg
 
     ! Objects
     TYPE(MetaHistContainer), POINTER :: Collection
@@ -2924,10 +3120,18 @@ CONTAINS
        ! as we will have to take into account leap years, etc.
        IF ( Container%UpdateYmd >= 000100 ) THEN
           CALL HistContainer_UpdateIvalSet( Input_Opt, Container, RC )
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg =                                                         &
+                'Error encountered in "HistContainer_UpdateIvalSet" '      // &
+                'for collection "' // TRIM( Collection%Container%Name )    // &
+                '"!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
        ENDIF
 
        ! Update the "UpdateAlarm" time for the next updating interval.
-       Container%UpdateAlarm = Container%UpdateAlarm +                    &
+       Container%UpdateAlarm = Container%UpdateAlarm +                       &
                                Container%UpdateIvalSec
 
        ! Free pointers
@@ -3021,9 +3225,9 @@ CONTAINS
 
     ! Strings
     CHARACTER(LEN=20 )               :: TmpUnits
-    CHARACTER(LEN=255)               :: ErrMsg
     CHARACTER(LEN=255)               :: ThisLoc
     CHARACTER(LEN=255)               :: cName
+    CHARACTER(LEN=512)               :: ErrMsg
 
     ! Objects
     TYPE(MetaHistContainer), POINTER :: Collection
@@ -3061,16 +3265,22 @@ CONTAINS
        isBndCond = ( TRIM( cName ) == 'BOUNDARYCONDITIONS' )
        isRestart = ( TRIM( cName ) == 'RESTART'            )
 
-       ! Force define write alarm for creating and saving boundary
-       ! conditions to ensure first file of the simulation has the
-       ! correct file name and number of entries.
+       ! At the first timestep (t=0):
+       !
+       ! (1) Make sure that a BoundaryConditions collection file will be
+       !     written at t=0 (i.e. set its write alarm to 0 elapsed sec).
+       !
+       ! (2) Skip every other collection.  Previously we had exited
+       !     this routine instead of skipping to the end of the list.
        IF ( Container%ElapsedSec < EPS ) THEN
           IF ( isBndCond ) THEN
              Container%FileWriteAlarm = 0.0_fp
           ELSE
-             RETURN
+             Container  => NULL()
+             Collection => Collection%Next
+             CYCLE
           ENDIF
-       ENDIF             
+       ENDIF
 
        !====================================================================
        ! Test if it is time to close/repopen the file or to write data
@@ -3112,6 +3322,13 @@ CONTAINS
 
           ! Update each HISTORY ITEM from its data source
           CALL History_Update( Input_Opt, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "History_Update" '            // &
+                      'for collection "'                                  // &
+                      TRIM( Container%Name ) // '"!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
 
        ENDIF
           
@@ -3134,10 +3351,10 @@ CONTAINS
           !-----------------------------------------------------------------
           CALL History_Netcdf_Close( Container = Container,                  &
                                      RC        = RC                         )
-
-          ! Trap error
           IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error returned from "History_Netcdf_Close"!'
+             ErrMsg = 'Error encountered in "History_Netcdf_Close" '      // &
+                      'for collection "'                                  // &
+                      TRIM( Container%Name ) // '"!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
@@ -3151,10 +3368,10 @@ CONTAINS
                                       State_Grid = State_Grid,               &
                                       Container  = Container,                &
                                       RC         = RC                       )
-
-          ! Trap error
           IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error returend from "History_Netcdf_Define"!'
+             ErrMsg = 'Error encountered in "History_Netcdf_Define" '     // &
+                      'for collection "'                                  // &
+                      TRIM( Container%Name ) // '"!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
@@ -3167,6 +3384,14 @@ CONTAINS
           ! as we will have to take into account leap years, etc.
           IF ( Container%FileCloseYmd >= 000100 ) THEN
              CALL HistContainer_FileCloseIvalSet( Input_Opt, Container, RC )
+             IF ( RC /= GC_SUCCESS ) THEN
+                ErrMsg =                                                      &
+                  'Error encountered in "HistContainer_FileCloseIvalSet" ' // &
+                  'for collection "'                                       // &
+                  TRIM( Container%Name ) // '"!'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
+             ENDIF
           ENDIF
 
           ! Update the alarm
@@ -3189,10 +3414,10 @@ CONTAINS
                                      State_Diag = State_Diag,                &
                                      Container  = Container,                 &
                                      RC         = RC                         )
-
-          ! Trap error
           IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error returned from "History_Netcdf_Write"!'
+             ErrMsg = 'Error encountered in "History_Netcdf_Write" '      // &
+                      'for collection "'                                  // &
+                      TRIM( Container%Name ) // '"!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
@@ -3205,6 +3430,14 @@ CONTAINS
           ! as we will have to take into account leap years, etc.
           IF ( Container%FileWriteYmd >= 000100 ) THEN
              CALL HistContainer_FileWriteIvalSet( Input_Opt, Container, RC )
+             IF ( RC /= GC_SUCCESS ) THEN
+                ErrMsg = &
+                  'Error encountered in "HistContainer_FileWriteIvalSet" '// &
+                   'for collection "'                                     // &
+                   TRIM( Container%Name ) // '"!'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
+             ENDIF
           ENDIF
 
           ! Update the alarm
@@ -3222,7 +3455,9 @@ CONTAINS
              CALL History_Netcdf_Close( Container = Container,               &
                                         RC        = RC                      )
              IF ( RC /= GC_SUCCESS ) THEN
-                ErrMsg = 'Error returned from "History_Netcdf_Close"!'
+                ErrMsg = 'Error encountered in "History_Netcdf_Close" '   // &
+                         'for collection "'                               // &
+                         TRIM( Container%Name ) // '"!'
                 CALL GC_Error( ErrMsg, RC, ThisLoc )
                 RETURN
              ENDIF
@@ -3444,12 +3679,14 @@ CONTAINS
 
        ! Close the file (if it's open) and reset all relevant fields
        ! in the HISTORY CONTAINER object
-       CALL History_Netcdf_Close( Container = Current%Container, &
-                                  RC        = RC                 )
+       CALL History_Netcdf_Close( Container = Current%Container,             &
+                                  RC        = RC                            )
 
        ! Trap error
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error returned from "History_Netcdf_Close"!'
+          ErrMsg = 'Error encountered in "History_Netcdf_Close" '         // &
+                   'for collection "'                                     // &
+                   TRIM( Current%Container%Name ) // '"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           Current => NULL()
           RETURN
@@ -3520,7 +3757,7 @@ CONTAINS
      !======================================================================
      CALL History_Close_AllFiles( RC )
      IF ( RC /= GC_SUCCESS ) THEN
-        ErrMsg = 'Error returned from "History_Close_AllFiles"!'
+        ErrMsg = 'Error encountered in "History_Close_AllFiles"!'
         CALL GC_Error( ErrMsg, RC, ThisLoc )
         RETURN
      ENDIF
