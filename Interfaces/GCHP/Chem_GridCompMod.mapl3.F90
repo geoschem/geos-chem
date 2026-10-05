@@ -5,12 +5,17 @@ module GEOSChem_GridCompMod
 
   use ESMF
   use MAPL
-  use pflogger, only: logger_t => logger
+  use pflogger,           only: logger_t => logger
+  use gFTL2_StringVector, only: StringVector  ! ewl: is there a way not to use this???
+  use DiagList_Mod,       only: SPFX          ! 'SPC_'
+  use Hco_Types_Mod,      only: ConfigObj
 
   implicit none
   private
 
   public SetServices
+
+  type(ConfigObj), pointer :: HcoConfig => null()
 
 contains
 
@@ -19,12 +24,32 @@ contains
   !
   subroutine SetServices(gc, rc)
 
+    ! Use modules from GEOS-Chem/HEMCO
+    use GCKPP_Model,   only: NSPEC, SPC_NAMES
+    use Charpak_Mod,   only: STRSPLIT
+    use inquireMod,    only: findFreeLUN
+    use File_Mod,      only: IOERROR
+    use CMN_Size_mod,  only: NSURFTYPE
+    use HCOI_ESMF_Mod, only: HCO_SetServices
+
     type(ESMF_GridComp)  :: gc     ! composite gridded component
     integer, intent(out) :: rc     ! Error code, 0 all is well
 
+    ! Basic needs
     integer :: status
     type(ESMF_HConfig) :: hconfig
     class(logger_t), pointer :: logger
+
+    ! Specific to GEOS-Chem
+    type(StringVector)         :: adv_names
+    character(len=255)         :: line, substrs(500)
+    character(len=60)          :: simType
+    character(len=ESMF_MAXSTR) :: spcName
+    character(len=40)          :: advSpc(500)
+    character(len=2)           :: landTypeStr
+    integer                    :: iu_geos, ios, n, i, j, nadv, t
+    logical                    :: found, eof
+    character(len=:), allocatable :: hcoConfigFile
 
     call MAPL_GridCompGet(gc, hconfig=hconfig, logger=logger, _RC)
     call logger%debug("GEOSChem_GridCompMod.F90::SetServices starting...")
@@ -43,12 +68,133 @@ contains
     ! Include auto-generated code for declaring internal state
 #include "GEOSChem_Internal___.h"
 
-    
+    !---------------------------------------------------------------------
+    !---------------------------------------------------------------------
+
+    !-- Read sim name and transported species from geoschem_config.yml
+    iu_geos = findFreeLUN()
+    open(iu_geos, file='geoschem_config.yml', status='old', iostat=ios)
+    if (ios /= 0) call IOERROR(ios, iu_geos, 'READ_SPECIES_FROM_FILE:1')
+    do
+       read(iu_geos, '(a)', iostat=ios) line
+       if (ios /= 0) call IOERROR(ios, iu_geos, 'READ_SPECIES_FROM_FILE:2')
+       line = adjustl(adjustr(line))
+       if (index(line, 'name') > 0) then
+          call STRSPLIT(line, ':', substrs, n)
+          simType = adjustl(adjustr(substrs(2)))
+       end if
+       if (index(line, 'transported_species') > 0) exit
+    end do
+
+    !-- Advected species: internal spec + TRADV service item
+    nadv = 0
+    do while (len_trim(line) > 0)
+       read(iu_geos, '(a)', iostat=ios) line
+       eof = ios < 0
+       if (eof) exit
+       if (ios > 0) call IOERROR(ios, iu_geos, 'READ_SPECIES_FROM_FILE:3')
+       line = adjustl(adjustr(line))
+       if (index(line, 'passive_species') > 0) exit
+       call STRSPLIT(line, '-', substrs, n)
+       if (index(line, '-') > 0) then
+          substrs(1) = adjustl(adjustr(substrs(1)))
+          j = index(substrs(1), "'")              ! strip quotes: 'NO' -> NO
+          if (j > 0) then
+             substrs(1) = substrs(1)(j+1:)
+             j = index(substrs(1), "'")
+             if (j > 0) substrs(1) = substrs(1)(1:j-1)
+          end if
+          call add_species_spec(gc, trim(substrs(1)), _RC)
+          call adv_names%push_back(trim(SPFX)//trim(substrs(1)))
+          nadv = nadv + 1
+          advSpc(nadv) = trim(substrs(1))
+       end if
+    end do
+    close(iu_geos)
+
+    !-- Non-advected species for KPP mechanisms (skipped for TransportTracers)
+    if (trim(simType) == 'fullchem' .or. trim(simType) == 'Hg' .or. &
+        trim(simType) == 'carbon') then
+       do i = 1, NSPEC
+          spcName = adjustl(SPC_NAMES(i))
+          if (spcName(1:2) == 'RR') cycle        ! dummy prod/loss species
+          found = any(advSpc(1:nadv) == spcName)
+          if (.not. found) call add_species_spec(gc, trim(spcName), _RC)
+       end do
+    end if
+
+    !-- Subscribe to AdvCore's advection service (replaces FRIENDLYTO='DYNAMICS:...')
+    call MAPL_GridCompAddSpec(gc,                                    &
+         state_intent  = ESMF_STATEINTENT_IMPORT,                    &
+         short_name    = "TRADV",                                    &
+         standard_name = "advected_quantities",                      &
+         itemtype      = MAPL_STATEITEM_SERVICE,                     &
+         service_items = adv_names, _RC)
+
+    !---------------------------------------------------------------------
+    !---------------------------------------------------------------------
+
+    !-- Olson land-type fractions (imported from ExtData)
+    do t = 1, NSURFTYPE
+       write(landTypeStr, '(I2.2)') t - 1
+       call MAPL_GridCompAddSpec(gc,                                 &
+            state_intent     = ESMF_STATEINTENT_IMPORT,              &
+            short_name       = 'OLSON'//landTypeStr,                 &
+            standard_name    = 'OLSON_land_fraction_type_'//landTypeStr, &
+            units            = '1',                                  &
+            dims             = 'xy',                                 &
+            vertical_stagger = MAPL_VERTICAL_STAGGER_NONE,           &
+            restart_mode     = MAPL_RESTART_SKIP,                    &
+            _RC)
+    end do
+
+    !---------------------------------------------------------------------
+    !---------------------------------------------------------------------
+
+    call MAPL_GridCompGetResource(gc, "HEMCO_CONFIG", hcoConfigFile, &
+         default="HEMCO_Config.rc", _RC)
+    call HCO_SetServices(MAPL_Am_I_Root(), gc, HcoConfig, trim(hcoConfigFile), _RC)
+
+    !---------------------------------------------------------------------
+    !---------------------------------------------------------------------
+
+    !---------------------------------------------------------------------
+    !---------------------------------------------------------------------
+
+    !---------------------------------------------------------------------
+    !---------------------------------------------------------------------
+
     call logger%debug("GEOSChem_GridCompMod.F90::SetServices done")
 
     _RETURN(_SUCCESS)
 
   end subroutine SetServices
+
+  !---------------------------------------------------------------------
+  ! ewl: new helper routine used in SetServices to add species in loop
+  ! while reading geoschem_config.yml
+  !---------------------------------------------------------------------
+  subroutine add_species_spec(gc, spc_name, rc)
+    type(ESMF_GridComp)  :: gc
+    character(*), intent(in) :: spc_name
+    integer, intent(out) :: rc
+    integer :: status
+
+    call MAPL_GridCompAddSpec(gc,                                    &
+         state_intent     = ESMF_STATEINTENT_INTERNAL,               &
+         short_name       = trim(SPFX)//trim(spc_name),              &
+         standard_name    = trim(spc_name),                          &
+         units            = 'mol mol-1',                             &
+         typekind         = ESMF_TYPEKIND_R8,                        &
+         dims             = 'xyz',                                   &
+         vertical_stagger = MAPL_VERTICAL_STAGGER_CENTER,            &
+         restart_mode     = MAPL_RESTART_REQUIRED,                   &
+         fill_value       = 0.0,                                     &
+         add_to_export    = .true.,                                  &
+         _RC)
+
+    _RETURN(_SUCCESS)
+  end subroutine add_species_spec
 
   !=============================================================================
   ! Initialize routine
@@ -64,13 +210,31 @@ contains
     type(ESMF_HConfig) :: hconfig
     class(logger_t), pointer :: logger
 
+    ! Specific to GEOS-Chem
+    type(ESMF_Grid)  :: grid
+    type(ESMF_State) :: internal
+    real(ESMF_KIND_R8), pointer     :: spc(:,:,:)
+    real(ESMF_KIND_R8), allocatable :: lons(:,:), lats(:,:)
+    integer :: k
+
     call MAPL_GridCompGet(gc, hconfig=hconfig, logger=logger, _RC)
     call logger%debug("GEOSChem_GridCompMod.F90::Initialize starting...")
+
+!    ! ewl test - give passive tracer some values. will remove when use restart file instead.
+!    ! There is currently an issue here. Will come back to ti.
+!    call logger%info("lats min/max: %g14.6 %g14.6", minval(lats), maxval(lats))
+!    call MAPL_GridCompGet(gc, grid=grid, _RC)
+!    call MAPL_GridGetCoordinates(grid, longitudes=lons, latitudes=lats, _RC)
+!    call MAPL_GridCompGetInternalState(gc, internal, _RC)
+!    call MAPL_StateGetPointer(internal, spc, 'SPC_PassiveTracer', _RC)
+!    do k = 1, size(spc, 3)
+!       spc(:,:,k) = 1.0d-9 * (1.0d0 + sin(lats) * cos(lons))
+!    end do
 
     call logger%debug("GEOSChem_GridCompMod.F90::Initialize done")
 
     _RETURN(_SUCCESS)
-      
+
   end subroutine Initialize
 
   !=============================================================================

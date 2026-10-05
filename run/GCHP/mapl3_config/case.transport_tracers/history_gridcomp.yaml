@@ -4,6 +4,7 @@ mapl:
 
 active_collections:
   - GCHPctmEnv
+  - SpeciesConc
 
 time_specs:
   tavg_10m: &tavg_10m
@@ -80,4 +81,13 @@ collections:
 #      VC:              {source: GCHPctmEnv.VC}
 #      UpwardsMassFlux: {source: GCHPctmEnv.UpwardsMassFlux}
 #      AREA:            {source: AdvCore.AREA}
-
+  SpeciesConc:
+    template: "OutputDir/%c.%y4%m2%d2_%h2%n2z.nc4"
+    time_spec: *inst_dt
+    var_list:
+      SPC_Rn222:         {source: GEOSChem.SPC_Rn222}
+      SPC_Pb210:         {source: GEOSChem.SPC_Pb210}
+      SPC_e90:           {source: GEOSChem.SPC_e90}
+      SPC_PassiveTracer: {source: GEOSChem.SPC_PassiveTracer}
+      T_DAVG:            {source: GEOSChem.T_DAVG}
+      PFACTOR:           {source: GEOSChem.PFACTOR}

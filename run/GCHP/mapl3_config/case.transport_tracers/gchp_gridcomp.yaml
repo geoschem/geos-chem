@@ -65,3 +65,32 @@ mapl:
 #      dst_name: SPHU0
 #      dst_comp: AdvCore
 
+    - src_name: AREA
+      src_comp: AdvCore
+      dst_name: AREA
+      dst_comp: GEOSChem
+
+    - src_name: PLE1
+      src_comp: GCHPctmEnv
+      dst_name: PLE
+      dst_comp: GEOSChem
+
+    - src_name: DryPLE1
+      src_comp: GCHPctmEnv
+      dst_name: DryPLE
+      dst_comp: GEOSChem
+
+    - src_name: UA
+      src_comp: GCHPctmEnv
+      dst_name: UA
+      dst_comp: GEOSChem
+
+    - src_name: VA
+      src_comp: GCHPctmEnv
+      dst_name: VA
+      dst_comp: GEOSChem
+
+    - src_name: TRADV
+      src_comp: AdvCore
+      dst_name: TRADV
+      dst_comp: GEOSChem

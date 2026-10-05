@@ -2,7 +2,7 @@
 # Can this come from gchp.yaml?
 #RUN_DT: 600                         # default: 0
 
-AdvCore_Advection: 0                # default: 0
+AdvCore_Advection: 1                # default: 0
 DEBUG_ADV: false                    # default:
 ADV_CORE_REPORT_TRACER_MASS: false  # default:
 ADV_QSPLIT: 0                       # default:
@@ -33,10 +33,12 @@ geometry:
     nx_face: 1
     ny_face: 1
   vertical_grid:
-    class: model
-    standard_name: air_pressure
-    units: hPa
-    num_levels: 72
+      class: model
+      standard_name: air_pressure
+      units: hPa
+      num_levels: 72
+      field_edge: PLE
+      field_center: PE
 
 mapl:
   setServices:
