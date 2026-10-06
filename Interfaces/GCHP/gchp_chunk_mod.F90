@@ -195,14 +195,26 @@ CONTAINS
     ! Assume success
     RC = GC_SUCCESS
 
-#if !defined( MODEL_GEOS )
+       ! Error trap
+    Iam = 'GCHP_CHUNK_INIT (gchp_chunk_mod.F90)'
+
+    ! Assume success
+    RC = GC_SUCCESS
+
+#ifndef MODEL_GEOS
     ! Get memory debug level
+#ifdef MAPL3
+    call MAPL_GridCompGetResource(GC, "MEMORY_DEBUG_LEVEL", MemDebugLevel, default=0, _RC)
+#else
     call ESMF_GridCompGet ( GC, config=CF, RC=STATUS )
     _VERIFY(STATUS)
     call ESMF_ConfigGetAttribute(CF, MemDebugLevel, &
                                  Label="MEMORY_DEBUG_LEVEL:" , RC=STATUS)
     _VERIFY(STATUS)
 #endif
+#endif
+
+! ewl: rest of MAPL3 part not yet adapted
 
     ! Update Input_Opt with timing fields
     ! We will skip defining these in READ_INPUT_FILE

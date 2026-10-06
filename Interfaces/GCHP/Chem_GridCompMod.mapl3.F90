@@ -17,6 +17,16 @@ module GEOSChem_GridCompMod
 
   type(ConfigObj), pointer :: HcoConfig => null()
 
+  ! Settings from geoschem_gridcomp.yaml (formerly GCHP.rc)
+  integer :: IsCTM                     ! GEOSChem_CTM
+  integer :: MemDebugLevel             ! MEMORY_DEBUG_LEVEL
+  logical :: use_extdata2g             ! USE_EXTDATA2G
+  logical :: met_wind_is_top_down      ! MET_WIND_IS_TOP_DOWN
+  logical :: met_humidity_is_top_down  ! MET_HUMIDITY_IS_TOP_DOWN
+  logical :: met_nonadv_is_top_down    ! MET_NONADVECTION_IS_TOP_DOWN
+  logical :: Read_Dyn_Heating          ! IMPORT_DYN_HEATING > 0 (RRTMG only)
+  real    :: tsDyn, tsChem, tsRad      ! RUN_DT, GCHPchem_DT, RRTMG_DT [s]
+
 contains
 
   !=============================================================================
@@ -47,7 +57,7 @@ contains
     character(len=ESMF_MAXSTR) :: spcName
     character(len=40)          :: advSpc(500)
     character(len=2)           :: landTypeStr
-    integer                    :: iu_geos, ios, n, i, j, nadv, t
+    integer                    :: iu_geos, ios, n, i, j, nadv, t, idt, idyn
     logical                    :: found, eof
     character(len=:), allocatable :: hcoConfigFile
 
@@ -59,8 +69,57 @@ contains
     call MAPL_GridCompSetEntryPoint(gc, ESMF_Method_Run, Run, phase_name="run", _RC)
     call MAPL_GridCompSetEntryPoint(gc, ESMF_Method_Finalize, Finalize, _RC)
 
+    call MAPL_GridCompGetResource(gc, "MET_WIND_IS_TOP_DOWN",         met_wind_is_top_down,     default=.false., _RC)
+    call MAPL_GridCompGetResource(gc, "MET_HUMIDITY_IS_TOP_DOWN",     met_humidity_is_top_down, default=.false., _RC)
+    call MAPL_GridCompGetResource(gc, "MET_NONADVECTION_IS_TOP_DOWN", met_nonadv_is_top_down,   default=.false., _RC)
+
+    !-- Settings (formerly GCHP.rc)
+    call MAPL_GridCompGetResource(gc, "GEOSChem_CTM",       IsCTM,         default=1, _RC)
+    call MAPL_GridCompGetResource(gc, "MEMORY_DEBUG_LEVEL", MemDebugLevel, default=0, _RC)
+
+    call MAPL_GridCompGetResource(gc, "RUN_DT", idt, default=600, _RC)
+    tsDyn = real(idt)
+    call MAPL_GridCompGetResource(gc, "GCHPchem_DT", idt, default=int(tsDyn), _RC)
+    tsChem = real(idt)
+    call MAPL_GridCompGetResource(gc, "RRTMG_DT", idt, default=10800, _RC)
+    tsRad = real(idt)
+
+    call MAPL_GridCompGetResource(gc, "USE_EXTDATA2G",                use_extdata2g,            default=.false., _RC)
+    call MAPL_GridCompGetResource(gc, "MET_WIND_IS_TOP_DOWN",         met_wind_is_top_down,     default=.false., _RC)
+    call MAPL_GridCompGetResource(gc, "MET_HUMIDITY_IS_TOP_DOWN",     met_humidity_is_top_down, default=.false., _RC)
+    call MAPL_GridCompGetResource(gc, "MET_NONADVECTION_IS_TOP_DOWN", met_nonadv_is_top_down,   default=.false., _RC)
+
+    if (met_wind_is_top_down) then
+       call logger%info("Expecting 'top-down' wind met-field imports")
+    else
+       call logger%info("Expecting 'bottom-up' wind met-field imports")
+    end if
+    if (met_humidity_is_top_down) then
+       call logger%info("Expecting 'top-down' humidity met-field imports")
+    else
+       call logger%info("Expecting 'bottom-up' humidity met-field imports")
+    end if
+    if (met_nonadv_is_top_down) then
+       call logger%info("Expecting 'top-down' non-advection met-field imports")
+    else
+       call logger%info("Expecting 'bottom-up' non-advection met-field imports")
+    end if
+
     ! Include auto-generated code for declaring non-vector imports
 #include "GEOSChem_Import___.h"
+
+    ! Only get DynHeating import if geoschem_gridcomp.yaml specifies to
+    if (Read_Dyn_Heating) then
+       call MAPL_GridCompAddSpec(gc,                                 &
+            state_intent     = ESMF_STATEINTENT_IMPORT,              &
+            short_name       = 'DynHeating',                         &
+            standard_name    = 'dynamical_heating',                  &
+            units            = 'K day-1',                            &
+            typekind         = ESMF_TYPEKIND_R4,                     &
+            dims             = 'xyz',                                &
+            vertical_stagger = MAPL_VERTICAL_STAGGER_CENTER,         &
+            _RC)
+    end if
 
     ! Include auto-generated code for declaring exports
 #include "GEOSChem_Export___.h"

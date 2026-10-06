@@ -3,7 +3,7 @@
 esma_set_this (OVERRIDE GEOSChem_GridComp)
 
 esma_add_library (${this}
-  SRCS Chem_GridCompMod.mapl3.F90
+  SRCS Chem_GridCompMod.mapl3.F90 gchp_chunk_mod.F90 gchp_historyexports_mod.F90
   DEPENDENCIES MAPL GeosCore
   TYPE SHARED)
 
