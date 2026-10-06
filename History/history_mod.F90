@@ -843,26 +843,52 @@ CONTAINS
        IF ( Line(1:1) == "#" ) CYCLE
 
        !--------------------------------------------------------------------
-       ! Sanity check: raise an error if mistyped collection names (e.g.
+       ! Sanity check: raise an error if mistyped collection prefixes (e.g.
        ! "SpeciesConcVVV" among "SpeciesConcVV" entries) are encountered.
        !--------------------------------------------------------------------
        iDot   = INDEX( Line, '.' )
        iColon = INDEX( Line, ':' )
+
+       ! A "::" line terminates the current collection's attribute block
+       IF ( TRIM( Line ) == '::' ) BlockName = ''
+
+       ! If the line contains a collection attribute...
        IF ( iDot > 1 .and. iColon > iDot ) THEN
+
+          ! ... get the collection name prefix
+          ! (i.e. the "SpeciesConc" in "SpeciesConc.fields", etc.)
           LinePrefix = Line(1:iDot-1)
+
+          ! If we are entering a new collection block...
           IF ( LEN_TRIM( BlockName ) == 0 ) THEN
-             BlockName = LinePrefix
+
+             ! ... test if the collection is turned on before assigning
+             ! the collection prefix to "LinePrefix".  This will prevent
+             ! errors in collections that are turned off in the COLLECTIONS
+             ! list of HISTORY.rc from halting the run unexpectedly.
+             CALL Search_CollList( Input_Opt%amIRoot, CollList,              &
+                                   TRIM( LinePrefix ), Found,  RC           )
+             RC = GC_SUCCESS
+             IF ( Found ) BlockName = LinePrefix
+
           ELSE IF ( TRIM( LinePrefix ) /= TRIM( BlockName ) ) THEN
-             ErrMsg = 'Attribute "' // TRIM( Line(1:iColon-1) )           // &
-                      '" does not match the other attributes of '         // &
-                      'collection "' // TRIM( BlockName )                 // &
-                      '".  Check HISTORY.rc for a mistyped collection name.'
+
+             ! ... or throw an error if the collection prefix
+             ! does not match that of the entries surrounding it.
+             ErrMsg = 'Found attribute "' // TRIM( Line(1:iColon-1) )     // &
+                      '" while reading the attribute block for collection "' &
+                      // TRIM( BlockName ) // '".  Either "'               // &
+                      TRIM( LinePrefix ) // '" is a mistyped collection '  // &
+                      'name, or the "' // TRIM( BlockName )               // &
+                      '" block is missing its "::" terminator.'
              WRITE( ErrorLine, 250 ) LineNum
              CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
              RETURN
+
           ENDIF
 
-          ! The ".fields" line ends the block; start fresh for the next one
+          ! For safety's sake, reset the BlockName when we get to the
+          ! ".fields" attribute, which is the last listed attribute.
           IF ( Line(iDot:iDot+6) == '.fields' ) BlockName = ''
        ENDIF
 
