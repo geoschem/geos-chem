@@ -47,14 +47,14 @@ Mask fractions:              false
 ###############################################################################
 # ExtNr ExtName                on/off  Species   Years avail.
 0       Base                   : on    *
-# ----- MAIN SWITCHES ---------------------------------------------------------
-    --> EMISSIONS              :       true
-    --> METEOROLOGY            :       false
-    --> CHEMISTRY_INPUT        :       true
-    --> USE_CH4_DATA           :       true
+# ----- SIMULATION SETTINGS (DO NOT EDIT) -------------------------------------
+    --> USE_CH4_DATA	       :       true
     --> USE_CO_DATA            :       true
     --> USE_CO2_DATA           :       true
     --> USE_OCS_DATA           :       true     # 2012-2016
+# ----- MAIN SWITCHES ---------------------------------------------------------
+    --> EMISSIONS              :       true
+    --> CHEMISTRY_INPUT        :       true
 # ----- RESTART FIELDS --------------------------------------------------------
     --> GC_RESTART             :       false
     --> HEMCO_RESTART          :       false
@@ -1041,15 +1041,6 @@ Mask fractions:              false
 # --- Time zones (offset to UTC) ---
 #==============================================================================
 * TIMEZONES $ROOT/TIMEZONES/v2024-02/timezones_vohra_2017_0.1x0.1.nc UTC_OFFSET 2017/1-12/1/0 C xy count * - 1 1
-
-#==============================================================================
-# --- Meteorology fields ---
-#==============================================================================
-(((METEOROLOGY
-
->>>include ${RUNDIR_MET_FIELD_CONFIG}
-
-)))METEOROLOGY
 
 #==============================================================================
 # --- GEOS-Chem restart file ---

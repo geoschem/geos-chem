@@ -21,8 +21,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Converted `GTMM/CMakeLists.txt` line endings from CRLF to LF, per `.gitattributes`
 - Changed `#MINVERSION` to 3.5.0 in `KPP/custom/custom.kpp`, to match the `fullchem`, `carbon`, and `Hg` mechanisms
 - Retitled `test/README.md` so it no longer names the GCClassic-only path `src/GEOS-Chem/test`
-- Added GitHub language-detection overrides to `.gitattributes` to
-  avoid spurious CodeQL GitHub Action errors
+- Added GitHub language-detection overrides to `.gitattributes` to avoid spurious CodeQL GitHub Action errors
+- Separated `CH4/CO2/CO/OCS_DATA` switches in `HEMCO_Config.rc.carbon` for GCHP to note they are not editable
 
 ### Fixed
 - Fixed parallelization errors in `GeosCore/apm_driv_mod.F90`
@@ -35,6 +35,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Removed
 - Removed invalid OpenMP directives from the `MPI_LOAD_BALANCE` block of `GeosCore/fullchem_mod.F90`, which caused GCHP compilation to fail with `-DOMP=ON`
 - Removed confusing comments from `KPP/fullchem/fullchem_HetStateFuncs.F90`
+- Took out (((METEOROLOGY brackets in HEMCO_Config.rc.carbon, as GCHP uses ExtData instead. 
 
 ## [14.8.0] - 2026-09-11
 ### Added
