@@ -1612,11 +1612,12 @@ CONTAINS
     ! Get the number of levels (nLev) and level interfaces (nIlev)
     CALL Get_Number_Of_Levels( Container, nLev, nIlev )
 
-    ! Subset indices
-    Subset_Xc = (/ Container%X0, Container%X1 /)
-    Subset_Yc = (/ Container%Y0, Container%Y1 /)
-    Subset_Zc = (/ Container%Z0, nLev         /)
-    Subset_Ze = (/ Container%Z0, nILev        /)
+    ! Subset indices.  nLev and nILev are level counts, so
+    ! the last index of each vertical slice is Z0 + count - 1.
+    Subset_Xc = (/ Container%X0, Container%X1                 /)
+    Subset_Yc = (/ Container%Y0, Container%Y1                 /)
+    Subset_Zc = (/ Container%Z0, Container%Z0 + nLev  - 1     /)
+    Subset_Ze = (/ Container%Z0, Container%Z0 + nILev - 1     /)
 
     !========================================================================
     ! Create a HISTORY ITEM for each of the index fields (lon, lat, area)
