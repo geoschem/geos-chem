@@ -86,8 +86,8 @@ COLLECTIONS: @#'DefaultCollection',
              @#'StratBM',
              @##'Tomas',
              @#'UVFlux',
-             @#'WetLossConv',
-             @#'WetLossLS',
+             #'WetLossConv',
+             #'WetLossLS',
 ::
 #==============================================================================
 # Define collections
