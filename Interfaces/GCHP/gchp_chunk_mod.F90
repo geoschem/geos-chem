@@ -141,9 +141,6 @@ CONTAINS
 !
     INTEGER,             INTENT(OUT)   :: RC             ! Success or failure?
 !
-! !REMARKS:
-!  Need to add better error checking
-!
 ! !REVISION HISTORY:
 !  18 Jul 2011 - M. Long     - Initial Version
 !  See https://github.com/geoschem/geos-chem for history
@@ -187,8 +184,6 @@ CONTAINS
     ! GCHP_CHUNK_INIT begins here
     !=======================================================================
 
-! ewl: MAPL3 part not yet adapted
-#ifndef MAPL3
     ! Error trap
     Iam = 'GCHP_CHUNK_INIT (gchp_chunk_mod.F90)'
 
@@ -593,8 +588,6 @@ CONTAINS
 !    CALL Tend_Init ( Input_Opt, State_Chm, State_Grid, State_Met, RC )
 !    _ASSERT(RC==GC_SUCCESS, 'Error calling Tend_Init')
 !#endif
-
-#endif ! not MAPL3
 
     ! Return success
     RC = GC_Success

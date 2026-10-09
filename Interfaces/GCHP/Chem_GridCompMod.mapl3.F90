@@ -5,19 +5,38 @@ module GEOSChem_GridCompMod
 
   use ESMF
   use MAPL
-  use pflogger,           only: logger_t => logger
-  use gFTL2_StringVector, only: StringVector  ! ewl: is there a way not to use this???
-  use DiagList_Mod,       only: SPFX          ! 'SPC_'
-  use Hco_Types_Mod,      only: ConfigObj
+  use pflogger,                only: logger_t => logger
+  use gFTL2_StringVector,      only: StringVector
+  use DiagList_Mod,            only: SPFX
+  use Hco_Types_Mod,           only: ConfigObj
+  use Input_Opt_Mod,           only: OptInput
+  use State_Chm_Mod,           only: ChmState
+  use State_Diag_Mod,          only: DgnState
+  use State_Grid_Mod,          only: GrdState
+  use State_Met_Mod,           only: MetState
+  use GCHP_HistoryExports_Mod, only: HistoryConfigObj
 
   implicit none
   private
 
   public SetServices
 
-  type(ConfigObj), pointer :: HcoConfig => null()
+  ! GEOS-Chem and HEMCO objects that persist between timesteps
+  type(OptInput) :: Input_Opt
+  type(ChmState) :: State_Chm
+  type(DgnState) :: State_Diag
+  type(GrdState) :: State_Grid
+  type(MetState) :: State_Met
+  type(ConfigObj),        pointer :: HcoConfig => null()
+  type(HistoryConfigObj), pointer :: HistoryConfig => null()
 
-  ! Settings from geoschem_gridcomp.yaml (formerly GCHP.rc)
+  ! Run-time bookkeeping
+  type(ESMF_Time)             :: simStartTime         ! for hElapsed
+  type(ESMF_GridComp), target :: gc_saved ! targets for HcoState pointers
+  type(ESMF_State),    target :: import_saved, export_saved
+  logical :: spc_init_from_background   ! temporary until implement restart usage
+
+  ! Run-time settings from geoschem_gridcomp.yaml (setting names are in comments)
   integer :: IsCTM                     ! GEOSChem_CTM
   integer :: MemDebugLevel             ! MEMORY_DEBUG_LEVEL
   logical :: use_extdata2g             ! USE_EXTDATA2G
@@ -29,66 +48,86 @@ module GEOSChem_GridCompMod
 
 contains
 
-  !=============================================================================
-  ! SetServices - External visible registration routine
-  !
+!=============================================================================
+! SetServices - External visible registration routine
+!=============================================================================
   subroutine SetServices(gc, rc)
 
-    ! Use modules from GEOS-Chem/HEMCO
+    ! Modules from GEOS-Chem/HEMCO
     use GCKPP_Model,   only: NSPEC, SPC_NAMES
     use Charpak_Mod,   only: STRSPLIT
     use inquireMod,    only: findFreeLUN
     use File_Mod,      only: IOERROR
     use CMN_Size_mod,  only: NSURFTYPE
     use HCOI_ESMF_Mod, only: HCO_SetServices
+    use GCHP_HistoryExports_Mod, only: HistoryExports_SetServices
 
     type(ESMF_GridComp)  :: gc     ! composite gridded component
     integer, intent(out) :: rc     ! Error code, 0 all is well
 
-    ! Basic needs
-    integer :: status
-    type(ESMF_HConfig) :: hconfig
-    class(logger_t), pointer :: logger
-
-    ! Specific to GEOS-Chem
+    ! Local variables
+    integer                    :: i, j, n, t
+    integer                    :: iu_geos, ios, nadv, idt, idyn, status
+    logical                    :: found, eof
+    type(ESMF_HConfig)         :: hconfig
     type(StringVector)         :: adv_names
+    ! NOTE: Check the necessity of these char lengths
     character(len=255)         :: line, substrs(500)
     character(len=60)          :: simType
-    character(len=ESMF_MAXSTR) :: spcName
-    character(len=40)          :: advSpc(500)
+    character(len=40)          :: spcName, advSpc(500)
     character(len=2)           :: landTypeStr
-    integer                    :: iu_geos, ios, n, i, j, nadv, t, idt, idyn
-    logical                    :: found, eof
-    character(len=:), allocatable :: hcoConfigFile
+    character(len=:), allocatable :: hcoConfigFile, historyConfigFile
+    class(logger_t),  pointer     :: logger
 
+    !---------------------------------------------------------------------
+    ! Get connection to geoschem_gridcomp.yaml and logger
+    !---------------------------------------------------------------------
     call MAPL_GridCompGet(gc, hconfig=hconfig, logger=logger, _RC)
     call logger%debug("GEOSChem_GridCompMod.F90::SetServices starting...")
 
-    ! Register methods
+    !---------------------------------------------------------------------
+    ! Register core gridcomp methods with ESMF (initialize, run, finalize)
+    !---------------------------------------------------------------------
     call MAPL_GridCompSetEntryPoint(gc, ESMF_Method_Initialize,  Initialize, _RC)
     call MAPL_GridCompSetEntryPoint(gc, ESMF_Method_Run, Run, phase_name="run", _RC)
     call MAPL_GridCompSetEntryPoint(gc, ESMF_Method_Finalize, Finalize, _RC)
 
-    call MAPL_GridCompGetResource(gc, "MET_WIND_IS_TOP_DOWN",         met_wind_is_top_down,     default=.false., _RC)
-    call MAPL_GridCompGetResource(gc, "MET_HUMIDITY_IS_TOP_DOWN",     met_humidity_is_top_down, default=.false., _RC)
-    call MAPL_GridCompGetResource(gc, "MET_NONADVECTION_IS_TOP_DOWN", met_nonadv_is_top_down,   default=.false., _RC)
+    !---------------------------------------------------------------------
+    ! Get user settings from geoschem_gridcomp.yaml
+    !---------------------------------------------------------------------
+    call MAPL_GridCompGetResource(gc, "MET_WIND_IS_TOP_DOWN",         &
+         met_wind_is_top_down,     default=.false., _RC)
+    call MAPL_GridCompGetResource(gc, "MET_HUMIDITY_IS_TOP_DOWN",     &
+         met_humidity_is_top_down, default=.false., _RC)
+    call MAPL_GridCompGetResource(gc, "MET_NONADVECTION_IS_TOP_DOWN", &
+         met_nonadv_is_top_down,   default=.false., _RC)
 
-    !-- Settings (formerly GCHP.rc)
-    call MAPL_GridCompGetResource(gc, "GEOSChem_CTM",       IsCTM,         default=1, _RC)
-    call MAPL_GridCompGetResource(gc, "MEMORY_DEBUG_LEVEL", MemDebugLevel, default=0, _RC)
+    ! Is this used?
+    call MAPL_GridCompGetResource(gc, "GEOSChem_CTM",                 &
+         IsCTM,         default=1, _RC)
 
-    call MAPL_GridCompGetResource(gc, "RUN_DT", idt, default=600, _RC)
+    ! Memory print level (for debugging)
+    call MAPL_GridCompGetResource(gc, "MEMORY_DEBUG_LEVEL",           &
+         MemDebugLevel, default=0, _RC)
+
+    ! GEOS-Chem dynamic timestep
+    call MAPL_GridCompGetResource(gc, "RUN_DT",                       &
+         idt, default=600, _RC)
     tsDyn = real(idt)
-    call MAPL_GridCompGetResource(gc, "GCHPchem_DT", idt, default=int(tsDyn), _RC)
+
+    ! GEOS-Chem chemistry timestep
+    call MAPL_GridCompGetResource(gc, "GCHPchem_DT",                  &
+         idt, default=int(tsDyn), _RC)
     tsChem = real(idt)
-    call MAPL_GridCompGetResource(gc, "RRTMG_DT", idt, default=10800, _RC)
+
+    ! RRTMG timestep
+    call MAPL_GridCompGetResource(gc, "RRTMG_DT",                     &
+         idt, default=10800, _RC)
     tsRad = real(idt)
 
-    call MAPL_GridCompGetResource(gc, "USE_EXTDATA2G",                use_extdata2g,            default=.false., _RC)
-    call MAPL_GridCompGetResource(gc, "MET_WIND_IS_TOP_DOWN",         met_wind_is_top_down,     default=.false., _RC)
-    call MAPL_GridCompGetResource(gc, "MET_HUMIDITY_IS_TOP_DOWN",     met_humidity_is_top_down, default=.false., _RC)
-    call MAPL_GridCompGetResource(gc, "MET_NONADVECTION_IS_TOP_DOWN", met_nonadv_is_top_down,   default=.false., _RC)
-
+    !---------------------------------------------------------------------
+    ! Print info to log (still needed?)
+    !---------------------------------------------------------------------
     if (met_wind_is_top_down) then
        call logger%info("Expecting 'top-down' wind met-field imports")
     else
@@ -105,10 +144,36 @@ contains
        call logger%info("Expecting 'bottom-up' non-advection met-field imports")
     end if
 
-    ! Include auto-generated code for declaring non-vector imports
-#include "GEOSChem_Import___.h"
+    !---------------------------------------------------------------------
+    ! Declare state variables:
+    !   Import state : variable data comes from either:
+    !      - Other gridcomp exports listed in gchp_gridcomp.yaml
+    !      - External files via exports listed in extdata_gridcomp.yaml
+    !   Export state : variables that can be output via history_gridcomp.yaml
+    !   Internal state : variables in checkpoint (restart) files
+    !---------------------------------------------------------------------
 
-    ! Only get DynHeating import if geoschem_gridcomp.yaml specifies to
+    ! Auto-generated code configured from GEOSChem_StateSpecs.acg at build time
+#include "GEOSChem_Import___.h"
+#include "GEOSChem_Export___.h"
+#include "GEOSChem_Internal___.h"
+
+    ! Manually declare land type fraction imports
+    do t = 1, NSURFTYPE
+       write(landTypeStr, '(I2.2)') t - 1
+       call MAPL_GridCompAddSpec(gc,                                     &
+            state_intent     = ESMF_STATEINTENT_IMPORT,                  &
+            short_name       = 'OLSON'//landTypeStr,                     &
+            standard_name    = 'OLSON_land_fraction_type_'//landTypeStr, &
+            units            = '1',                                      &
+            dims             = 'xy',                                     &
+            vertical_stagger = MAPL_VERTICAL_STAGGER_NONE,               &
+            restart_mode     = MAPL_RESTART_SKIP,                        &
+            _RC)
+    end do
+
+    ! Manually declare DynHeating import only if IMPORT_DYN_HEATING
+    ! is set to greater than 0 in geoschem_gridcomp.yaml
     if (Read_Dyn_Heating) then
        call MAPL_GridCompAddSpec(gc,                                 &
             state_intent     = ESMF_STATEINTENT_IMPORT,              &
@@ -121,16 +186,10 @@ contains
             _RC)
     end if
 
-    ! Include auto-generated code for declaring exports
-#include "GEOSChem_Export___.h"
-
-    ! Include auto-generated code for declaring internal state
-#include "GEOSChem_Internal___.h"
-
     !---------------------------------------------------------------------
+    ! Read advected species names from geoschem_config.yaml
+    ! Set nadv (number of advected species) and advSpc array (their names)
     !---------------------------------------------------------------------
-
-    !-- Read sim name and transported species from geoschem_config.yml
     iu_geos = findFreeLUN()
     open(iu_geos, file='geoschem_config.yml', status='old', iostat=ios)
     if (ios /= 0) call IOERROR(ios, iu_geos, 'READ_SPECIES_FROM_FILE:1')
@@ -144,8 +203,6 @@ contains
        end if
        if (index(line, 'transported_species') > 0) exit
     end do
-
-    !-- Advected species: internal spec + TRADV service item
     nadv = 0
     do while (len_trim(line) > 0)
        read(iu_geos, '(a)', iostat=ios) line
@@ -171,7 +228,10 @@ contains
     end do
     close(iu_geos)
 
-    !-- Non-advected species for KPP mechanisms (skipped for TransportTracers)
+    !---------------------------------------------------------------------
+    ! Get non-advected species names from KPP species list set during
+    ! compilation from equation file for simulation (not run-time using yaml)
+    !---------------------------------------------------------------------
     if (trim(simType) == 'fullchem' .or. trim(simType) == 'Hg' .or. &
         trim(simType) == 'carbon') then
        do i = 1, NSPEC
@@ -182,7 +242,9 @@ contains
        end do
     end if
 
-    !-- Subscribe to AdvCore's advection service (replaces FRIENDLYTO='DYNAMICS:...')
+    !----------------------------------------------------------------------
+    ! Subscribe to AdvCore's advection service using advected species names
+    !----------------------------------------------------------------------
     call MAPL_GridCompAddSpec(gc,                                    &
          state_intent  = ESMF_STATEINTENT_IMPORT,                    &
          short_name    = "TRADV",                                    &
@@ -191,48 +253,31 @@ contains
          service_items = adv_names, _RC)
 
     !---------------------------------------------------------------------
+    ! Call HEMCO SetServices subroutine
     !---------------------------------------------------------------------
-
-    !-- Olson land-type fractions (imported from ExtData)
-    do t = 1, NSURFTYPE
-       write(landTypeStr, '(I2.2)') t - 1
-       call MAPL_GridCompAddSpec(gc,                                 &
-            state_intent     = ESMF_STATEINTENT_IMPORT,              &
-            short_name       = 'OLSON'//landTypeStr,                 &
-            standard_name    = 'OLSON_land_fraction_type_'//landTypeStr, &
-            units            = '1',                                  &
-            dims             = 'xy',                                 &
-            vertical_stagger = MAPL_VERTICAL_STAGGER_NONE,           &
-            restart_mode     = MAPL_RESTART_SKIP,                    &
-            _RC)
-    end do
-
-    !---------------------------------------------------------------------
-    !---------------------------------------------------------------------
-
     call MAPL_GridCompGetResource(gc, "HEMCO_CONFIG", hcoConfigFile, &
          default="HEMCO_Config.rc", _RC)
     call HCO_SetServices(MAPL_Am_I_Root(), gc, HcoConfig, trim(hcoConfigFile), _RC)
 
     !---------------------------------------------------------------------
+    ! Call History SetServices subroutine
     !---------------------------------------------------------------------
+    call MAPL_GridCompGetResource(gc, "HISTORY_CONFIG", historyConfigFile, &
+         default="HISTORY.rc", _RC)
+    call HistoryExports_SetServices(MAPL_Am_I_Root(), trim(historyConfigFile), gc, &
+         HistoryConfig, _RC)
 
     !---------------------------------------------------------------------
+    ! SetServices complete
     !---------------------------------------------------------------------
-
-    !---------------------------------------------------------------------
-    !---------------------------------------------------------------------
-
     call logger%debug("GEOSChem_GridCompMod.F90::SetServices done")
-
     _RETURN(_SUCCESS)
 
   end subroutine SetServices
 
-  !---------------------------------------------------------------------
-  ! ewl: new helper routine used in SetServices to add species in loop
-  ! while reading geoschem_config.yml
-  !---------------------------------------------------------------------
+!=============================================================================
+! Helper routine used in SetServices to add species to internal state
+!=============================================================================
   subroutine add_species_spec(gc, spc_name, rc)
     type(ESMF_GridComp)  :: gc
     character(*), intent(in) :: spc_name
@@ -255,9 +300,16 @@ contains
     _RETURN(_SUCCESS)
   end subroutine add_species_spec
 
-  !=============================================================================
-  ! Initialize routine
+!=============================================================================
+! Initialize
+!=============================================================================
   subroutine Initialize(gc, import, export, clock, rc)
+
+    use Input_Opt_Mod,  only: Set_Input_Opt
+    use State_Grid_Mod, only: Init_State_Grid
+    use GCHP_Chunk_Mod, only: GCHP_Chunk_Init
+    use Time_Mod,       only: GET_TS_CHEM, GET_TS_EMIS, GET_TS_DYN, GET_TS_CONV
+    use ErrCode_Mod,    only: GC_SUCCESS
 
     type(ESMF_GridComp)  :: gc     ! composite gridded component
     type(ESMF_State)     :: import ! import state
@@ -266,40 +318,152 @@ contains
     integer, intent(out) :: rc     ! Error code, 0 all is well
 
     integer :: status
-    type(ESMF_HConfig) :: hconfig
     class(logger_t), pointer :: logger
+    type(ESMF_Grid) :: grid
+    type(ESMF_VM)   :: vm
+    type(ESMF_Time) :: currTime, stopTime
+    real(ESMF_KIND_R4), allocatable :: lonCtr(:,:), latCtr(:,:)  ! cell centers [rad]
+    integer :: myPet, nPEs, mpiComm
+    integer :: IM, JM, LM, IM_WORLD, JM_WORLD, tileCount
+    integer :: maxIndex(2)
+    integer :: yyyy, mm, dd, h, m, s
+    integer :: nymdB, nhmsB, nymdE, nhmsE
+    type(ESMF_TimeInterval) :: chemInterval
+    type(ESMF_Alarm)        :: chemAlarm
 
-    ! Specific to GEOS-Chem
-    type(ESMF_Grid)  :: grid
-    type(ESMF_State) :: internal
-    real(ESMF_KIND_R8), pointer     :: spc(:,:,:)
-    real(ESMF_KIND_R8), allocatable :: lons(:,:), lats(:,:)
-    integer :: k
-
-    call MAPL_GridCompGet(gc, hconfig=hconfig, logger=logger, _RC)
+    !---------------------------------------------------------------------
+    ! Get connection to logger
+    !---------------------------------------------------------------------
+    call MAPL_GridCompGet(gc, logger=logger, _RC)
     call logger%debug("GEOSChem_GridCompMod.F90::Initialize starting...")
 
-!    ! ewl test - give passive tracer some values. will remove when use restart file instead.
-!    ! There is currently an issue here. Will come back to ti.
-!    call logger%info("lats min/max: %g14.6 %g14.6", minval(lats), maxval(lats))
-!    call MAPL_GridCompGet(gc, grid=grid, _RC)
-!    call MAPL_GridGetCoordinates(grid, longitudes=lons, latitudes=lats, _RC)
-!    call MAPL_GridCompGetInternalState(gc, internal, _RC)
-!    call MAPL_StateGetPointer(internal, spc, 'SPC_PassiveTracer', _RC)
-!    do k = 1, size(spc, 3)
-!       spc(:,:,k) = 1.0d-9 * (1.0d0 + sin(lats) * cos(lons))
-!    end do
+    !---------------------------------------------------------------------
+    ! Input_Opt defaults, logger, component name
+    !---------------------------------------------------------------------
+    call Set_Input_Opt(MAPL_Am_I_Root(), Input_Opt, status)
+    _ASSERT(status == GC_SUCCESS, 'Error calling Set_Input_Opt')
+    call MAPL_GridCompGet(gc, logger=Input_Opt%lgr, _RC)
+    call ESMF_GridCompGet(gc, vm=vm, _RC)
 
+    !---------------------------------------------------------------------
+    ! MPI info (was Extract_ localPet/petCount/mpiComm)
+    !---------------------------------------------------------------------
+    call ESMF_VMGet(vm, localPet=myPet, petCount=nPEs, mpiCommunicator=mpiComm, _RC)
+    Input_Opt%thisCPU = myPet
+    Input_Opt%numCPUs = nPEs
+    Input_Opt%MPIComm = mpiComm
+    Input_Opt%isMPI   = .true.
+    Input_Opt%amIRoot = MAPL_Am_I_Root()
+
+    !---------------------------------------------------------------------
+    ! Start/end date and time (was Extract_ nymdB/nhmsB/nymdE/nhmsE)
+    !---------------------------------------------------------------------
+    call ESMF_ClockGet(clock, currTime=currTime, stopTime=stopTime, _RC)
+    call ESMF_TimeGet(currTime, yy=yyyy, mm=mm, dd=dd, h=h, m=m, s=s, _RC)
+    nymdB = yyyy*10000 + mm*100 + dd
+    nhmsB = h*10000 + m*100 + s
+    call ESMF_TimeGet(stopTime, yy=yyyy, mm=mm, dd=dd, h=h, m=m, s=s, _RC)
+    nymdE = yyyy*10000 + mm*100 + dd
+    nhmsE = h*10000 + m*100 + s
+    call logger%info("GEOS-Chem start %i8.8 %i6.6, end %i8.8 %i6.6", &
+         nymdB, nhmsB, nymdE, nhmsE)
+
+    !---------------------------------------------------------------------
+    ! Grid sizes (was Extract_ IM/JM/LM/IM_WORLD/JM_WORLD)
+    !---------------------------------------------------------------------
+    call MAPL_GridCompGet(gc, grid=grid, num_levels=LM, _RC)
+    call MAPL_GridGet(grid, im=IM, jm=JM, _RC)
+    call ESMF_GridGet(grid, tileCount=tileCount, _RC)
+    call ESMF_GridGet(grid, tile=1, staggerloc=ESMF_STAGGERLOC_CENTER, &
+         maxIndex=maxIndex, _RC)
+    IM_WORLD = maxIndex(1)
+    JM_WORLD = maxIndex(2) * tileCount   ! cubed sphere: faces stacked in J (MAPL2 convention)
+
+    !---------------------------------------------------------------------
+    ! Lon/lat centers in radians; shift lons from 0..2pi to -pi..pi (as in MAPL2)
+    !---------------------------------------------------------------------
+    call MAPL_GridGetCoordinates(grid, longitudes=lonCtr, latitudes=latCtr, _RC)
+    where (lonCtr > real(MAPL_PI, ESMF_KIND_R4)) &
+         lonCtr = lonCtr - real(2*MAPL_PI, ESMF_KIND_R4)
+
+    !---------------------------------------------------------------------
+    ! Number vertical levels
+    !---------------------------------------------------------------------
+
+    !---------------------------------------------------------------------
+    ! Grid state
+    !---------------------------------------------------------------------
+    call Init_State_Grid(Input_Opt, State_Grid, status)
+    _ASSERT(status == GC_SUCCESS, 'Error calling Init_State_Grid')
+    State_Grid%NX         = IM
+    State_Grid%NY         = JM
+    State_Grid%NZ         = LM
+    State_Grid%GlobalNX   = IM_WORLD
+    State_Grid%GlobalNY   = JM_WORLD
+    State_Grid%NativeNZ   = LM
+    State_Grid%XMinOffset = 1
+    State_Grid%XMaxOffset = State_Grid%NX
+    State_Grid%YMinOffset = 1
+    State_Grid%YMaxOffset = State_Grid%NY
+
+    !---------------------------------------------------------------------
+    ! GEOS-Chem initialization (gchp_chunk_mod.F90)
+    !---------------------------------------------------------------------
+    call GCHP_Chunk_Init(nymdB = nymdB, nhmsB = nhmsB,         &
+                         nymdE = nymdE, nhmsE = nhmsE,         &
+                         tsChem = tsChem, tsDyn = tsDyn,        &
+                         tsRad = tsRad,                         &
+                         lonCtr = lonCtr, latCtr = latCtr,      &
+                         GC = gc, EXPORT = export,              &
+                         Input_Opt = Input_Opt,                 &
+                         State_Chm = State_Chm,                 &
+                         State_Diag = State_Diag,               &
+                         State_Grid = State_Grid,               &
+                         State_Met = State_Met,                 &
+                         HcoConfig = HcoConfig,                 &
+                         HistoryConfig = HistoryConfig,         &
+                         _RC)
+
+    !---------------------------------------------------------------------
+    ! Check GEOS-Chem timesteps agree with geoschem_gridcomp.yaml
+    !---------------------------------------------------------------------
+    _ASSERT(real(GET_TS_CHEM()) == tsChem, 'GEOS-Chem chemistry timestep /= GCHPchem_DT')
+    _ASSERT(real(GET_TS_EMIS()) == tsChem, 'GEOS-Chem emissions timestep /= GCHPchem_DT')
+    _ASSERT(real(GET_TS_DYN())  == tsDyn,  'GEOS-Chem dynamics timestep /= RUN_DT')
+    _ASSERT(real(GET_TS_CONV()) == tsDyn,  'GEOS-Chem convection timestep /= RUN_DT')
+
+    !-- Chemistry alarm (replaces MAPL2 RUNALARM): rings every GCHPchem_DT from the start
+    simStartTime = currTime
+    call ESMF_TimeIntervalSet(chemInterval, s=nint(tsChem), _RC)
+    chemAlarm = &
+         ESMF_AlarmCreate(clock, name="GEOSChem_chem_alarm", ringTime=currTime, &
+         ringInterval=chemInterval, sticky=.true., _RC)
+
+    !-- TEMPORARY until species are read from a restart: start from species-database background
+    call MAPL_GridCompGetResource(gc, "SPC_INIT_FROM_BACKGROUND", &
+         spc_init_from_background, default=.false., _RC)
+
+    !---------------------------------------------------------------------
+    ! Initialize complete
+    !---------------------------------------------------------------------
     call logger%debug("GEOSChem_GridCompMod.F90::Initialize done")
-
     _RETURN(_SUCCESS)
 
   end subroutine Initialize
 
-  !=============================================================================
-  ! Run -- The Run method of the Gridded Component.
-
+!=============================================================================
+! Run
+!=============================================================================
   subroutine Run(gc, import, export, clock, rc)
+
+    use Precision_Mod,           only: fp
+    use ErrCode_Mod,             only: GC_SUCCESS
+    use CMN_Size_Mod,            only: NDUST, NSURFTYPE
+    use State_Chm_Mod,           only: IND_
+    use Species_Mod,             only: Species
+    use HCO_State_GC_Mod,        only: HcoState
+    use Olson_Landmap_Mod,       only: Compute_Olson_Landmap
+    use GCHP_HistoryExports_Mod, only: HistoryExports_SetDataPointers, CopyGCStates2Exports
 
     type(ESMF_GridComp)  :: gc     ! composite gridded component
     type(ESMF_State)     :: import ! import state
@@ -307,32 +471,219 @@ contains
     type(ESMF_Clock)     :: clock  ! the clock
     integer, intent(out) :: rc     ! Error code, 0 all is well
 
-    integer      :: status
-    type(ESMF_HConfig) :: hconfig
+    integer :: status
     type(ESMF_State) :: internal
     class(logger_t), pointer :: logger
 
-    ! Include auto-generated code to declare non-vector import/export pointers
+    ! Specific to GEOS-Chem
+    logical, save                :: first = .true.
+    integer, parameter           :: Phase = -1          ! GCHP: single phase, all processes
+    type(ESMF_Alarm)             :: chemAlarm
+    type(ESMF_Time)              :: currTime
+    type(ESMF_TimeInterval)      :: elapsed
+    logical                      :: IsChemTime, IsRadTime
+    integer                      :: nymd, nhms, year, month, day, dayOfYr
+    integer                      :: hour, minute, second, eh, em, es
+    real                         :: utc, hElapsed
+    integer                      :: I, J, L, N, TT, LM, IND, z_lb, z_ub
+    character(len=2)             :: landTypeStr
+    type(Species), pointer       :: ThisSpc => null()
+    real, pointer                :: Ptr2d(:,:) => null()
+    real(ESMF_KIND_R8), pointer  :: ptr3d_r8(:,:,:) => null()
+
+    !---------------------------------------------------------------------
+    ! Setup
+    !---------------------------------------------------------------------
+
+    ! Declare pointers to imports, exports, and internal state arrays
 #include "GEOSChem_DeclarePointer___.h"
-    
+
+    ! Get connection to logger
     call MAPL_GridCompGet(gc, logger=logger, _RC)
     call logger%debug("GEOSChem_GridCompMod.F90:: Run starting...")
 
+    ! Get internal state (contains restart/checkpoint file variables)
     call MAPL_GridCompGetInternalState(gc, internal, _RC)
-    
-    ! Include auto-generated code to get non-vector import/export pointers
-    ! Pointers to vectors will be done conditionally later on
+
+    ! Get pointers to imports, exports, and internal state arrays
 #include "GEOSChem_GetPointer___.h"
 
-    call logger%debug("GEOSChem_GridCompMod.F90::Run done")
+    ! Get number of vertical levels
+    call MAPL_GridCompGet(gc, num_levels=LM, _RC)
 
+    ! Edge field: MAPL3 bounds are 1:LM+1; Includes_Before_Run.H indexes PLE as 0:LM
+    ! ewl: is this still true??? I thought in MAPL3 it switched to 1-based...
+    ptr3d_r8 => PLE
+    PLE(1:,1:,0:) => ptr3d_r8
+
+    ! Set chemistry alarm
+    call ESMF_ClockGetAlarm(clock, alarmname="GEOSChem_chem_alarm", alarm=chemAlarm, _RC)
+    IsChemTime = ESMF_AlarmIsRinging(chemAlarm, _RC)
+    if (IsChemTime) call ESMF_AlarmRingerOff(chemAlarm, _RC)
+    IsRadTime = .false. ! ewl: RRTMG not yet ported
+
+    ! Get current time (replaces Extract_)
+    call ESMF_ClockGet(clock, currTime=currTime, _RC)
+    call ESMF_TimeGet(currTime, yy=year, mm=month, dd=day, dayOfYear=dayOfYr, &
+                      h=hour, m=minute, s=second, _RC)
+    nymd = year*10000 + month*100 + day
+    nhms = hour*10000 + minute*100 + second
+    utc  = real(hour) + real(minute)/60.0 + real(second)/3600.0
+    elapsed = currTime - simStartTime
+    call ESMF_TimeIntervalGet(elapsed, h=eh, m=em, s=es, _RC)
+    hElapsed = real(eh) + real(em)/60.0 + real(es)/3600.0
+
+    ! Prevent use of (occasional) MAPL_UNDEF tropopause pressures
+    ! ewl: is this still needed? Why would this happen?
+    where (TROPP /= MAPL_UNDEF) GCCTROPP = TROPP
+    _ASSERT(.not. any(GCCTROPP == MAPL_UNDEF), 'At least one invalid tropopause pressure')
+
+    !---------------------------------------------------------------------
+    ! Set HEMCO state objects
+    !---------------------------------------------------------------------
+    ! First call only
+    if (first) then
+       gc_saved = gc
+       import_saved = import
+       export_saved = export
+       _ASSERT(associated(HcoState), 'HcoState is not associated')
+       HcoState%gridComp    => gc_saved
+       HcoState%importState => import_saved
+       HcoState%exportState => export_saved
+    end if
+
+    !---------------------------------------------------------------------
+    ! Set GEOS-Chem state objects
+    !---------------------------------------------------------------------
+
+    ! Set State_Met variables and State_Grid area from imports
+#include "Includes_Before_Run.H"
+
+    ! Point State_Chm species at internal state (note that internal is top-down, GEOS-Chem bottom-up)
+    do N = 1, State_Chm%nSpecies
+       call MAPL_StateGetPointer(internal, ptr3d_r8, &
+            trim(SPFX)//trim(State_Chm%SpcData(N)%Info%Name), _RC)
+       State_Chm%Species(N)%Conc => ptr3d_r8(:,:,LM:1:-1)
+    end do
+
+    !---------------------------------------------------------------------
+    ! First run only: set values from restart file and for fixed land map
+    !---------------------------------------------------------------------
+    if (first) then
+
+       ! Initialize species from background values (TEMPORARY: no restart read yet)
+       if (spc_init_from_background) then
+          do N = 1, State_Chm%nSpecies
+             ThisSpc => State_Chm%SpcData(N)%Info
+             IND = IND_(trim(ThisSpc%Name))
+             if (IND <= 0) cycle
+             do L = 1, LM
+                if (L > State_Met%MaxChemLev .and. .not. ThisSpc%Is_Advected) then
+                   State_Chm%Species(IND)%Conc(:,:,L) = 1.0e-30_fp
+                else
+                   State_Chm%Species(IND)%Conc(:,:,L) = ThisSpc%BackgroundVV
+                end if
+             end do
+             ThisSpc => null()
+          end do
+          call logger%info("GEOS-Chem species initialized from species database background values")
+       end if
+
+       ! Set State_Chm fields from Internal state (restart)
+       if (associated(State_Chm%H2O2AfterChem))  State_Chm%H2O2AfterChem  = H2O2AfterChem(:,:,LM:1:-1)
+       if (associated(State_Chm%SO2AfterChem))   State_Chm%SO2AfterChem   = SO2AfterChem(:,:,LM:1:-1)
+       if (associated(State_Chm%DryDepNitrogen)) State_Chm%DryDepNitrogen = DryDepNitrogen
+       if (associated(State_Chm%WetDepNitrogen)) State_Chm%WetDepNitrogen = WetDepNitrogen
+       if (associated(State_Chm%KPPHvalue) .and. State_Met%MaxChemLev > 0) &
+          State_Chm%KPPHvalue(:,:,1:State_Met%MaxChemLev) = &
+             KPPHvalue(:,:,LM:LM-State_Met%MaxChemLev+1:-1)
+       if (associated(State_Chm%State_PSC))      State_Chm%State_PSC      = STATE_PSC(:,:,LM:1:-1)
+       if (associated(State_Chm%AeroH2O))        State_Chm%AeroH2O(:,:,1:LM,NDUST+1) = AeroH2O_SNA(:,:,LM:1:-1)
+       if (associated(State_Chm%ORVCsesq))       State_Chm%ORVCsesq(:,:,1:LM) = ORVCSESQ(:,:,LM:1:-1)
+       if (associated(State_Chm%JOH))            State_Chm%JOH  = JOH
+       if (associated(State_Chm%JNO2))           State_Chm%JNO2 = JNO2
+
+       ! Set Olson land type fractions from imports
+#ifdef GC_MAPL2_OLSON_FIXED
+       call logger%info("Initializing land type fractions from Olson imports")
+       do TT = 1, NSURFTYPE
+          write(landTypeStr, '(I2.2)') TT - 1
+          call MAPL_StateGetPointer(import, ptr2d, 'OLSON'//landTypeStr, _RC)
+          ! Olson test
+          !if (TT == 1 .or. TT == 6) call &
+          !     logger%info("OLSON"//landTypeStr//" min/max: %g14.6 %g14.6", &
+          !     minval(ptr2d), maxval(ptr2d))
+          State_Met%LandTypeFrac(:,:,TT) = ptr2d
+       end do
+       ptr2d => null()
+       call Compute_Olson_Landmap(Input_Opt, State_Grid, State_Met, status)
+       _ASSERT(status == GC_SUCCESS, 'Error calling Compute_Olson_Landmap')
+#else
+       ! TODO(MAPL3): skipped - MAPL3 ExtData FRACTION regridding bug gives wrong OLSONnn
+       ! (see porting notes). State_Met IREG/ILAND/IUSE/FRCLND stay unset; needed by drydep
+       call logger%warning("Olson land types NOT set (ExtData3G FRACTION regrid issue)")
+#endif
+
+    end if
+
+    !---------------------------------------------------------------------
+    ! Fix negative species, which can come in as an artifact of convection
+    ! ewl: still true?
+    !---------------------------------------------------------------------
+    do N = 1, State_Chm%nSpecies
+       where (State_Chm%Species(N)%Conc < 0.0_fp) State_Chm%Species(N)%Conc = 1.0e-36_fp
+    end do
+
+    !----------------------------------------------------------------------
+    ! Run GEOS-Chem
+    !---------------------------------------------------------------------
+    ! call GCHP_Chunk_Run (gchp_chunk_mod.F90) here (placeholder)
+
+    !----------------------------------------------------------------------
+    ! Set non-species internal state variables from State_Chm and State_Met
+    !---------------------------------------------------------------------
+    if (associated(State_Chm%DryDepNitrogen)) DryDepNitrogen = State_Chm%DryDepNitrogen
+    if (associated(State_Chm%WetDepNitrogen)) WetDepNitrogen = State_Chm%WetDepNitrogen
+    if (associated(State_Chm%H2O2AfterChem))  H2O2AfterChem(:,:,LM:1:-1) = State_Chm%H2O2AfterChem
+    if (associated(State_Chm%SO2AfterChem))   SO2AfterChem(:,:,LM:1:-1)  = State_Chm%SO2AfterChem
+    if (associated(State_Chm%KPPHvalue)) then
+       KPPHvalue(:,:,1:LM-State_Met%MaxChemLev) = 0.0
+       if (State_Met%MaxChemLev > 0) &
+          KPPHvalue(:,:,LM:LM-State_Met%MaxChemLev+1:-1) = State_Chm%KPPHvalue(:,:,1:State_Met%MaxChemLev)
+    end if
+    if (associated(State_Chm%AeroH2O))   AeroH2O_SNA(:,:,LM:1:-1) = State_Chm%AeroH2O(:,:,1:LM,NDUST+1)
+    if (associated(State_Chm%ORVCsesq))  ORVCSESQ(:,:,LM:1:-1)    = State_Chm%ORVCsesq(:,:,1:LM)
+    if (associated(State_Chm%JOH))       JOH  = State_Chm%JOH
+    if (associated(State_Chm%JNO2))      JNO2 = State_Chm%JNO2
+    if (associated(State_Chm%State_PSC)) STATE_PSC(:,:,LM:1:-1) = State_Chm%State_PSC
+    if (associated(State_Met%DELP_DRY))  DELP_DRY(:,:,LM:1:-1)  = State_Met%DELP_DRY(:,:,1:LM)
+    if (associated(State_Met%BXHEIGHT))  BXHEIGHT(:,:,LM:1:-1)  = State_Met%BXHEIGHT(:,:,1:LM)
+    if (associated(State_Met%TropLev))   TropLev = State_Met%TropLev
+    if (first) AREA_INT = State_Met%AREA_M2
+
+    !---------------------------------------------------------------------
+    ! Set exports from GEOS-Chem diagnostics
+    !---------------------------------------------------------------------
+    if (first) then
+       call HistoryExports_SetDataPointers(MAPL_Am_I_Root(), export, HistoryConfig, &
+            State_Chm, State_Diag, State_Met, status)
+       _ASSERT(status == GC_SUCCESS, 'Error calling HistoryExports_SetDataPointers')
+    end if
+    call CopyGCStates2Exports(MAPL_Am_I_Root(), Input_Opt, HistoryConfig, status)
+    _ASSERT(status == GC_SUCCESS, 'Error calling CopyGCStates2Exports')
+
+    !---------------------------------------------------------------------
+    ! Run complete
+    !---------------------------------------------------------------------
+    first = .false.
+    call logger%debug("GEOSChem_GridCompMod.F90::Run done")
     _RETURN(_SUCCESS)
 
   end subroutine Run
 
-  !=============================================================================
-  ! Finalize -- The Finalize method of the Gridded Component.
-
+!=============================================================================
+! Finalize
+!=============================================================================
   subroutine Finalize( gc, import, export, clock, rc )
 
     type(ESMF_GridComp)  :: gc     ! composite gridded component
@@ -353,8 +704,14 @@ contains
 
   end subroutine Finalize
 
+!=============================================================================
+! End module
+!=============================================================================
 end module GEOSChem_GridCompMod
 
+!=============================================================================
+! Need description
+!=============================================================================
 subroutine GEOSChem_SetServices(gc, rc)
    use ESMF
    use GEOSChem_GridCompMod, only : mySetservices => SetServices
@@ -363,7 +720,13 @@ subroutine GEOSChem_SetServices(gc, rc)
    call mySetServices(gc, rc=rc)
 end subroutine GEOSChem_SetServices
 
+
+
+
+
 #else
+! The rest is MAPL2, and is guiding the port above.
+
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
