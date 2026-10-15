@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased] - TBD
 ### Changed
 - Activated `WetLossConv` and `WetLossLS` collections in fullchem benchmark simulations
+- Updated `Compute_Sflx_for_Vdiff` routine to only include surface emissions in `State_Chm%SurfaceFlux` for passing into the VDIFF non-local PBL mixing routine
 
 ## [14.8.0] - 2026-09-11
 ### Added

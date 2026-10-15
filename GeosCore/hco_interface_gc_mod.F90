@@ -4563,9 +4563,9 @@ CONTAINS
 !
 ! !IROUTINE: Compute_Sflx_for_Vdiff
 !
-! !DESCRIPTION: Computes the surface flux (\= emissions - drydep) for the
-!  non-local PBL mixing.  This code was removed from within the non-local
-!  PBL mixing driver routine VDIFFDR.
+! !DESCRIPTION: Computes the surface flux (\= surface emissions - drydep)
+!  for the non-local PBL mixing.  This code was removed from within the
+!  non-local PBL mixing driver routine VDIFFDR.
 !\\
 !\\
 ! !INTERFACE:
@@ -4580,13 +4580,13 @@ CONTAINS
     USE Depo_Mercury_Mod,     ONLY : Add_Hg2_SnowPack
     USE ErrCode_Mod
     USE Get_Ndep_Mod,         ONLY : Soil_Drydep
-    USE HCO_Utilities_GC_Mod, ONLY : GetHcoValEmis, GetHcoValDep, InquireHco
-    USE HCO_Utilities_GC_Mod, ONLY : LoadHcoValEmis, LoadHcoValDep
-    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_GetDiagn
+    USE HCO_Utilities_GC_Mod, ONLY : GetHcoValEmis,   GetHcoValDep
+    USE HCO_Utilities_GC_Mod, ONLY : LoadHcoValEmis,  LoadHcoValDep
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_GetDiagn, InquireHco
     USE HCO_State_GC_Mod,     ONLY : ExtState
     USE HCO_State_GC_Mod,     ONLY : HcoState
     USE Input_Opt_Mod,        ONLY : OptInput
-#if !defined( MODEL_CESM )
+#ifndef MODEL_CESM
     USE Mercury_Mod,          ONLY : Hg_Emis
 #endif
     USE PhysConstants
@@ -4632,22 +4632,17 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    ! SAVEd scalars
-    INTEGER, SAVE           :: id_O3    = -1
-    INTEGER, SAVE           :: id_HNO3  = -1
-
     ! Scalars
+    LOGICAL                 :: depSpec, emisSpec
     LOGICAL                 :: found,   zeroHg0Dep
     INTEGER                 :: I,       J
     INTEGER                 :: L,       NA
     INTEGER                 :: ND,      N
-    INTEGER                 :: Hg_Cat,  topMix
     INTEGER                 :: S,       previous_units
+    INTEGER                 :: id_O3,   id_HNO3
     REAL(fp)                :: dep,     emis
     REAL(fp)                :: MW_kg,   fracNoHg0Dep
     REAL(fp)                :: tmpFlx
-
-    LOGICAL                 :: EmisSpec, DepSpec
 
     ! Strings
     CHARACTER(LEN=255)      :: errMsg,  thisLoc
@@ -4664,8 +4659,7 @@ CONTAINS
                                     State_Chm%nAdvect                       )
 
     ! Pointers and Objects
-    REAL(f4),       POINTER :: Ptr2D(:,:) => NULL()
-
+    REAL(f4),       POINTER :: Ptr2D(:,:)
     REAL(f4),       POINTER :: PNOxLoss_O3(:,:)
     REAL(f4),       POINTER :: PNOxLoss_HNO3(:,:)
 
@@ -4674,23 +4668,24 @@ CONTAINS
 
     !=======================================================================
     ! Compute_Sflx_For_Vdiff begins here!
-    !
-    ! NOTE: The State_Chm%DryDepMix is zeroed in routine
-    ! "Zero_Diagnostics_StartOfTimestep", so we have removed
-    ! the code to zero them again here.
     !=======================================================================
 
     ! Initialize
-    RC      =  GC_SUCCESS
-    dflx    =  0.0_fp
-    eflx    =  0.0_fp
-    colEflx =  0.0_fp
-    ThisSpc => NULL()
-    errMsg  = ''
-    thisLoc = &
-    ' -> at Compute_Sflx_for_Vdiff (in module GeosCore/hco_interface_gc_mod.F90)'
+    RC            =  GC_SUCCESS
+    dflx          =  0.0_fp
+    eflx          =  0.0_fp
+    colEflx       =  0.0_fp
+    depSpec       = .FALSE.
+    emisSpec      = .FALSE.
+    id_O3         = -1
+    id_HNO3       = -1
     PNOXLoss_HNO3 => NULL()
     PNOxLoss_O3   => NULL()
+    Ptr2D         => NULL()
+    ThisSpc       => NULL()
+    errMsg        =  ''
+    thisLoc       = &
+  ' -> at Compute_Sflx_for_Vdiff (in module GeosCore/hco_interface_gc_mod.F90)'
 
     !=======================================================================
     ! Convert units to [v/v dry] aka [mol/mol dry]
@@ -4724,24 +4719,24 @@ CONTAINS
        CALL Timer_Start( "Boundary layer mixing", RC )
     ENDIF
 
+#ifndef MODEL_CESM
     !=======================================================================
-    ! Get pointers to the PARANOX loss fluxes.
-    ! These are stored in diagnostics 'PARANOX_O3_DEPOSITION_FLUX' and
-    ! 'PARANOX_HNO3_DEPOSITION_FLUX'. The call below links pointers
-    ! PNOXLOSS_O3 and PNOXLOSS_HNO3 to the data values stored in the
-    ! respective diagnostics. The pointers will remain unassociated if
-    ! the diagnostics do not exist.
+    ! Get pointers to the PARANOX loss fluxes. These are stored in
+    ! 'PARANOX_O3_DEPOSITION_FLUX' and 'PARANOX_HNO3_DEPOSITION_FLUX'.
+    ! The call below links pointers PNOXLOSS_O3 and PNOXLOSS_HNO3 to the
+    ! data values stored in the respective diagnostics. The pointers will
+    ! remain unassociated if the diagnostics do not exist.
     !
     ! The arrays are now allocated and copied to to accommodate for the
     ! HEMCO intermediate grid feature, as we want the regridded data to
     ! be kept for the rest of this subroutine call.
+    !
+    ! NOTE: Skip this when running GEOS-Chem in CESM.  In this case,
+    ! emissions will be applied by HEMCO-CESM, which runs separately.
     !=======================================================================
+    id_O3   = Ind_("O3"  )
+    id_HNO3 = Ind_("HNO3")
 
-    ! Get species IDs
-    id_O3   = Ind_('O3'  )
-    id_HNO3 = Ind_('HNO3')
-
-#if !defined( MODEL_CESM )
     IF ( id_O3 > 0 ) THEN
        CALL HCO_GC_GetDiagn(                                              &
             Input_Opt,  State_Grid,                                       &
@@ -4772,8 +4767,10 @@ CONTAINS
 #endif
 
     !=======================================================================
-    ! Add emissions & deposition values calculated in HEMCO.
-    ! Here we only consider emissions below the PBL top.
+    ! Add emissions & deposition values calculated in HEMCO.  Here we only
+    ! consider emissions in level 1 (the surface).  Emissions in level 2
+    ! and higher will be applied in routine Do_Emis_Above_Sfc, which
+    ! runs before VDIFF non-local PBL mixing.
     !
     ! The loop has been separated to go over N, J, I in order to optimize
     ! for retrieving regridded data from HEMCO. There is only one regrid
@@ -4784,124 +4781,103 @@ CONTAINS
     ! Advected species loop
     DO NA = 1, State_Chm%nAdvect
 
-      ! Get the modelId
-      N = State_Chm%Map_Advect(NA)
+       ! Get the modelId
+       N = State_Chm%Map_Advect(NA)
 
-      ! Point to the corresponding entry in the species database
-      ThisSpc => State_Chm%SpcData(N)%Info
+       ! Point to the corresponding entry in the species database
+       ThisSpc => State_Chm%SpcData(N)%Info
 
-      ! Check if there is emissions or deposition for this species
-#if !defined( MODEL_CESM )
-      CALL InquireHco ( N, Emis=EmisSpec, Dep=DepSpec )
-#else
-      ! Do not apply for MODEL_CESM as its handled by HEMCO-CESM independently
-      EmisSpec = .False.
-      DepSpec  = .False.
-#endif
-
-      ! If there is emissions for this species, it must be loaded into
-      ! memory first.   This is achieved by attempting to retrieve a
-      ! grid box while NOT in a parallel loop. Failure to load this will
-      ! result in severe performance issues!! (hplin, 9/27/20)
-      IF ( EmisSpec ) THEN
-         CALL LoadHcoValEmis ( Input_Opt, State_Grid, NA )
-      ENDIF
-
-      IF ( DepSpec ) THEN
-         CALL LoadHcoValDep ( Input_Opt, State_Grid, NA )
-      ENDIF
-
-      !$OMP PARALLEL DO                                                      &
-      !$OMP DEFAULT( SHARED )                                                &
-      !$OMP PRIVATE( I,       J,       topMix                               )&
-      !$OMP PRIVATE( tmpFlx,  found,   emis,      dep                       )
-      DO J = 1, State_Grid%NY
-      DO I = 1, State_Grid%NX
-
-      ! Below emissions. Do not apply for MODEL_CESM as its handled by
-      ! HEMCO-CESM independently
 #ifndef MODEL_CESM
-
-        ! PBL top level [integral model levels]
-        topMix = MAX( 1, FLOOR( State_Met%PBL_TOP_L(I,J) ) )
-
-        !------------------------------------------------------------------
-        ! Add total emissions in the PBL to the EFLX array
-        ! which tracks emission fluxes.  Units are [kg/m2/s].
-        !------------------------------------------------------------------
-        IF ( EmisSpec ) THEN  ! Are there emissions for these species?
-
-           ! Compute emissions for all other simulation
-           tmpFlx = 0.0_fp
-           DO L = 1, topMix
-              CALL GetHcoValEmis( Input_Opt, State_Grid, NA,    I,           &
-                                  J,         L,          found, emis        )
-              IF ( .NOT. found ) EXIT
-              tmpFlx = tmpFlx + emis
-           ENDDO
-           eflx(I,J,NA) = eflx(I,J,NA) + tmpFlx
-
-           ! Compute column emission fluxes for satellite diagnostics
-           IF ( State_Diag%Archive_SatDiagnColEmis ) THEN
-              tmpFlx = 0.0_fp
-              DO L = 1, State_Grid%NZ
-                 CALL GetHcoValEmis( Input_Opt, State_Grid, NA,    I,        &
-                                     J,         L,          found, emis     )
-                 IF ( .NOT. found ) EXIT
-                 tmpFlx = tmpFlx + emis
-              ENDDO
-              colEflx(I,J,NA) = colEflx(I,J,NA) + tmpFlx
-           ENDIF
-
-        ENDIF
-
-        ! For Hg simulations, also add Hg emissions not handled by HEMCO
-        IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
-           eflx(I,J,NA) = eflx(I,J,NA) + Hg_EMIS(I,J,NA)
-        ENDIF
+       ! Check if there is emissions or deposition for this species
+       ! Skip if running GEOS-Chem in CESM.
+       CALL InquireHco( N, Emis=EmisSpec, Dep=DepSpec )
 #endif
 
-        !------------------------------------------------------------------
-        ! Also add drydep frequencies calculated by HEMCO (e.g. from the
-        ! air-sea exchange module) to DFLX.  These values are stored
-        ! in 1/s.  They are added in the same manner as the DEPSAV values
-        ! from drydep_mod.F90.  DFLX will be converted to kg/m2/s later.
-        ! (ckeller, 04/01/2014)
-        !------------------------------------------------------------------
-        IF ( DepSpec ) THEN
-           CALL GetHcoValDep( Input_Opt, State_Grid, NA,    I,               &
-                              J,         1,          found, dep             )
+       ! Emissions and/or deposition for this species must be loaded into
+       ! memory first.  This is achieved by attempting to retrieve a
+       ! grid box while NOT in a parallel loop. Failure to load this will
+       ! result in severe performance issues!! (hplin, 9/27/20)
+       IF ( emisSpec ) THEN
+          CALL LoadHcoValEmis( Input_Opt, State_Grid, NA )
+       ENDIF
 
-           ! Sea-air deposition frequency [1/s] --> flux [mol/mol/s]
-           IF ( found ) THEN
-              dflx(I,J,NA) = dflx(I,J,NA) +                                  &
-                           + ( dep * State_Chm%Species(NA)%Conc(I,J,1)       &
-                                   / ( AIRMW / ThisSpc%MW_g               ) )
-           ENDIF
-        ENDIF
-      ENDDO ! I
-      ENDDO ! J
-      !$OMP END PARALLEL DO
+       IF ( depSpec ) THEN
+          CALL LoadHcoValDep( Input_Opt, State_Grid, NA )
+       ENDIF
 
-      ! Free pointers
-      ThisSpc => NULL()
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( I, J, tmpFlx, found, emis, dep                        )&
+       !$OMP COLLAPSE( 2                                                    )&
+       !$OMP SCHEDULE( STATIC                                               )
+       DO J = 1, State_Grid%NY
+       DO I = 1, State_Grid%NX
+
+#ifndef MODEL_CESM
+          !------------------------------------------------------------------
+          ! Add surface (level 1) emissions into the eflx array [kg/m2/s]
+          !
+          ! NOTE: Skip this if we are running GEOS-Chem in CESM.  In this
+          ! case the emissions will be applied by HEMCO-CESM separately.
+          !------------------------------------------------------------------
+          IF ( emisSpec ) THEN
+             CALL GetHcoValEmis( Input_Opt, State_Grid, NA,    I,            &
+                                 J,         1,          found, emis         )
+             IF ( found ) eflx(I,J,NA) = eflx(I,J,NA) + emis
+
+             ! Compute column emission fluxes for satellite diagnostics
+             IF ( State_Diag%Archive_SatDiagnColEmis ) THEN
+                tmpFlx = 0.0_fp
+                DO L = 1, State_Grid%NZ
+                   CALL GetHcoValEmis( Input_Opt, State_Grid, NA,    I,      &
+                                       J,         L,          found, emis   )
+                   IF ( .NOT. found ) EXIT
+                   tmpFlx = tmpFlx + emis
+                ENDDO
+                colEflx(I,J,NA) = colEflx(I,J,NA) + tmpFlx
+             ENDIF
+
+          ENDIF
+
+          ! For Hg simulations, also add Hg emissions not handled by HEMCO
+          IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
+             eflx(I,J,NA) = eflx(I,J,NA) + Hg_EMIS(I,J,NA)
+          ENDIF
+#endif
+
+          !------------------------------------------------------------------
+          ! Also add drydep frequencies calculated by HEMCO (e.g. from the
+          ! air-sea exchange module) to DFLX.  These values are stored
+          ! in 1/s.  They are added in the same manner as the DEPSAV values
+          ! from drydep_mod.F90.  DFLX will be converted to kg/m2/s later.
+          ! (ckeller, 04/01/2014)
+          !------------------------------------------------------------------
+          IF ( depSpec ) THEN
+             CALL GetHcoValDep( Input_Opt, State_Grid, NA,    I,             &
+                                J,         1,          found, dep           )
+
+             ! Sea-air deposition frequency [1/s] --> flux [mol/mol/s]
+             IF ( found ) THEN
+                dflx(I,J,NA) = dflx(I,J,NA) +                                &
+                             + ( dep * State_Chm%Species(NA)%Conc(I,J,1)     &
+                                     / ( AIRMW / ThisSpc%MW_g             ) )
+             ENDIF
+          ENDIF
+       ENDDO ! I
+       ENDDO ! J
+       !$OMP END PARALLEL DO
+
+       ! Free pointers
+       ThisSpc => NULL()
     ENDDO   ! NA
 
     !=======================================================================
-    ! Add emissions & deposition values calculated in HEMCO.
-    ! Here we only consider emissions below the PBL top.
-    !
-    ! For the full-chemistry simulations, emissions above the PBL
-    ! top will be applied in routine SETEMIS, which occurs just
-    ! before the SMVGEAR/KPP solvers are invoked.
-    !
-    ! For the specialty simulations, emissions above the PBL top
-    ! will be applied in the chemistry routines for each
-    ! specialty simulation.
-    !
-    ! For more information, please see this wiki page:
-    ! http://wiki.geos-chem.org/Distributing_emissions_in_the_PBL
-    !========================================================================
+    ! Compute the dry deposition flux (DFLX) from the drydep frequencies
+    ! (drydep_mod.F90 + HEMCO) and PARANOx loss, then form the surface
+    ! flux SFLX = EFLX - DFLX [kg/m2/s].  VDIFF applies SFLX to the
+    ! lowest level and uses it to scale the non-local (counter-gradient)
+    ! term of the Holtslag and Boville (1993) scheme.
+    !=======================================================================
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED )                                                  &
     !$OMP PRIVATE( I,       J,            N                                 )&
@@ -4991,6 +4967,7 @@ CONTAINS
        !=====================================================================
        ! Defining Satellite Diagnostics
        !=====================================================================
+
        ! Define emission satellite diagnostics
        IF ( State_Diag%Archive_SatDiagnColEmis ) THEN
           DO S = 1, State_Diag%Map_SatDiagnColEmis%nSlots
@@ -5050,7 +5027,7 @@ CONTAINS
        ENDIF
 
     ENDDO
-    ENDDO 
+    ENDDO
     !$OMP END PARALLEL DO
 
     !### Uncomment for debug output
