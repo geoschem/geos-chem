@@ -463,6 +463,7 @@ contains
     use Species_Mod,             only: Species
     use HCO_State_GC_Mod,        only: HcoState
     use Olson_Landmap_Mod,       only: Compute_Olson_Landmap
+    use GCHP_Chunk_Mod,          only: GCHP_Chunk_Run
     use GCHP_HistoryExports_Mod, only: HistoryExports_SetDataPointers, CopyGCStates2Exports
 
     type(ESMF_GridComp)  :: gc     ! composite gridded component
@@ -481,7 +482,7 @@ contains
     type(ESMF_Alarm)             :: chemAlarm
     type(ESMF_Time)              :: currTime
     type(ESMF_TimeInterval)      :: elapsed
-    logical                      :: IsChemTime, IsRadTime
+    logical                      :: IsChemTime, IsRadTime, IsRunTime
     integer                      :: nymd, nhms, year, month, day, dayOfYr
     integer                      :: hour, minute, second, eh, em, es
     real                         :: utc, hElapsed
@@ -510,11 +511,6 @@ contains
 
     ! Get number of vertical levels
     call MAPL_GridCompGet(gc, num_levels=LM, _RC)
-
-    ! Edge field: MAPL3 bounds are 1:LM+1; Includes_Before_Run.H indexes PLE as 0:LM
-    ! ewl: is this still true??? I thought in MAPL3 it switched to 1-based...
-    ptr3d_r8 => PLE
-    PLE(1:,1:,0:) => ptr3d_r8
 
     ! Set chemistry alarm
     call ESMF_ClockGetAlarm(clock, alarmname="GEOSChem_chem_alarm", alarm=chemAlarm, _RC)
@@ -604,25 +600,15 @@ contains
        if (associated(State_Chm%JNO2))           State_Chm%JNO2 = JNO2
 
        ! Set Olson land type fractions from imports
-#ifdef GC_MAPL2_OLSON_FIXED
        call logger%info("Initializing land type fractions from Olson imports")
        do TT = 1, NSURFTYPE
           write(landTypeStr, '(I2.2)') TT - 1
           call MAPL_StateGetPointer(import, ptr2d, 'OLSON'//landTypeStr, _RC)
-          ! Olson test
-          !if (TT == 1 .or. TT == 6) call &
-          !     logger%info("OLSON"//landTypeStr//" min/max: %g14.6 %g14.6", &
-          !     minval(ptr2d), maxval(ptr2d))
           State_Met%LandTypeFrac(:,:,TT) = ptr2d
        end do
        ptr2d => null()
        call Compute_Olson_Landmap(Input_Opt, State_Grid, State_Met, status)
        _ASSERT(status == GC_SUCCESS, 'Error calling Compute_Olson_Landmap')
-#else
-       ! TODO(MAPL3): skipped - MAPL3 ExtData FRACTION regridding bug gives wrong OLSONnn
-       ! (see porting notes). State_Met IREG/ILAND/IUSE/FRCLND stay unset; needed by drydep
-       call logger%warning("Olson land types NOT set (ExtData3G FRACTION regrid issue)")
-#endif
 
     end if
 
@@ -637,7 +623,35 @@ contains
     !----------------------------------------------------------------------
     ! Run GEOS-Chem
     !---------------------------------------------------------------------
-    ! call GCHP_Chunk_Run (gchp_chunk_mod.F90) here (placeholder)
+    !-- Run GEOS-Chem when it's time (chemistry step, or every step if
+    !   convection / turbulence / wet deposition are on)
+    IsRunTime = IsChemTime .or. Input_Opt%LCONV .or. Input_Opt%LTURB .or. Input_Opt%LWETD
+    if (IsRunTime) then
+       call MAPL_GridCompTimerStart(gc, "DO_CHEM", _RC)
+       call GCHP_Chunk_Run(GC         = gc,         &
+                           nymd       = nymd,       &
+                           nhms       = nhms,       &
+                           year       = year,       &
+                           month      = month,      &
+                           day        = day,        &
+                           dayOfYr    = dayOfYr,    &
+                           hour       = hour,       &
+                           minute     = minute,     &
+                           second     = second,     &
+                           utc        = utc,        &
+                           hElapsed   = hElapsed,   &
+                           Input_Opt  = Input_Opt,  &
+                           State_Chm  = State_Chm,  &
+                           State_Diag = State_Diag, &
+                           State_Grid = State_Grid, &
+                           State_Met  = State_Met,  &
+                           Phase      = Phase,      &
+                           IsChemTime = IsChemTime, &
+                           IsRadTime  = IsRadTime,  &
+                           _RC)
+       call MAPL_GridCompTimerStop(gc, "DO_CHEM", _RC)
+       where (State_Met%HFLUX == 0.) State_Met%HFLUX = 1e-5
+    end if
 
     !----------------------------------------------------------------------
     ! Set non-species internal state variables from State_Chm and State_Met

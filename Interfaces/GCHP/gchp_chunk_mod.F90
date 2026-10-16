@@ -3,6 +3,14 @@
 #else
 #include "MAPL_Generic.h"
 #endif
+! Timers (MAPL3: started/stopped by name on the gridded component)
+#ifdef MAPL3
+#define GC_TIMER_ON(name)  call MAPL_GridCompTimerStart(GC, name, rc=STATUS); _VERIFY(STATUS)
+#define GC_TIMER_OFF(name) call MAPL_GridCompTimerStop(GC, name, rc=STATUS); _VERIFY(STATUS)
+#else
+#define GC_TIMER_ON(name)  CALL MAPL_TimerOn(STATE, name)
+#define GC_TIMER_OFF(name) CALL MAPL_TimerOff(STATE, name)
+#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -804,17 +812,16 @@ CONTAINS
     ! GCHP_CHUNK_RUN begins here
     !=======================================================================
 
-! ewl: mapl3 not yet adapted
-#ifndef MAPL3
-
     ! Error trap
     Iam = 'GCHP_CHUNK_RUN (gchp_chunk_mod.F90)'
 
     ! Assume success
     RC = GC_SUCCESS
 
+#ifndef MAPL3
     ! Get state object (needed for timers)
     CALL MAPL_GetObjectFromGC(GC, STATE, __RC__)
+#endif
 
     ! Get the VM for optional memory prints (level >= 2)
     !-----------------------------------
@@ -977,6 +984,10 @@ CONTAINS
     ! Scale mixing ratio with changing met only if FV advection is off.
     ! Only do this the first timestep if DELP_DRY found in restart.
     IF ( FIRST .and. .not. Input_Opt%LTRAN ) THEN
+#ifdef MAPL3
+       ! TODO(MAPL3): no RESTART attribute; DELP_DRY is not read from a restart yet
+       scaleMR = .FALSE.
+#else
        CALL MAPL_Get ( STATE, INTERNAL_ESMF_STATE=INTSTATE, __RC__ )
        CALL ESMF_StateGet( INTSTATE, 'DELP_DRY', IntField, RC=STATUS )
        _VERIFY(STATUS)
@@ -984,6 +995,7 @@ CONTAINS
        _VERIFY(STATUS)
        IF ( .not. ( RST == MAPL_RestartBootstrap .OR. &
                     RST == MAPL_RestartSkipInitial ) ) scaleMR = .TRUE.
+#endif
        CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, RC, scaleMR )
        scaleMR = .TRUE.
     ELSE
@@ -1184,13 +1196,13 @@ CONTAINS
     !=======================================================================
     IF ( DoConv ) THEN
        if(Input_Opt%AmIRoot.and.NCALLS<10) write(*,*) ' --- Do convection now'
-       CALL MAPL_TimerOn( STATE, 'GC_CONV' )
+       GC_TIMER_ON('GC_CONV')
 
        CALL DO_CONVECTION ( Input_Opt, State_Chm, State_Diag, &
                             State_Grid, State_Met, RC )
        _ASSERT(RC==GC_SUCCESS, 'Error calling DO_CONVECTION')
 
-       CALL MAPL_TimerOff( STATE, 'GC_CONV' )
+       GC_TIMER_OFF('GC_CONV')
        if(Input_Opt%AmIRoot.and.NCALLS<10) write(*,*) ' --- Convection done!'
     ENDIF
 
@@ -1204,14 +1216,14 @@ CONTAINS
           write(*,*) ' --- Do drydep now'
           write(*,*) '     Use FULL PBL: ', Input_Opt%PBL_DRYDEP
        endif
-       CALL MAPL_TimerOn( STATE, 'GC_DRYDEP' )
+       GC_TIMER_ON('GC_DRYDEP')
 
        ! Do dry deposition
        CALL Do_DryDep ( Input_Opt, State_Chm, State_Diag, &
                         State_Grid, State_Met, RC )
        _ASSERT(RC==GC_SUCCESS, 'Error calling Do_DryDep')
 
-       CALL MAPL_TimerOff( STATE, 'GC_DRYDEP' )
+       GC_TIMER_OFF('GC_DRYDEP')
        if(Input_Opt%AmIRoot.and.NCALLS<10) write(*,*) ' --- Drydep done!'
     ENDIF
 
@@ -1234,7 +1246,7 @@ CONTAINS
 #endif
 
        if(Input_Opt%AmIRoot.and.NCALLS<10) write(*,*) ' --- Do emissions now'
-       CALL MAPL_TimerOn( STATE, 'GC_EMIS' )
+       GC_TIMER_ON('GC_EMIS')
 
        ! Do emissions. Pass HEMCO Phase 2 which performs the emissions
        ! calculations.
@@ -1243,7 +1255,7 @@ CONTAINS
                            State_Grid, State_Met, DoEmis, HCO_PHASE, RC )
        _ASSERT(RC==GC_SUCCESS, 'Error calling EMISSIONS_RUN')
 
-       CALL MAPL_TimerOff( STATE, 'GC_EMIS' )
+       GC_TIMER_OFF('GC_EMIS')
        if(Input_Opt%AmIRoot.and.NCALLS<10) write(*,*) ' --- Emissions done!'
 
        ! Optional memory prints (level >= 3)
@@ -1267,7 +1279,7 @@ CONTAINS
     IF ( DoTend ) THEN
        if(Input_Opt%AmIRoot.and.NCALLS<10) write(*,*)   &
                            ' --- Add emissions and drydep to tracers'
-       CALL MAPL_TimerOn( STATE, 'GC_FLUXES' )
+       GC_TIMER_ON('GC_FLUXES')
 
        ! Get emission time step [s].
        _ASSERT(ASSOCIATED(HcoState), 'Error: HcoState not associated')
@@ -1282,7 +1294,7 @@ CONTAINS
        if(Input_Opt%AmIRoot.and.NCALLS<10) write(*,*)   &
                                  '     Tendency time step [s]: ', DT
 
-       CALL MAPL_TimerOff( STATE, 'GC_FLUXES' )
+       GC_TIMER_OFF('GC_FLUXES')
        if(Input_Opt%AmIRoot.and.NCALLS<10) write(*,*)   &
                                  ' --- Fluxes applied to tracers!'
     ENDIF ! Tendencies
@@ -1301,7 +1313,7 @@ CONTAINS
     !=======================================================================
     IF ( DoTurb ) THEN
        if(Input_Opt%AmIRoot.and.NCALLS<10) write(*,*) ' --- Do turbulence now'
-       CALL MAPL_TimerOn( STATE, 'GC_TURB' )
+       GC_TIMER_ON('GC_TURB')
 
        ! Only do the following for the non-local PBL mixing (VDIFF)
        IF ( Input_Opt%LNLPBL ) THEN
@@ -1335,7 +1347,7 @@ CONTAINS
                         State_Grid, State_Met, RC                           )
        _ASSERT(RC==GC_SUCCESS, 'Error calling DO_MIXING')
 
-       CALL MAPL_TimerOff( STATE, 'GC_TURB' )
+       GC_TIMER_OFF('GC_TURB')
        if(Input_Opt%AmIRoot.and.NCALLS<10) write(*,*) ' --- Turbulence done!'
     ENDIF
 
@@ -1357,7 +1369,7 @@ CONTAINS
     !=======================================================================
     IF ( DoChem ) THEN
        if(Input_Opt%AmIRoot.and.NCALLS<10) write(*,*) ' --- Do chemistry now'
-       CALL MAPL_TimerOn( STATE, 'GC_CHEM' )
+       GC_TIMER_ON('GC_CHEM')
 
        IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
           ! Calculate TOMS O3 overhead. For now, always use it from the
@@ -1388,7 +1400,7 @@ CONTAINS
                           State_Grid, State_Met, RC )
        _ASSERT(RC==GC_SUCCESS, 'Error calling Do_Chemistr')
 
-       CALL MAPL_TimerOff( STATE, 'GC_CHEM' )
+       GC_TIMER_OFF('GC_CHEM')
        if(Input_Opt%AmIRoot.and.NCALLS<10) write(*,*) ' --- Chemistry done!'
 
        ! Optional memory prints (level >= 3)
@@ -1407,14 +1419,14 @@ CONTAINS
     !=======================================================================
     IF ( DoWetDep ) THEN
        if(Input_Opt%AmIRoot.and.NCALLS<10) write(*,*) ' --- Do wetdep now'
-       CALL MAPL_TimerOn( STATE, 'GC_WETDEP' )
+       GC_TIMER_ON('GC_WETDEP')
 
        ! Do wet deposition
        CALL DO_WETDEP( Input_Opt, State_Chm, State_Diag, &
                        State_Grid, State_Met, RC )
        _ASSERT(RC==GC_SUCCESS, 'Error calling DO_WETDEP')
 
-       CALL MAPL_TimerOff( STATE, 'GC_WETDEP' )
+       GC_TIMER_OFF('GC_WETDEP')
        if(Input_Opt%AmIRoot.and.NCALLS<10) write(*,*) ' --- Wetdep done!'
     ENDIF
 
@@ -1439,7 +1451,7 @@ CONTAINS
     ! RRTMG diagnostics
     IF ( DoRad ) THEN
 
-       CALL MAPL_TimerOn( STATE, 'GC_RAD' )
+       GC_TIMER_ON('GC_RAD')
 
        If (First_RT) Call Log_Msg('First RRTMG run starting','Info','GCHP_Chunk')
 !       IF ( Input_Opt%amIRoot .AND. FIRST_RT ) THEN
@@ -1609,7 +1621,7 @@ CONTAINS
           FIRST_RT = .FALSE.
        ENDIF
 
-       CALL MAPL_TimerOff( STATE, 'GC_RAD' )
+       GC_TIMER_OFF('GC_RAD')
     ELSE
        ! Set diagnostics to be undefined
        If (State_Diag%Archive_DTRad            ) State_Diag%DTRad(:,:,:)           = MAPL_UNDEF 
@@ -1639,7 +1651,7 @@ CONTAINS
 #endif
 
     if(Input_Opt%AmIRoot.and.NCALLS<10) write(*,*) ' --- Do diagnostics now'
-    CALL MAPL_TimerOn( STATE, 'GC_DIAGN' )
+    GC_TIMER_ON('GC_DIAGN')
 
     ! Set certain diagnostics dependent on state at end of step. This
     ! includes species concentration and dry deposition flux.
@@ -1699,7 +1711,7 @@ CONTAINS
     ENDIF
 #endif
 
-    CALL MAPL_TimerOff( STATE, 'GC_DIAGN' )
+    GC_TIMER_OFF('GC_DIAGN')
     if(Input_Opt%AmIRoot.and.NCALLS<10) write(*,*) ' --- Diagnostics done!'
 
     !=======================================================================
@@ -1730,8 +1742,6 @@ CONTAINS
 
     ! First call is done
     FIRST = .FALSE.
-
-#endif ! not MAPL3
 
     ! Return success
     RC = GC_SUCCESS
