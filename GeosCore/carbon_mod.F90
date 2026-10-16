@@ -1143,7 +1143,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
    ! Scalars
-   INTEGER  :: I,      J,      L
+   INTEGER  :: II,      J,      L
    REAL(fp) :: L_FRAC, TC0, CNEW, CCV
 
    ! Pointers
@@ -1163,13 +1163,13 @@ CONTAINS
    !$OMP COLLAPSE( 3                                                        ) 
    DO L = 1, State_Grid%NZ
    DO J = 1, State_Grid%NY
-   DO I = 1, State_Grid%NX
+   DO II = 1, State_Grid%NX
 
       ! Initial H-philic BC [kg]
-      TC0 = TC(I,J,L)
+      TC0 = TC(II,J,L)
 
       ! H-philic BC that used to be H-phobic BC [kg]
-      CCV = BCCONV(I,J,L)
+      CCV = BCCONV(II,J,L)
 
       ! Add the amount of converted BCPO to BCPI
       CNEW = TC0 + CCV
@@ -1178,7 +1178,7 @@ CONTAINS
       IF ( CNEW < SMALLNUM ) CNEW = 0e+0_fp
 
       ! Save new concentration of H-philic IC in species array
-      TC(I,J,L) = CNEW
+      TC(II,J,L) = CNEW
 
    ENDDO
    ENDDO
