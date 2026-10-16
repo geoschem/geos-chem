@@ -19,12 +19,14 @@ mapl:
       config_file: geoschem_gridcomp.yaml
 
   connections:
-    - src_name: PLE0
+    # source for AdvCore PLE0 should be set via logical. Use dry air pressure for now.
+    - src_name: DryPLE0
       src_comp: GCHPctmEnv
       dst_name: PLE0
       dst_comp: AdvCore
 
-    - src_name: PLE1
+    # source for AdvCore PLE1 should be set via logical. Use dry air pressure for now.
+    - src_name: DryPLE1
       src_comp: GCHPctmEnv
       dst_name: PLE1
       dst_comp: AdvCore
@@ -49,17 +51,7 @@ mapl:
       dst_name: CY
       dst_comp: AdvCore
 
-# Not yet added to AdvCore (GCHP-specific)
-#    - src_name: DryPLE0
-#      src_comp: GCHPctmEnv
-#      dst_name: DryPLE0
-#      dst_comp: AdvCore
-#
-#    - src_name: DryPLE1
-#      src_comp: GCHPctmEnv
-#      dst_name: DryPLE1
-#      dst_comp: AdvCore
-#
+# Not yet added to AdvCore (GCHP-specific). Whether needed depends on logical.
 #    - src_name: SPHU0
 #      src_comp: GCHPctmEnv
 #      dst_name: SPHU0
