@@ -118,8 +118,8 @@ category: INTERNAL
  DRYPERIOD        |              | 1           | R4       | xy   |      | 0.0   | .true.     | soilnox_dryperiod_restart
  GWET_PREV        |              | 1           | R4       | xy   |      | 0.0   | .true.     | soilnox_gwet_prev_restart
  DEP_RESERVOIR    |              | kg m-3      | R4       | xy   |      | 1e-4  | .true.     | soilnox_dep_reservoir_restart
- T_DAVG           |              | 1           | R4       | xy   |      | 273.1 | .true.     | megan_t_davg_restart
- T_PREVDAY        |              | 1           | R4       | xy   |      | 273.1 | .true.     | megan_t_prevday_restart
+ T_DAVG           |              | K           | R4       | xy   |      | 273.1 | .true.     | megan_t_davg_restart
+ T_PREVDAY        |              | K           | R4       | xy   |      | 273.1 | .true.     | megan_t_prevday_restart
  LAI_PREVDAY      |              | 1           | R4       | xy   |      | 0.0   | .true.     | megan_lai_prevday_restart
  PARDR_DAVG       |              | W m-2       | R4       | xy   |      | 0.0   | .true.     | megan_pardr_davg_restart
  PARDF_DAVG       |              | W m-2       | R4       | xy   |      | 0.0   | .true.     | megan_pardf_davg_restart

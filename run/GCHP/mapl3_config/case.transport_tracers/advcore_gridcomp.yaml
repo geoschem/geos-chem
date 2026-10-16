@@ -26,18 +26,6 @@ ADIABATIC: true                     # default: false
 #COLDSTART                          # default: false
 #CASE_ID                            # default: 11
 
-geometry:
-  esmf_geom:
-    class: CubedSphere
-    im_world: 24
-    nx_face: 1
-    ny_face: 1
-  vertical_grid:
-    class: model
-    standard_name: air_pressure
-    units: hPa
-    num_levels: 72
-
 mapl:
   setServices:
     sharedObj: libFVdycoreCubed_GridComp
@@ -54,10 +42,7 @@ mapl:
       im_world: 24
       nx_face: 1
       ny_face: 1
+    # Use basic vertical grid for now
     vertical_grid:
-      class: model
-      standard_name: air_pressure
-      units: hPa
+      grid_type: basic
       num_levels: 72
-      field_edge: PLE
-      field_center: PE

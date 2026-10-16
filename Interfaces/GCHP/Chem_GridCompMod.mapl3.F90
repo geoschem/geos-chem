@@ -39,7 +39,6 @@ module GEOSChem_GridCompMod
   ! Run-time settings from geoschem_gridcomp.yaml (setting names are in comments)
   integer :: IsCTM                     ! GEOSChem_CTM
   integer :: MemDebugLevel             ! MEMORY_DEBUG_LEVEL
-  logical :: use_extdata2g             ! USE_EXTDATA2G
   logical :: met_wind_is_top_down      ! MET_WIND_IS_TOP_DOWN
   logical :: met_humidity_is_top_down  ! MET_HUMIDITY_IS_TOP_DOWN
   logical :: met_nonadv_is_top_down    ! MET_NONADVECTION_IS_TOP_DOWN

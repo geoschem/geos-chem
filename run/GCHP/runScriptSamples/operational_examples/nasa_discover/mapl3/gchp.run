@@ -6,7 +6,7 @@
 #SBATCH --mem=60G
 #SBATCH --job-name=gchp.run
 #SBATCH --constraint=mil
-#SBATCH --account=s1043
+#SBATCH --account=s1873
 #SBATCH --qos=debug
 ##SBATCH -o gchp.%j.log
 ##SBATCH -e gchp.%j.log
@@ -39,10 +39,11 @@ log=gchp.${start_str}z.log
 #log=gchp.${start_str}z.${SLURM_JOB_ID}.log
 
 # Get grid resolution
-N=$(awk '/^[[:space:]]*im_world:/ {print $2}' gchp.yaml)
+N=$(awk '/^[[:space:]]*im_world:/ {print $2}' gchp_gridcomp.yaml)
 
-# Clean up restarts if last run crashed
-rm -f ./Restarts/gcchem*
+# Skip restarts for now
+## Clean up restarts if last run crashed
+#rm -f ./Restarts/gcchem*
 
 # Update config files, set restart symlink, and do sanity checks
 # ewl: comment this out for mapl3
@@ -63,35 +64,36 @@ fi
 set +e
 
 # Run GCHP
-mpirun -np ${coreCount} ./gchp cap.yaml > "${log}"
+mpirun -np ${coreCount} ./gchp mapl.yaml > "${log}"
 
-# Rename mid-run checkpoint files, if any, unless time in filename corresponds
-# to run start time (duplicate with initial restart file)
-chkpnts=$(ls Restarts)
-for chkpnt in ${chkpnts}
-do
-    if [[ "$chkpnt" == *"gcchem_internal_checkpoint."* ]]; then
-       chkpnt_time=${chkpnt:27:13}
-       if [[ "${chkpnt_time}" != "${start_str:0:13}" ]]; then
-          new_chkpnt=./Restarts/GEOSChem.Restart.${chkpnt_time}z.c${N}.nc4
-          mv ./Restarts/${chkpnt} ${new_chkpnt}
-       fi
-    fi
-done
-
-# If new start time in cap_restart is okay, rename end restart file
-# and update restart symlink
-new_cap_str=$(cat cap_restart.yaml)
-new_start_str=${new_cap_str:10:16}
-if [[ "${new_start_str}" = "${start_str}" || "${new_start_str}" = "" ]]; then
-   echo "ERROR: GCHP failed to run to completion. Check the log file for more information."
-   exit 1
-else
-    [ -e ./Restarts/gcchem_internal_checkpoint ] && \
-	mv ./Restarts/gcchem_internal_checkpoint \
-	   Restarts/GEOSChem.Restart.${new_start_str:0:13}z.c${N}.nc4
-    #source setRestartLink.sh
-fi
-
-# Remove any remaining checkpoints that are not renamed
-rm -f ./Restarts/gcchem*
+# Skip restarts for now
+## Rename mid-run checkpoint files, if any, unless time in filename corresponds
+## to run start time (duplicate with initial restart file)
+#chkpnts=$(ls Restarts)
+#for chkpnt in ${chkpnts}
+#do
+#    if [[ "$chkpnt" == *"gcchem_internal_checkpoint."* ]]; then
+#       chkpnt_time=${chkpnt:27:13}
+#       if [[ "${chkpnt_time}" != "${start_str:0:13}" ]]; then
+#          new_chkpnt=./Restarts/GEOSChem.Restart.${chkpnt_time}z.c${N}.nc4
+#          mv ./Restarts/${chkpnt} ${new_chkpnt}
+#       fi
+#    fi
+#done
+#
+## If new start time in cap_restart is okay, rename end restart file
+## and update restart symlink
+#new_cap_str=$(cat cap_restart.yaml)
+#new_start_str=${new_cap_str:10:16}
+#if [[ "${new_start_str}" = "${start_str}" || "${new_start_str}" = "" ]]; then
+#   echo "ERROR: GCHP failed to run to completion. Check the log file for more information."
+#   exit 1
+#else
+#    [ -e ./Restarts/gcchem_internal_checkpoint ] && \
+#	mv ./Restarts/gcchem_internal_checkpoint \
+#	   Restarts/GEOSChem.Restart.${new_start_str:0:13}z.c${N}.nc4
+#    #source setRestartLink.sh
+#fi
+#
+## Remove any remaining checkpoints that are not renamed
+#rm -f ./Restarts/gcchem*
