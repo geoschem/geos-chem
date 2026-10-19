@@ -48,7 +48,7 @@ Mask fractions:              false
 # ExtNr ExtName                on/off  Species   Years avail.
 0       Base                   : on    *
 # ----- SIMULATION SETTINGS (DO NOT EDIT) -------------------------------------
-    --> USE_CH4_DATA	       :       true
+    --> USE_CH4_DATA           :       true
     --> USE_CO_DATA            :       true
     --> USE_CO2_DATA           :       true
     --> USE_OCS_DATA           :       true     # 2012-2016
@@ -148,7 +148,7 @@ Mask fractions:              false
 ### BEGIN SECTION BASE EMISSIONS
 ###############################################################################
 
-# ExtNr	Name sourceFile	sourceVar sourceTime C/R/E SrcDim SrcUnit Species ScalIDs Cat Hier
+# ExtNr Name sourceFile sourceVar sourceTime C/R/E SrcDim SrcUnit Species ScalIDs Cat Hier
 
 (((EMISSIONS
 

@@ -46,16 +46,26 @@ function isItemInList() {
 function keyValueUpdate() {
 
     #=========================================================================
-    # Runs an sed command to update a "key: value" pair in a file
+    # Runs an sed command to update a "--> key : value" switch in a file.
+    # Any amount of whitespace (spaces or tabs) is allowed around the
+    # key, colon, and value.  Exits with an error if the switch is not
+    # found, so that a template change cannot silently break this.
     #
     # Arguments:
-    # ${1} : Key
+    # ${1} : Key (e.g. USE_CH4_DATA)
     # ${2} : Value
     # ${3} : Replacement value
-    # ${4) : File in which the text is found
+    # ${4} : File in which the text is found
+    #
+    # NOTE: [[:space:]] is the POSIX-compliant whitespace character class;
+    # it matches space, TAB, \n, \r, \v, and \f characters.
     #=========================================================================
-    cmd="s/${1}: ${2}/${1}: ${3}/"
-    sed -i -e "$cmd" "${4}"
+    pat="^([[:space:]]*-->[[:space:]]*${1}[[:space:]]*:[[:space:]]*)${2}\b"
+    if ! grep -E -q "${pat}" "${4}"; then
+        echo "ERROR: Could not find '--> ${1} : ${2}' in ${4}!"
+        exit 1
+    fi
+    sed -i -E -e "s/${pat}/\1${3}/" "${4}"
 }
 
 
@@ -106,7 +116,7 @@ function updateGeosChemConfig() {
     # Remove advected species (use \< and \> for exact match in order
     # to prevent inadvertently removing CO2 with when spc is CO.
     for spc in ${1}; do
-    cmd="/\s*\-\s*\<${spc}\>/d"
+        cmd="/\s*\-\s*\<${spc}\>/d"
         sed -i -e "${cmd}" "${file}"
     done
 }
@@ -115,7 +125,8 @@ function updateGeosChemConfig() {
 function updateHemcoConfig() {
 
     #========================================================================
-    # Removes advected species from geoschem_config.yml
+    # Turns off the USE_<species>_DATA switches in HEMCO_Config.rc
+    # for species that are not used in the simulation
     #
     # Arguments:
     # ${1} : List of species to exclude
@@ -125,38 +136,10 @@ function updateHemcoConfig() {
     # File to be modified
     file="${2}/HEMCO_Config.rc"
 
-    # True/False values in the HEMCO extension switches section
-    true="      true"
-    false="      false"
-
-    # If CO2 is in the exclude list, turn off CO2 options
-    # NOTE: This must precede CO to avoid unintended deletions
-    isItemInList "CO2" "${1}"
-    if [[ $? == 0 ]]; then
-        key="--> USE_CO2_DATA           "
-        keyValueUpdate "${key}" "${true}" "${false}" "${file}"
-    fi
-
-    # If CO is in the exclude list, turn off CO options
-    isItemInList "CO" "${1}"
-    if [[ $? == 0 ]]; then
-        key="--> USE_CO_DATA            "
-        keyValueUpdate "${key}" "${true}" "${false}" "${file}"
-    fi
-
-    # If CH4 is in the exclude list, turn off CH4 options
-    isItemInList "CH4" "${1}"
-    if [[ $? == 0 ]]; then
-        key="--> USE_CH4_DATA           "
-        keyValueUpdate "${key}" "${true}" "${false}" "${file}"
-    fi
-
-    # If OCS is in the exclude list, turn off OCS options
-    isItemInList "OCS" "${1}"
-    if [[ $? == 0 ]]; then
-        key="--> USE_OCS_DATA           "
-        keyValueUpdate "${key}" "${true}" "${false}" "${file}"
-    fi
+    # Turn off the switch for each excluded species
+    for spc in ${1}; do
+        keyValueUpdate "USE_${spc}_DATA" "true" "false" "${file}"
+    done
 }
 
 

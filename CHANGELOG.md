@@ -23,6 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Retitled `test/README.md` so it no longer names the GCClassic-only path `src/GEOS-Chem/test`
 - Added GitHub language-detection overrides to `.gitattributes` to avoid spurious CodeQL GitHub Action errors
 - Separated `CH4/CO2/CO/OCS_DATA` switches in `HEMCO_Config.rc.carbon` for GCHP to note they are not editable
+- Updated `keyValueUpdate` in `run/shared/singleCarbonSpecies.sh` to be tolerant of TABs and variable spacing; Added an error check as well.
 
 ### Fixed
 - Fixed parallelization errors in `GeosCore/apm_driv_mod.F90`
@@ -36,6 +37,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Removed invalid OpenMP directives from the `MPI_LOAD_BALANCE` block of `GeosCore/fullchem_mod.F90`, which caused GCHP compilation to fail with `-DOMP=ON`
 - Removed confusing comments from `KPP/fullchem/fullchem_HetStateFuncs.F90`
 - Took out (((METEOROLOGY brackets in HEMCO_Config.rc.carbon, as GCHP uses ExtData instead. 
+- Removed TAB characters in `HEMCO_Config.rc.carbon` templates for GC-Classic and GCHP
 
 ## [14.8.0] - 2026-09-11
 ### Added
