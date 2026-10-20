@@ -34,7 +34,7 @@ module GEOSChem_GridCompMod
   type(ESMF_Time)             :: simStartTime         ! for hElapsed
   type(ESMF_GridComp), target :: gc_saved ! targets for HcoState pointers
   type(ESMF_State),    target :: import_saved, export_saved
-  logical :: spc_init_from_background   ! temporary until implement restart usage
+  logical :: spc_init_from_background
 
   ! Run-time settings from geoschem_gridcomp.yaml (setting names are in comments)
   integer :: IsCTM                     ! GEOSChem_CTM
@@ -438,7 +438,7 @@ contains
          ESMF_AlarmCreate(clock, name="GEOSChem_chem_alarm", ringTime=currTime, &
          ringInterval=chemInterval, sticky=.true., _RC)
 
-    !-- TEMPORARY until species are read from a restart: start from species-database background
+    !-- Optional cold start: initialize all species from species-database background values
     call MAPL_GridCompGetResource(gc, "SPC_INIT_FROM_BACKGROUND", &
          spc_init_from_background, default=.false., _RC)
 
@@ -562,11 +562,12 @@ contains
     end do
 
     !---------------------------------------------------------------------
-    ! First run only: set values from restart file and for fixed land map
+    ! First run only
     !---------------------------------------------------------------------
     if (first) then
 
-       ! Initialize species from background values (TEMPORARY: no restart read yet)
+       ! Cold start option to initialize all species from background values
+       ! ewl: why would we ever want to do this? Check on previous behavior.
        if (spc_init_from_background) then
           do N = 1, State_Chm%nSpecies
              ThisSpc => State_Chm%SpcData(N)%Info
