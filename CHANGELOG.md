@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated `Compute_Sflx_for_Vdiff` routine to only include surface emissions in `State_Chm%SurfaceFlux` for passing into the VDIFF non-local PBL mixing routine
 - Moved code shared by `DO_TEND` and `Do_Emis_Above_Sfc` into private helper routines in `GeosCore/mixing_mod.F90`.
 - Updated `GeosCore/mixing_mod.F90` so that `Do_Tend` is only called for full PBL mixing and `Do_Emis_Above_Sfc` is called for non-local PBL mixing
+- Updated the `SatDiagnSurfFlux` diagnostic metadata to state that it contains surface (level 1) emissions minus dry deposition
 
 ### Removed
 - Removed the `OnlyAbovePBL` argument from `Do_Tend` (in `GeosCore/mixing_mod.F90`)
