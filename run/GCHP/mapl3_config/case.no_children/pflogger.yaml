@@ -1,12 +1,12 @@
 schema_version: 1
 
-###############################      
+###############################
 locks:
    mpi:
       class: MpiLock
       comm:  MPI_COMM_WORLD
 
-###############################      
+###############################
 formatters:
    legacy:
       class: Formatter
@@ -32,7 +32,7 @@ formatters:
       format: '%(simtime)a~ %(short_name)a15~: %(level_name)a~: %(message)a'
       datefmt: ' GCHP Date: %(Y)i4.4~/%(M)i2.2~/%(D)i2.2  Time: %(HH)i2.2~:%(MM)i2.2~:%(SS)i2.2'
 
-###############################      
+###############################
 handlers:
 
    console:
@@ -71,13 +71,13 @@ handlers:
       rank_prefix: rank
       level: DEBUG
 
-###############################      
+###############################
 root:
    handlers: [warnings,errors,console]
    level: WARNING
    root_level: INFO
 
-###############################      
+###############################
 loggers:
 
    errors:
@@ -98,7 +98,7 @@ loggers:
        
    MAPL:
        handlers: [mpi_shared]
-       level: WARNING
+       level: ERROR
        root_level: DEBUG
 
    MAPL.profiler:

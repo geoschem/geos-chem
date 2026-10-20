@@ -6,14 +6,13 @@ GEOSChem_CTM: 1
 MEMORY_DEBUG_LEVEL: 0
 HEMCO_CONFIG: HEMCO_Config.rc
 
-USE_EXTDATA2G: false
 MET_WIND_IS_TOP_DOWN: false
 MET_HUMIDITY_IS_TOP_DOWN: false
 MET_NONADVECTION_IS_TOP_DOWN: false
 
 IMPORT_DYN_HEATING: 0
 
-SPC_INIT_FROM_BACKGROUND: true # temporary until hook up restart file
+SPC_INIT_FROM_BACKGROUND: false # temporary until hook up restart file
 
 mapl:
   setServices:
@@ -22,3 +21,7 @@ mapl:
 
   misc:
     activate_all_exports: true
+    checkpoint:
+      internal: true
+    restart:
+      internal: true

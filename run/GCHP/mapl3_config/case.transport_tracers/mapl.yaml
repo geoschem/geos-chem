@@ -6,6 +6,12 @@ esmf:
   defaultCalKind: ESMF_CALKIND_GREGORIAN
   logAppendFlag: false
 
+mapl:
+  field_dictionary:
+    path: field_dictionary.yaml
+    validation_mode: permissive
+    suppress_standard_name_warnings: true
+
 pflogger: pflogger.yaml
 
 app_petcount: 6

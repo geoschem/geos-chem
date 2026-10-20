@@ -1,0 +1,18 @@
+root_name: GCHP
+extdata_name: EXTDATA
+history_name: HISTORY
+
+run_extdata: true
+run_history: true
+
+mapl:
+  setServices:
+    sharedObj: libMAPL.cap
+  children:
+    GCHP:
+      config_file: gchp_gridcomp.yaml
+    EXTDATA:
+      config_file: extdata_gridcomp.yaml
+    HISTORY:
+      config_file: history_gridcomp.yaml
+

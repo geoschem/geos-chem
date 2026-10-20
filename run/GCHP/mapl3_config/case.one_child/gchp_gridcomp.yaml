@@ -1,0 +1,23 @@
+RUN_DT: 600
+
+mapl:
+
+  geometry:
+    esmf_geom:
+      class: CubedSphere
+      im_world: 24
+      nx_face: 1
+      ny_face: 1
+    # Use basic vertical grid for now
+    vertical_grid:
+      grid_type: basic
+      num_levels: 72
+
+  setServices:
+    sharedObj: libGCHP_GridComp
+    userRoutine: gchp_setservices_
+
+  children:
+    GCHPctmEnv:
+      config_file: gchpctmenv_gridcomp.yaml
+

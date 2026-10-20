@@ -13,8 +13,7 @@ clock:
   segment_duration: PT1H
 
 checkpointing:
-  enabled: false
-  final: false
+  enabled: true
   path: checkpoints
   alarms: {}
 #    - {frequency: PT6H, refTime: '1891-03-01T00:00:00'}
