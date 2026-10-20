@@ -690,15 +690,17 @@ CONTAINS
 
 !-----------------------------------------------------------------------
 ! Simple bug fix to ensure mass conservation - Jintai Lin 20180809
-!   Without this fix, mass is almost but not completed conserved,
-!   which is OK for full chemistry simulations but a big problem
-!   for long lived species such as CH4 and CO2
+!   Without this fix, mass is almost but not conserved,
+!   which is OK for full chemistry simulations but a big
+!   problem for long lived species such as CH4 and CO2.
 !-----------------------------------------------------------------------
     DO M = 1, nspcmix
     do I = 1, plonl
 
-       ! total mass in the PBL (ignoring the v/v -> m/m conversion)
-       !   including pre-mixing mass and surface flux (emis+drydep)
+       ! Total column mass before mixing (ignoring the v/v -> m/m
+       ! conversion) plus the net surface flux (level-1 emissions minus
+       ! dry deposition).  Emissions in levels 2 and higher are already
+       ! in qp0, since Do_Emis_Above_Sfc applies them before VDIFF.
        sum_qp0 = sum(qp0(I,ntopfl:plev,M) * &
                  State_Met%AD(I,lat,plev-ntopfl+1:1:-1)) &
                + (cflx(I,M) * State_Grid%AREA_M2(I,lat) * ztodt)
@@ -2126,13 +2128,16 @@ CONTAINS
     !=======================================================================
     ! Non-local PBL mixing budget diagnostics - Part 1 of 2
     !
-    ! WARNING: The mixing budget diagnostic includes the application
-    ! of species tendencies (emissions fluxes and dry deposition
-    ! rates) below the PBL when using non-local PBL mixing. This is
-    ! done for all species with defined emissions / dry deposition
-    ! rates, including dust. These tendencies below the PBL are
+    ! WARNING: When using non-local PBL mixing, the mixing budget
+    ! diagnostic includes the surface fluxes passed to VDIFF via
+    ! State_Chm%SurfaceFlux: emissions in the surface level (L=1) and
+    ! dry deposition.  This applies to all species with emissions or
+    ! dry deposition, including dust.  These surface fluxes are
     ! therefore not included in the emissions/dry deposition budget
-    ! diagnostics when using non-local PBL mixing. (ewl, 9/26/18)
+    ! diagnostics.  Emissions in levels 2 and higher are applied in
+    ! Do_Emis_Above_Sfc (mixing_mod.F90) before VDIFF, so they are
+    ! included in the emissions/dry deposition budget diagnostics.
+    ! (ewl, 9/26/18; updated for surface-only fluxes)
     !=======================================================================
     IF ( State_Diag%Archive_BudgetMixing ) THEN
 
