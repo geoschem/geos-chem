@@ -15143,7 +15143,8 @@ CONTAINS
        IF ( isTagged  ) TagId = 'ADV'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNSURFFLUX' ) THEN
-       IF ( isDesc    ) Desc  = 'Total Surface Fluxes (EFLX (emis) - DFLX (drydep)); from Surface to Top of PBL) for Advected Species'
+       IF ( isDesc    ) Desc = 'Surface (level 1) fluxes (EFLX (emis) - ' // &
+                               'DFLX (drydep)) for advected species'
        IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'       

@@ -1382,9 +1382,9 @@ PROGRAM GEOS_Chem
 
                 !------------------------------------------------------------
                 ! %%%%% VDIFF (non-local PBL mixing) %%%%%
-                ! Compute the surface flux for the non-local mixing,
-                ! (which means getting emissions & drydep from HEMCO)
-                ! and store it in State_Chm%Surface_Flux
+                ! Compute the surface flux (emissions at the surface, plus
+                ! deposition fluxes from drydep_mod and HEMCO) and store it
+                ! in the State_Chm%SurfaceFlux array.
                 !------------------------------------------------------------
                 CALL Compute_Sflx_For_Vdiff( Input_Opt,  State_Chm,          &
                                              State_Diag, State_Grid,         &
@@ -1405,9 +1405,9 @@ PROGRAM GEOS_Chem
              ! Update drydep velocities by adding the sea-air deposition
              ! velocity computed by the HEMCO SeaFlux extension
              !------------------------------------------------------------
-             CALL Set_DryDepVel_Diagnostics( Input_Opt,  State_Chm,       &
-                                             State_Diag, State_Grid,      &
-                                             State_Met,  RC              )
+             CALL Set_DryDepVel_Diagnostics( Input_Opt,  State_Chm,          &
+                                             State_Diag, State_Grid,         &
+                                             State_Met,  RC                 )
 
              IF ( RC /= GC_SUCCESS ) THEN
                 ErrMsg = &
@@ -1421,17 +1421,20 @@ PROGRAM GEOS_Chem
 
           ENDIF
 
-          ! Note: mixing routine expects tracers in v/v
-          ! DO_MIXING applies the tracer tendencies (dry deposition,
-          ! emission rates) to the tracer arrays and performs PBL
-          ! mixing.
-          ! In the non-local PBL scheme, dry deposition and emission
-          ! fluxes below the PBL are handled within the PBL mixing
-          ! routine. Otherwise, tracer concentrations are first updated
-          ! and the full-mixing is then applied.
-          ! (ckeller, 3/5/15)
-          CALL Do_Mixing( Input_Opt,  State_Chm, State_Diag, &
-                          State_Grid, State_Met, RC )
+          !------------------------------------------------------------------
+          ! Routine DO_MIXING applies the tracer tendencies (dry deposition,
+          ! emission rates) to the tracer arrays and performs PBL mixing.
+          !
+          ! In the non-local PBL scheme (VDIFF), emissions in levels 2 and
+          ! higher are first added to the tracer arrays, and surface (level
+          ! 1) emissions and dry deposition are passed to VDIFF via the
+          ! State_Chm%SurfaceFlux array.
+          !
+          ! For the full-mixing scheme (TURBDAY), tracer concentrations
+          ! are first updated and the full-mixing is then applied.
+          !------------------------------------------------------------------
+          CALL Do_Mixing( Input_Opt,  State_Chm, State_Diag,                 &
+                          State_Grid, State_Met, RC                         )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
