@@ -5,9 +5,17 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - TBD
+### Added
+- Added routine `Do_Emis_Above_Sfc` (in `GeosCore/mixing_mod.F90`), which applies emissions in levels 2 and higher before non-local PBL mixing.
+
 ### Changed
 - Activated `WetLossConv` and `WetLossLS` collections in fullchem benchmark simulations
 - Updated `Compute_Sflx_for_Vdiff` routine to only include surface emissions in `State_Chm%SurfaceFlux` for passing into the VDIFF non-local PBL mixing routine
+- Moved code shared by `DO_TEND` and `Do_Emis_Above_Sfc` into private helper routines in `GeosCore/mixing_mod.F90`.
+- Updated `GeosCore/mixing_mod.F90` so that `Do_Tend` is only called for full PBL mixing and `Do_Emis_Above_Sfc` is called for non-local PBL mixing
+
+### Removed
+- Removed the `OnlyAbovePBL` argument from `Do_Tend` (in `GeosCore/mixing_mod.F90`)
 
 ## [14.8.0] - 2026-09-11
 ### Added

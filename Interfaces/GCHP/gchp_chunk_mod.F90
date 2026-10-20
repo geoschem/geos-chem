@@ -1256,8 +1256,14 @@ CONTAINS
        DT = HcoState%TS_EMIS
 
        ! Apply tendencies over entire PBL. Use emission time step.
-       CALL DO_TEND( Input_Opt, State_Chm, State_Diag, &
-                     State_Grid, State_Met, .FALSE., RC, DT=DT )
+       CALL Do_Tend(                                                         &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Diag = State_Diag,                                         &
+            State_Grid = State_Grid,                                         &
+            State_Met  = State_Met,                                          &
+            DT         = DT,                                                 &
+            RC         = RC                                                 )
        _ASSERT(RC==GC_SUCCESS, 'Error calling DO_TEND')
 
        ! testing only
@@ -1296,9 +1302,9 @@ CONTAINS
              _ASSERT(RC==GC_SUCCESS, 'Error calling MAX_PBLHT_FOR_VDIFF')
           ENDIF
 
-          ! Compute the surface flux for the non-local mixing,
-          ! (which means getting emissions & drydep from HEMCO)
-          ! and store it in State_Chm%Surface_Flux
+          ! Compute the surface flux (emissions at the surface, plus
+          ! deposition fluxes from drydep_mod and HEMCO) and store it
+          ! in the State_Chm%SurfaceFlux array.
           CALL Compute_Sflx_For_Vdiff( Input_Opt,  State_Chm, State_Diag,    &
                                        State_Grid, State_Met, RC            )
           _ASSERT(RC==GC_SUCCESS, 'Error calling COMPUTE_SFLX_FOR_VDIFF')
