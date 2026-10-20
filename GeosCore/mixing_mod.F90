@@ -22,8 +22,8 @@ MODULE Mixing_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: DO_MIXING
-  PUBLIC :: DO_TEND
+  PUBLIC :: Do_Mixing
+  PUBLIC :: Do_Tend
   PUBLIC :: Do_Emis_Above_Sfc
 !
 ! !PRIVATE MEMBER FUNCTIONS:
@@ -64,8 +64,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Do_Mixing( Input_Opt,  State_Chm, State_Diag, &
-                        State_Grid, State_Met, RC )
+  SUBROUTINE Do_Mixing( Input_Opt,  State_Chm, State_Diag,                   &
+                        State_Grid, State_Met, RC                           )
 !
 ! !USES:
 !
@@ -91,10 +91,10 @@ CONTAINS
     INTEGER,          INTENT(INOUT)  :: RC          ! Failure or success
 !
 ! !REMARKS
-!  While all dry deposition rates are calculated either in DO_PBL_MIX2 or
+!  While all dry deposition rates are calculated either in DO_VDIFF or
 !  DO_TEND, settling of aerosols is still computed in the dust & seasalt
 !  modules.  The order of operations for full PBL mixing (TURBDAY) or no
-!  PBL mixing stay the same, so TURBDAY and no-mixing stay zero-diff.
+!  PBL mixing stays the same, so TURBDAY and no-mixing stay zero-diff.
 !
 ! !REVISION HISTORY:
 !  04 Mar 2015 - C. Keller   - Initial version
@@ -124,8 +124,13 @@ CONTAINS
 
        ! Add emissions in levels 2 and higher directly to the species array.
        ! NOTE: Do_Emis_Above_Sfc is only called for non-local PBL mixing.
-       CALL Do_Emis_Above_Sfc( Input_Opt,  State_Chm, State_Diag,            &
-                               State_Grid, State_Met, RC                    )
+       CALL Do_Emis_Above_Sfc(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Diag = State_Diag,                                         &
+            State_Grid = State_Grid,                                         &
+            State_Met  = State_Met,                                          &
+            RC         = RC                                                 )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Do_Emis_Above_Sfc"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -136,8 +141,13 @@ CONTAINS
        ! (surface emissions and dry deposition flux) enters VDIFF via the
        ! State_Chm%SurfaceFlux array (defined in Compute_Sflx_for_Vdiff,
        ! located in module GeosCore/hco_interface_gc_mod.F90).
-       CALL Do_Vdiff( Input_Opt,  State_Chm, State_Diag,                     &
-                      State_Grid, State_Met, RC                             )
+       CALL Do_Vdiff(                                                        &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Diag = State_Diag,                                         &
+            State_Grid = State_Grid,                                         &
+            State_Met  = State_Met,                                          &
+            RC         = RC                                                 )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Do_Vdiff"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -158,8 +168,13 @@ CONTAINS
     ! Do_Emis_Above_Sfc, and level-1 emissions and drydep are passed
     ! to VDIFF via State_Chm%SurfaceFlux.  (GCHP also calls DO_TEND
     ! directly when turbulence is handled outside of GEOS-Chem.)
-    CALL Do_Tend( Input_Opt,  State_Chm, State_Diag,                         &
-                  State_Grid, State_Met, RC                                 )
+    CALL Do_Tend(                                                            &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Diag = State_Diag,                                            &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         RC         = RC                                                    )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in "DO_TEND"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -168,8 +183,13 @@ CONTAINS
 
     ! If PBL mixing is on, fully mix the PBL (TURBDAY)
     IF ( Input_Opt%LTURB ) THEN
-       CALL Do_Full_Pbl_Mixing( Input_Opt,  State_Chm, State_Diag,           &
-                                State_Grid, State_Met, RC                   )
+       CALL Do_Full_Pbl_Mixing(                                              &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Diag = State_Diag,                                         &
+            State_Grid = State_Grid,                                         &
+            State_Met  = State_Met,                                          &
+            RC         = RC                                                 )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Do_Full_Pbl_Mixing"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -192,32 +212,28 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_TEND( Input_Opt, State_Chm, State_Diag, State_Grid,          &
+  SUBROUTINE Do_Tend( Input_Opt, State_Chm, State_Diag, State_Grid,          &
                       State_Met, RC,        DT                              )
 !
 ! !USES:
 !
-    USE Diagnostics_Mod,      ONLY : Compute_Budget_Diagnostics
     USE ErrCode_Mod
-    USE ERROR_MOD,            ONLY : SAFE_DIV
-    USE GET_NDEP_MOD,         ONLY : SOIL_DRYDEP
+    USE Error_Mod,            ONLY : Safe_Div
+    USE Get_Ndep_Mod,         ONLY : Soil_DryDep
     USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_GetDiagn
-    USE HCO_Utilities_GC_Mod, ONLY : GetHcoValEmis, GetHcoValDep, InquireHco
-    USE HCO_Utilities_GC_Mod, ONLY : LoadHcoValEmis, LoadHcoValDep
+    USE HCO_Utilities_GC_Mod, ONLY : GetHcoValDep
+    USE HCO_Utilities_GC_Mod, ONLY : InquireHco
+    USE HCO_Utilities_GC_Mod, ONLY : LoadHcoValDep
+    USE HCO_Utilities_GC_Mod, ONLY : LoadHcoValEmis
     USE Input_Opt_Mod,        ONLY : OptInput
     USE PhysConstants,        ONLY : AVO
     USE Species_Mod,          ONLY : Species
     USE State_Chm_Mod,        ONLY : ChmState
-    USE State_Chm_Mod,        ONLY : Ind_
     USE State_Diag_Mod,       ONLY : DgnState
     USE State_Grid_Mod,       ONLY : GrdState
     USE State_Met_Mod,        ONLY : MetState
-    USE TIME_MOD,             ONLY : GET_TS_DYN, GET_TS_CONV, GET_TS_CHEM
-    USE Timers_Mod,           ONLY : Timer_End, Timer_Start
+    USE Time_Mod,             ONLY : Get_Ts_Dyn
     USE UnitConv_Mod
-#ifdef MODEL_CLASSIC
-    use hco_utilities_gc_mod, only: TMP_MDL ! danger
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -242,38 +258,33 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL                 :: found,      chem_grid_only
-    LOGICAL                 :: dryd_spec,  emis_spec,      error
-    INTEGER                 :: I,          J,              L
-    INTEGER                 :: err_status, max_level,      N
-    INTEGER                 :: D,          NN,             NA
-    INTEGER                 :: S,          dryDepId,       previous_units
-    INTEGER                 :: pbl_top,    dryd_top,       emis_top
-    REAL(fp)                :: TS,         air_sea_freq,   freq,
-    REAL(fp)                :: RKT,        frac,           flux
-    REAL(fp)                :: AREA_M2,    MWkg,           denom
-
-    ! PARANOX loss fluxes (kg/m2/s). These are obtained from the
-    ! HEMCO PARANOX extension via the diagnostics module.
-    REAL(fp)                :: PNOxLoss
-    REAL(f4),      POINTER  :: PNOxLoss_O3  (:,:)
-    REAL(f4),      POINTER  :: PNOxLoss_HNO3(:,:)
-    REAL(f4),      POINTER  :: Ptr2D        (:,:)
+    LOGICAL                :: chem_grid_only, found
+    LOGICAL                :: error,          has_dep_flux
+    LOGICAL                :: has_emis_flux,  is_negative
+    INTEGER                :: dryd_top,       emis_top
+    INTEGER                :: I,              id_drydep
+    INTEGER                :: J,              L
+    INTEGER                :: N,              NA
+    INTEGER                :: pbl_top,        previous_units
+    INTEGER                :: S
+    REAL(fp)               :: air_sea_freq,   denom
+    REAL(fp)               :: flux,           frac
+    REAL(fp)               :: freq,           lnox_kgm2
+    REAL(fp)               :: lnox_kgm2s,     mw_kg
+    REAL(fp)               :: RkT,            time_step
 
     ! Pointers and objects
-    TYPE(Species), POINTER  :: SpcInfo
-    REAL(fp),      POINTER  :: DepFreq(:,:,:)  ! IM, JM, nDryDep
+    REAL(f4),      POINTER :: lnox_kgm2s_o3  (:,:)
+    REAL(f4),      POINTER :: lnox_kgm2s_hno3(:,:)
+    REAL(f4),      POINTER :: ptr2D          (:,:)
+    TYPE(Species), POINTER :: SpcInfo
 
     ! Strings
-    CHARACTER(LEN=255)      :: thisLoc
-    CHARACTER(LEN=512)      :: errMsg, errorMsg
-
-#ifdef ADJOINT
-    LOGICAL                 :: IS_ADJ
-#endif
+    CHARACTER(LEN=255)     :: thisLoc
+    CHARACTER(LEN=512)     :: errMsg
 
     !========================================================================
-    ! DO_TEND begins here!
+    ! Do_Tend begins here!
     !========================================================================
 
     ! Assume success
@@ -285,12 +296,11 @@ CONTAINS
     IF ( .NOT. Input_Opt%LDRYD .AND. .NOT. Input_Opt%DoEmissions ) RETURN
 
     ! Initialize
-    error         =  .FALSE.
-    DepFreq       => State_Chm%DryDepFreq
-    SpcInfo       => NULL()
-    PNOxLoss_O3   => NULL()
-    PNOxLoss_HNO3 => NULL()
-    Ptr2D         => NULL()
+    error           = .FALSE.
+    SpcInfo         => NULL()
+    lnox_kgm2s_o3   => NULL()
+    lnox_kgm2s_hno3 => NULL()
+    ptr2d           => NULL()
 
     ! Look up species indices (first call only)
     CALL Init_Tend_Species_Ids()
@@ -299,10 +309,13 @@ CONTAINS
     ! Emissions/dry deposition budget diagnostics - Part 1 of 2
     !------------------------------------------------------------------------
     CALL Tend_Budget(                                                        &
-         Input_Opt = Input_Opt,                                              &
-         State_Chm = State_Chm,
-        State_Diag,                     &
-                      State_Grid, State_Met, .TRUE.,     RC                 )
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Diag = State_Diag,                                            &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         before     = .TRUE.,                                                &
+         RC         = RC                                                    )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error encountered in "Tend_Budget"!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -312,11 +325,16 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Convert species to [kg/m2] (removes area dependency, ewl 9/30/15)
     !------------------------------------------------------------------------
-    CALL Tend_Convert_Units( Input_Opt,  State_Chm, State_Grid,              &
-                             State_Met,  KG_SPECIES_PER_M2, RC,              &
-                             previous_units                                 )
+    CALL Tend_Convert_Units(                                                 &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Grid     = State_Grid,                                        &
+         State_Met      = State_Met,                                         &
+         new_units      = KG_SPECIES_PER_M2,                                 &
+         previous_units = previous_units,                                    &
+         RC             = RC                                                )
     IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error encountered in "Tend_Convert_Units"!'
+       errMsg = 'Error encountered in "Tend_Convert_Units" (to kg/m2)!'
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
@@ -329,24 +347,23 @@ CONTAINS
     ENDIF
 #ifdef ADJOINT
     IF ( Input_Opt%Is_Adjoint ) THEN
-       time_step = time_step * -1
+       time_step = time_step * (-1)
     ENDIF
 #endif
 
-    !=======================================================================
+    !========================================================================
     ! Get pointers to the PARANOX loss fluxes. These are
     ! stored in diagnostics 'PARANOX_O3_DEPOSITION_FLUX' and
-    ! 'PARANOX_HNO3_DEPOSITION_FLUX'. The call below links pointers
-    ! PNOxLoss_O3 and PNOxLoss_HNO3 to the data values stored in the
+    ! 'PARANOX_HNO3_DEPOSITION_FLUX'.  The call below links pointers
+    ! lnox_kgm2s_o3 and lnox_kgm2s_hno3 to the data values stored in the
     ! respective diagnostics. The pointers will remain unassociated if
-    ! the diagnostics do not exist.
-    ! This is only needed if non-local PBL scheme is not being used.
-    ! Otherwise, PARANOX fluxes are applied in vdiff_mod.F90.
-    !  (ckeller, 4/10/2015)
+    ! the diagnostics do not exist.  This is only needed if non-local PBL
+    ! scheme is not being used. Otherwise, PARANOX fluxes are applied
+    ! in vdiff_mod.F90. (CHristoph Keller, 4/10/2015)
     !
     ! If using HEMCO Intermediate grid feature, then the call needs to be
-    ! refreshed at every time step for regridding. (hplin, 6/21/20)
-    !=======================================================================
+    ! refreshed at every time step for regridding. (Haipeng Lin, 6/21/20)
+    !========================================================================
     IF ( .NOT. Input_Opt%LNLPBL ) THEN
 
        ! O3 flux from PARANOX
@@ -355,13 +372,13 @@ CONTAINS
             State_Grid     = State_Grid,                                     &
             DiagnName      = 'PARANOX_O3_DEPOSITION_FLUX',                   &
             StopIfNotFound = .FALSE.,                                        &
-            Ptr2D          = Ptr2D,                                          &
+            ptr2d          = ptr2d,                                          &
             RC             = RC                                             )
-       IF ( ASSOCIATED( Ptr2D ) ) THEN
-          ALLOCATE( PNOxLoss_O3( State_Grid%NX, State_Grid%NY ), STAT=RC )
-          PNOxLoss_O3 = Ptr2D
+       IF ( ASSOCIATED( ptr2d ) ) THEN
+          ALLOCATE( lnox_kgm2s_o3( State_Grid%NX, State_Grid%NY ), STAT=RC )
+          lnox_kgm2s_o3 = ptr2d
        ENDIF
-       Ptr2D => NULL()
+       ptr2d => NULL()
 
        ! HNO3 flux from PARANOX
        CALL HCO_GC_GetDiagn(                                                 &
@@ -369,13 +386,13 @@ CONTAINS
             State_Grid     = State_Grid,                                     &
             DiagnName      = 'PARANOX_HNO3_DEPOSITION_FLUX',                 &
             StopIfNotFound = .FALSE.,                                        &
-            Ptr2D          = Ptr2D,                                          &
+            ptr2d          = ptr2d,                                          &
             RC             = RC                                             )
-       IF( ASSOCIATED( Ptr2D )) THEN
-          ALLOCATE( PNOxLoss_HNO3( State_Grid%NX, State_Grid%NY ), STAT=RC )
-          PNOxLoss_HNO3(:,:) = Ptr2D(:,:)
+       IF( ASSOCIATED( ptr2d ) ) THEN
+          ALLOCATE( lnox_kgm2s_hno3( State_Grid%NX, State_Grid%NY ), STAT=RC )
+          lnox_kgm2s_hno3 = ptr2d
        ENDIF
-       Ptr2D => NULL()
+       ptr2d => NULL()
     ENDIF
 
     !========================================================================
@@ -397,108 +414,78 @@ CONTAINS
     ! some non-I,J specific variables outside of the loop for optimization
     ! (Haipeng Lin 6/27/20).
     !========================================================================
-    DO NA = 1, State_Chm%nAdvect
+    DO NA = 1, State_Chm%nAdvect                   ! Advected species ID
 
-       ! Get the species ID from the advected species ID
-       N = State_Chm%Map_Advect(NA)
+       ! Initialize various species quantities
+       N              =  State_Chm%Map_Advect(NA)   ! Species ID
+       SpcInfo        => State_Chm%SpcData(N)%Info  ! Species database entry
+       mw_kg          =  SpcInfo%MW_g * 1.0e-3_fp   ! Species mol. wt. [kg/mol]
+       has_dep_flux   = .FALSE.                     ! Does it have deposition?
+       has_emis_flux  = .FALSE.                     ! Does it have emissions?
+       id_drydep      = -1                          ! Drydep species index
 
-       ! Get info about this species from the species database
-       SpcInfo => State_Chm%SpcData(N)%Info
+       ! Should we restrict emissions of species N to the chemistry grid
+       ! (to avoid building up concentration near the top-of-atmosphere)?
+       chem_grid_only = Is_ChemGrid_Only( Input_Opt, N )
 
-       ! Molecular weight in kg
-       MWkg = SpcInfo%MW_g * 1.e-3_fp
-
-       !--------------------------------------------------------------------
-       ! Check if we need to do dry deposition for this species
-       !--------------------------------------------------------------------
-
-       ! Initialize
-       is_hco_drydep = .FALSE.
-       id_drydep     = -1
-
-       ! Only if dry deposition is turned on and we do want to consider
-       ! processes below the PBL...
+       !---------------------------------------------------------------------
+       ! Check if this species has a surface deposition flux
+       !---------------------------------------------------------------------
        IF ( Input_Opt%LDRYD ) THEN
 
-          ! Get dry deposition ID (used by drydep_mod.F90) for this species.
-          id_drydep = SpcInfo%DryDepId
+          ! Check if this is one of the drydep species from drydep_mod.F90
+          id_drydep    = SpcInfo%DryDepId
+          has_dep_flux = ( id_drydep > 0 )
 
-          ! Check if this is a HEMCO drydep species
-          is_hco_drydep = ( id_drydep > 0 )
-          IF ( .NOT. is_hco_drydep ) THEN
-             CALL InquireHco ( N, Dep=is_hco_drydep )
+          ! Also check if the species has air-to-sea flux from HEMCO
+          IF ( .not. has_dep_flux ) THEN
+             CALL InquireHco ( N, dep=has_dep_flux )
           ENDIF
 
-          ! Special case for O3 or HNO3: include PARANOX loss
-          IF ( N == id_O3   .AND. ASSOCIATED( PNOxLoss_O3   ) ) THEN
-             is_hco_drydep = .TRUE.
+          ! Special case for O3 or HNO3: also include PARANOX loss
+          IF ( N == id_O3   .and. ASSOCIATED( lnox_kgm2s_o3   ) ) THEN
+             has_dep_flux = .TRUE.
           ENDIF
-          IF ( N == id_HNO3 .AND. ASSOCIATED( PNOxLoss_HNO3 ) ) THEN
-             is_hco_drydep = .TRUE.
-          ENDIF
-       ENDIF
-
-       ! Set emissions top level:
-       ! This is the top of atmosphere unless concentration build-up
-       ! in stratosphere wants to be avoided.
-       chem_grid_only  = .FALSE.
-
-       ! Set emissions to zero above chemistry grid for the following VOCs
-       IF ( N == id_MACR .OR. N == id_RCHO .OR. &
-            N == id_ACET .OR. N == id_ALD2 .OR. &
-            N == id_ALK4 .OR. N == id_C2H6 .OR. &
-            N == id_C3H8 .OR. N == id_CH2O .OR. &
-            N == id_PRPE                         ) THEN
-          ChemGridOnly = .TRUE.
-       ENDIF
-
-       ! Bry concentrations become prescribed in lin. strat. chemistry.
-       ! Therefore avoid any emissions of these compounds above the
-       ! chemistry grid (lin. strat. chem. applies above chemistry grid
-       ! only).
-       IF ( Input_Opt%LINEAR_CHEM ) THEN
-          IF ( N == id_BrO  .OR. N == id_Br2   .OR. &
-               N == id_Br   .OR. N == id_HOBr  .OR. &
-               N == id_HBr  .OR. N == id_BrNO3       ) THEN
-             ChemGridOnly = .TRUE.
+          IF ( N == id_HNO3 .and. ASSOCIATED( lnox_kgm2s_hno3 ) ) THEN
+             has_dep_flux = .TRUE.
           ENDIF
        ENDIF
 
-       !--------------------------------------------------------------------
-       ! Check if we need to do emissions for this species
-       !--------------------------------------------------------------------
+       !---------------------------------------------------------------------
+       ! Check if this species has an emissions flux
+       !---------------------------------------------------------------------
        IF ( Input_Opt%DoEmissions ) THEN
-          CALL InquireHco ( N, Emis=EmisSpec )
-       ELSE
-          EmisSpec = .FALSE.
+          CALL InquireHco ( N, emis=has_emis_flux )
        ENDIF
 
-       ! If there is emissions for this species, it must be loaded into
-       ! memory first.  This is achieved by attempting to retrieve a grid
-       ! box while NOT in a parallel loop. Failure to load this will result
+       !---------------------------------------------------------------------
+       ! Skip unless this species has drydep and/or emissions fluxes
+       !---------------------------------------------------------------------
+       IF ( .not. has_dep_flux .and. .not. has_emis_flux ) CYCLE
+
+       !---------------------------------------------------------------------
+       ! Emissions or deposition (from HEMCO) must be loaded into memory
+       ! first.  This is achieved by attempting to retrieve a grid box
+       ! while NOT in a parallel loop. Failure to load this will result
        ! in severe performance issues!! (Haipeng Lin, 9/27/20)
-       IF ( EmisSpec ) THEN
+       !---------------------------------------------------------------------
+       IF ( has_emis_flux ) THEN
           CALL LoadHcoValEmis( Input_Opt, State_Grid, N )
        ENDIF
-
-       IF ( DryDepSpec ) THEN
+       IF ( has_dep_flux ) THEN
           CALL LoadHcoValDep( Input_Opt, State_Grid, N )
        ENDIF
 
-       !--------------------------------------------------------------------
-       ! Can go to next species if this species does not have
-       ! dry deposition and/or emissions
-       !--------------------------------------------------------------------
-       IF ( .NOT. DryDepSpec .AND. .NOT. EmisSpec ) CYCLE
-
-       ! Loop over all grid boxes
+       !=====================================================================
+       ! Loop over surface grid boxes
+       !=====================================================================
        !$OMP PARALLEL DO                                                     &
        !$OMP DEFAULT( SHARED                                                )&
-       !$OMP PRIVATE( I,        J,          L,            max_level         )&
-       !$OMP PRIVATE( pbl_top,  found       air_sea_freq, freq              )&
-       !$OMP PRIVATE( RKT,      frac,       flux,         area_m2           )&
-       !$OMP PRIVATE( dryd_top, emis_top,   PNOxLoss,     denom,            )&
-       !$OMP PRIVATE( S,        err_status                                  )&
+       !$OMP PRIVATE( I,            J,          pbl_top, dryd_top           )&
+       !$OMP PRIVATE( emis_top,     L,          freq,    found              )&
+       !$OMP PRIVATE( air_sea_freq, lnox_kgm2s, RkT,     frac               )&
+       !$OMP PRIVATE( flux,         lnox_kgm2,  denom,   S                  )&
+       !$OMP PRIVATE( is_negative                                           )&
        !$OMP COLLAPSE( 2                                                    )&
        !$OMP SCHEDULE( GUIDED                                               )&
        !$OMP REDUCTION( .OR. : error                                        )
@@ -509,9 +496,9 @@ CONTAINS
           ! exit outside the parallel loop.  This is thread-safe.
           IF ( error ) CYCLE
 
-          !-----------------------------------------------------------------
+          !------------------------------------------------------------------
           ! Define various quantities before computing tendencies
-          !-----------------------------------------------------------------
+          !------------------------------------------------------------------
 
           ! Get the PBL top level at this grid box
           pbl_top = MAX( 1, FLOOR( State_Met%PBL_TOP_L(I,J) ) )
@@ -523,28 +510,29 @@ CONTAINS
              dryd_top = 1
           ENDIF
 
-          ! Restrict emissions of some species to the chemistry grid
-          chem_grid_only = Is_ChemGrid_Only( Input_Opt, N )
+          ! Find the top level for emissions
+          CALL Get_Emis_Top(                                                 &
+               I              = I,                                           &
+               J              = J,                                           &
+               chem_grid_only = chem_grid_only,                              &
+               State_Grid     = State_Grid,                                  &
+               State_Met      = State_Met,                                   &
+               emis_top       = emis_top                                    )
 
-          ! Top level for emissions
-          emis_top = Get_Emis_Top( State_Grid, State_Met, chem_grid_only, I, J )
-
-          ! Loop over surface levels (to the top level for
-          ! dry deposition or emissions, whichever is higher)
+          ! Loop up to the top level for drydep or emissions
+          ! (whichever is higher)
           DO L = 1, MAX( dryd_top, emis_top )
 
-             !--------------------------------------------------------------
-             ! Apply dry deposition frequencies to all levels below the
-             ! PBL top.
-             !--------------------------------------------------------------
-             IF ( dryd_spec .AND. ( L <= dryd_top ) ) THEN
-
-                ! Init
-                freq = 0.0_fp
+             !---------------------------------------------------------------
+             ! If the species has a dry deposition flux,
+             ! then apply it to all levels below the PBL top
+             !---------------------------------------------------------------
+             IF ( has_dep_flux .AND. ( L <= dryd_top ) ) THEN
 
                 ! Get the drydep frequency [s-1] from drydep_mod.F90.
+                freq = 0.0_fp
                 IF ( id_drydep > 0 ) THEN
-                   freq = DepFreq(I,J,id_drydep)
+                   freq = State_Chm%DryDepFreq(I,J,id_drydep)
                 ENDIF
 
                 ! Then add the air-to-sea deposition frequency [s-1]
@@ -553,30 +541,33 @@ CONTAINS
                      I          = I,                                         &
                      J          = J,                                         &
                      L          = 1,                                         &
-                     N          = N,                                         &
+                     TrcId      = N,                                         &
                      Input_Opt  = Input_Opt,                                 &
                      State_Grid = State_Grid,                                &
                      found      = found,                                     &
                      dep        = air_sea_freq                              )
                 IF ( found ) freq = freq + air_sea_freq
 
-                ! Get PARANOX deposition loss [kg/m2/s], at surface only
-                PNOxLoss = 0.0_fp
+                ! For O3 and HNO3, also get the PARANOX deposition
+                ! loss [kg/m2/s] at the surface (if it exists).
+                lnox_kgm2s = 0.0_fp
                 IF ( L == 1 ) THEN
-                   IF ( N == id_O3   .AND. ASSOCIATED( PNOxLoss_O3  ) ) THEN
-                      PNOxLoss = PNOxLoss_O3(I,J)
+                   IF ( N == id_O3   .and. ASSOCIATED( lnox_kgm2s_o3   ) ) THEN
+                      lnox_kgm2s = lnox_kgm2s_o3(I,J)
                    ENDIF
-                   IF ( N == id_HNO3 .AND. ASSOCIATED( PNOxLoss_HNO3) ) THEN
-                      PNOxLoss = PNOxLoss_HNO3(I,J)
+                   IF ( N == id_HNO3 .and. ASSOCIATED( lnox_kgm2s_hno3 ) ) THEN
+                      lnox_kgm2s = lnox_kgm2s_hno3(I,J)
                    ENDIF
                 ENDIF
 
-                ! Apply dry deposition
-                IF ( freq > 0.0_fp .OR. PNOxLoss > 0.0_fp ) THEN
+                !------------------------------------------------------------
+                ! Proceed to apply dry depostion flux if it is nonzero
+                !------------------------------------------------------------
+                IF ( freq > 0.0_fp .OR. lnox_kgm2s > 0.0_fp ) THEN
 
                    ! Compute exponential loss term
-                   RKT  = freq * ts
-                   frac = EXP( -RKT )
+                   RkT  = freq * time_step
+                   frac = EXP( -RkT )
 
                    ! Loss in kg/m2
                    flux = ( 1.0_fp - frac ) * State_Chm%Species(N)%Conc(I,J,L)
@@ -586,29 +577,32 @@ CONTAINS
                       State_Chm%Species(N)%Conc(I,J,L)
 
 #ifdef ADJOINT
-                   if (Input_Opt%Is_Adjoint) then
+                   IF ( Input_Opt%Is_Adjoint ) THEN
                       State_Chm%SpeciesAdj(I,J,L,N) = frac *                 &
                          State_Chm%SpeciesAdj(I,J,L,N)
-                   endif
+                   ENDIF
 #endif
 
                    ! Apply PARANOX loss [kg/m2/s]
-                   IF ( PNOxLoss > 0 ) THEN
+                   IF ( lnox_kgm2s > 0.0_fp ) THEN
+                      lnox_kgm2 = lnox_kgm2s * time_step
+
                       State_Chm%Species(N)%Conc(I,J,L) =                     &
-                      State_Chm%Species(N)%Conc(I,J,L) - ( PNOxLoss * TS )
-                      flux = flux + ( PNOxLoss * TS )
+                      State_Chm%Species(N)%Conc(I,J,L) - lnox_kgm2
+
+                      flux = flux + lnox_kgm2
                    ENDIF
 
                    ! Loss in [molec/cm2/s]
-                   denom = ( MWkg * ts * 1.0e+4_fp ) / AVO
-                   flux  = SAFE_DIV( flux, denom, 0.0_fp )  ! molec/cm2/s
+                   denom = ( mw_kg * time_step * 1.0e+4_fp ) / AVO
+                   flux  = Safe_Div( flux, denom, 0.0_fp )  ! [molec/cm2/s]
 
                    ! Eventually add to SOIL_DRYDEP
                    IF ( Input_Opt%LSOILNOX ) THEN
                       CALL SOIL_DRYDEP( I, J, N, flux, State_Chm )
                    ENDIF
 
-                   !--------------------------------------------------------
+                   !---------------------------------------------------------
                    ! HISTORY: Archive drydep flux loss from mixing
                    ! Units = molec/cm2/s
                    !
@@ -616,30 +610,38 @@ CONTAINS
                    ! TS_CONV / TS_CHEM, as the updating frequency for
                    ! HISTORY is determined by the "frequency" setting in
                    ! the "HISTORY.rc" input file.
-                   !--------------------------------------------------------
+                   !---------------------------------------------------------
                    IF ( ( State_Diag%Archive_DryDepMix .or.                  &
                           State_Diag%Archive_DryDep        )   .and.         &
-                          DryDepID > 0                       ) THEN
-                      S = State_Diag%Map_DryDepMix%id2slot(DryDepID)
+                          id_drydep > 0                       ) THEN
+                      S = State_Diag%Map_DryDepMix%id2slot(id_drydep)
                       IF ( S > 0 ) THEN
                          State_Diag%DryDepMix(I,J,S) = flux
                       ENDIF
                    ENDIF
 
                 ENDIF ! apply drydep
-             ENDIF ! L <= PBLTOP
+             ENDIF    ! L <= PBLTOP
 
-             !--------------------------------------------------------------
-             ! Apply emissions from HEMCO [kg/m2/s] x TS
-             !--------------------------------------------------------------
-             IF ( emisSpec .AND. ( L <= emis_top ) ) THEN
-                CALL Add_Emis_To_Box( Input_Opt, State_Grid, State_Chm,      &
-                                      N,         I,          J,              &
-                                      L,         ts                         )
+             !---------------------------------------------------------------
+             ! Apply emissions from HEMCO [kg/m2/s], converted to [kg/m2]
+             !---------------------------------------------------------------
+             IF ( has_emis_flux .AND. ( L <= emis_top ) ) THEN
+                CALL Add_Emis_To_Box(                                        &
+                     I           = I,                                        &
+                     J           = J,                                        &
+                     L           = L,                                        &
+                     N           = N,                                        &
+                     time_step   = time_step,                                &
+                     Input_Opt   = Input_Opt,                                &
+                     State_Grid  = State_Grid,                               &
+                     State_Chm   = State_Chm                                )
              ENDIF
 
-             ! Exit this loop if negatives are found.  We will trap the 
+             !---------------------------------------------------------------
+             ! Exit this loop if negatives are found.  We will trap the
              ! error outside of the parallel loop in a thread-safe manner.
+             !---------------------------------------------------------------
              CALL Check_For_Negative_Conc(                                   &
                   I           = I,                                           &
                   J           = J,                                           &
@@ -649,103 +651,79 @@ CONTAINS
                   is_negative = is_negative                                 )
              IF ( is_negative ) THEN
                 error      = .TRUE.
-                err_status = 1
-                CYCLE
+                EXIT
              ENDIF
 
           ENDDO !L
-       ENDDO !J
-       ENDDO !I
-!$OMP END PARALLEL DO
+       ENDDO    !J
+       ENDDO    !I
+       !$OMP END PARALLEL DO
 
-       !====================================================================
-       ! Exit if any routine in the loop encountered an error
+       !---------------------------------------------------------------------
+       ! Exit if a negative value was found on any thread in the loop.
        ! This is a thread-safe implementation.
-       !====================================================================
+       !---------------------------------------------------------------------
        IF ( error ) THEN
-
-          ! Construct error message
-          SELECT CASE( err_status )
-             CASE( 1 )
-                errMsg = 'Error encountered in ""!'
-          END SELECT
+          errMsg = 'Negative species concentrations encountered! '         // &
+                   'This may be fixed by increasing the background '      // &
+                   'concentration or by shortening the transport '        // &
+                   'time step.'
           CALL GC_Error( errMsg, RC, thisLoc )
 
           ! Free pointers and return
-          IF ( ASSOCIATED( PNOxLoss_O3   ) ) DEALLOCATE( PNOxLoss_O3   )
-          IF ( ASSOCIATED( PNOxLoss_HNO3 ) ) DEALLOCATE( PNOxLoss_HNO3 )
-          PNOxLoss_O3   => NULL()
-          PNOxLoss_HNO3 => NULL()
-          SpcInfo       => NULL()
+          IF ( ASSOCIATED( lnox_kgm2s_o3   ) ) DEALLOCATE( lnox_kgm2s_o3   )
+          IF ( ASSOCIATED( lnox_kgm2s_hno3 ) ) DEALLOCATE( lnox_kgm2s_hno3 )
+          lnox_kgm2s_o3   => NULL()
+          lnox_kgm2s_hno3 => NULL()
+          SpcInfo         => NULL()
           RETURN
-
        ENDIF
 
 
     ENDDO !N
 
-#if defined( ADJOINT )  && defined ( DEBUG )
-    IF (Input_Opt%is_adjoint .and. Input_Opt%IS_FD_SPOT_THIS_PET) THEN
-       WRITE(*,*) ' SpcAdj(IFD,JFD) before unit converstion: ',  &
-            State_Chm%SpeciesAdj(Input_Opt%IFD, Input_Opt%JFD, &
-            Input_Opt%LFD, Input_Opt%NFD)
-       WRITE(*,*) ' Spc(IFD,JFD) before unit converstion: ',  &
-            State_Chm%Species(Input_Opt%NFD)%Conc(Input_Opt%IFD, Input_Opt%JFD, Input_Opt%LFD)
-    ENDIF
-
-#endif
-
-    ! Convert species back to the original units
-    CALL Tend_Convert_Units( Input_Opt, State_Chm,      State_Grid,          &
-                             State_Met, previous_units, RC                  )
+    !========================================================================
+    ! Convert species from [kg/m2] back to original units
+    !========================================================================
+    CALL Tend_Convert_Units(                                                 &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Grid     = State_Grid,                                        &
+         State_Met      = State_Met,                                         &
+         new_units      = previous_units,                                    &
+         RC             = RC                                                )
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "Tend_Convert_Units" #2!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       IF ( ASSOCIATED( PNOxLoss_O3   ) ) DEALLOCATE( PNOxLoss_O3   )
-       IF ( ASSOCIATED( PNOxLoss_HNO3 ) ) DEALLOCATE( PNOxLoss_HNO3 )
-       PNOxLoss_O3   => NULL()
-       PNOxLoss_HNO3 => NULL()
-       SpcInfo       => NULL()
+       errMsg = 'Error encountered in "Tend_Convert_Units" (from kg/m2)!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       IF ( ASSOCIATED( lnox_kgm2s_o3   ) ) DEALLOCATE( lnox_kgm2s_o3   )
+       IF ( ASSOCIATED( lnox_kgm2s_hno3 ) ) DEALLOCATE( lnox_kgm2s_hno3 )
+       lnox_kgm2s_o3   => NULL()
+       lnox_kgm2s_hno3 => NULL()
+       SpcInfo         => NULL()
        RETURN
     ENDIF
 
-    ! Start mixing timer again
-    IF ( Input_Opt%useTimers ) THEN
-       CALL Timer_Start( "Boundary layer mixing", RC )
-    ENDIF
-
-#if defined( ADJOINT )  && defined ( DEBUG )
-    IF (Input_Opt%is_adjoint .and. Input_Opt%IS_FD_SPOT_THIS_PET) THEN
-       WRITE(*,*) ' SpcAdj(IFD,JFD) after unit converstion: ',  &
-            State_Chm%SpeciesAdj(Input_Opt%IFD, Input_Opt%JFD, &
-            Input_Opt%LFD, Input_Opt%NFD)
-       WRITE(*,*) ' Spc(IFD,JFD) after unit converstion: ',  &
-            State_Chm%Species(Input_Opt%NFD)%Conc(Input_Opt%IFD, Input_Opt%JFD, Input_Opt%LFD)
-    ENDIF
-
-#endif
-
     !========================================================================
-    ! Emissions/dry deposition budget diagnostics - Part 2 of 2
+    ! Emissions/dry deposition budget diagnostics (part 2 of 2)
     !========================================================================
-    IF ( State_Diag%Archive_BudgetEmisDryDep ) THEN
-
-       ! Timestep for diagnostics [s]
-       DT_Tend = DBLE( TS )
-
-       CALL Tend_Budget( Input_Opt,  State_Chm, State_Diag,                  &
-                         State_Grid, State_Met, .FALSE.,   RC,               &
-                         timeStep=DT_Tend                                   )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "Tend_Budget" #2!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          IF ( ASSOCIATED( PNOxLoss_O3   ) ) DEALLOCATE( PNOxLoss_O3   )
-          IF ( ASSOCIATED( PNOxLoss_HNO3 ) ) DEALLOCATE( PNOxLoss_HNO3 )
-          PNOxLoss_O3   => NULL()
-          PNOxLoss_HNO3 => NULL()
-          SpcInfo       => NULL()
-          RETURN
-       ENDIF
+    CALL Tend_Budget(                                                        &
+         Input_Opt    = Input_Opt,                                           &
+         State_Chm    = State_Chm,                                           &
+         State_Diag   = State_Diag,                                          &
+         State_Grid   = State_Grid,                                          &
+         State_Met    = State_Met,                                           &
+         before       = .FALSE.,                                             &
+         time_step    = DBLE( time_step ),                                   &
+         RC           = RC                                                  )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in "Tend_Budget" #2!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       IF ( ASSOCIATED( lnox_kgm2s_o3   ) ) DEALLOCATE( lnox_kgm2s_o3   )
+       IF ( ASSOCIATED( lnox_kgm2s_hno3 ) ) DEALLOCATE( lnox_kgm2s_hno3 )
+       lnox_kgm2s_o3   => NULL()
+       lnox_kgm2s_hno3 => NULL()
+       SpcInfo         => NULL()
+       RETURN
     ENDIF
 
     !========================================================================
@@ -753,14 +731,14 @@ CONTAINS
     !========================================================================
 
     ! Deallocate pointers
-    IF ( ASSOCIATED( PNOxLoss_O3   ) ) DEALLOCATE( PNOxLoss_O3   )
-    IF ( ASSOCIATED( PNOxLoss_HNO3 ) ) DEALLOCATE( PNOxLoss_HNO3 )
+    IF ( ASSOCIATED( lnox_kgm2s_o3   ) ) DEALLOCATE( lnox_kgm2s_o3   )
+    IF ( ASSOCIATED( lnox_kgm2s_hno3 ) ) DEALLOCATE( lnox_kgm2s_hno3 )
 
     ! Free pointers
-    DepFreq       => NULL()
-    PNOxLoss_O3   => NULL()
-    PNOxLoss_HNO3 => NULL()
-    SpcInfo       => NULL()
+    lnox_kgm2s_o3   => NULL()
+    lnox_kgm2s_hno3 => NULL()
+    ptr2d           => NULL()
+    SpcInfo         => NULL()
 
   END SUBROUTINE Do_Tend
 !EOC
@@ -785,7 +763,8 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE HCO_Utilities_GC_Mod, ONLY : InquireHco, LoadHcoValEmis
+    USE HCO_Utilities_GC_Mod, ONLY : InquireHco
+    USE HCO_Utilities_GC_Mod, ONLY : LoadHcoValEmis
     USE Input_Opt_Mod,        ONLY : OptInput
     USE State_Chm_Mod,        ONLY : ChmState
     USE State_Diag_Mod,       ONLY : DgnState
@@ -823,13 +802,13 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL            :: chem_grid_only, has_emissions
+    LOGICAL            :: chem_grid_only, error
+    LOGICAL            :: has_emis_flux,  is_negative
     INTEGER            :: emis_top,       I
     INTEGER            :: J,              L
-    INTEGER            :: L,              N
-    INTEGER            :: NA,             previous_units
+    INTEGER            :: N,              NA
+    INTEGER            :: previous_units
     REAL(fp)           :: time_step
-    REAL(f8)           :: dt_tend
 
     ! Strings
     CHARACTER(LEN=255) :: thisLoc
@@ -859,7 +838,7 @@ CONTAINS
 #endif
 
     !========================================================================
-    ! Emissions/dry deposition budget diagnostics - Part 1 of 2
+    ! Emissions/dry deposition budget diagnostics (part 1 of 2)
     !========================================================================
     CALL Tend_Budget(                                                        &
          Input_Opt   = Input_Opt,                                            &
@@ -867,8 +846,7 @@ CONTAINS
          State_Diag  = State_Diag,                                           &
          State_Grid  = State_Grid,                                           &
          State_Met   = State_Met,                                            &
-         before      = .TRUE.                                                &
-         time_step   = DBLE( time_step ),                                    &
+         before      = .TRUE.,                                               &
          RC          = RC                                                   )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error encountered in "Tend_Budget" (1 of 2)!'
@@ -898,18 +876,16 @@ CONTAINS
     !
     ! Keep one species in the HEMCO regrid buffer at a time (loop over
     ! species outermost), as required for the HEMCO intermediate grid.
-    ! errMsg and RC are SHARED: every thread that finds a negative
-    ! concentration writes the same values.
     !========================================================================
     DO NA = 1, State_Chm%nAdvect
 
        ! Skip species without HEMCO emissions
        N = State_Chm%Map_Advect(NA)
-       CALL InquireHco( N, emis=has_emissions )
-       IF ( .not. has_emissions ) CYCLE
+       CALL InquireHco( N, emis=has_emis_flux )
+       IF ( .not. has_emis_flux ) CYCLE
 
        ! Load emissions into memory outside of the parallel loop
-       ! (Haipeng Lin, 9/27/20)
+       ! to avoid a performance penalty (Haipeng Lin, 9/27/20)
        CALL LoadHcoValEmis( Input_Opt, State_Grid, N )
 
        ! Determine if emissions of the current species is restricted
@@ -966,6 +942,7 @@ CONTAINS
                   is_negative = is_negative                                 )
              IF ( is_negative ) THEN
                 error = .TRUE.
+                EXIT
              ENDIF
 
           ENDDO
@@ -974,11 +951,11 @@ CONTAINS
        !$OMP END PARALLEL DO
 
        !---------------------------------------------------------------------
-       ! Throw an error if any threads returned with error status in the 
-       ! loop above.  This is the thread-safe implementation.
+       ! Throw an error if any threads returned with error status in
+       ! the loop above.  This is the thread-safe implementation.
        !---------------------------------------------------------------------
-       IF ( is_negative ) THEN
-          errMsg = 'Negative species concentations encountered! '         // &
+       IF ( error ) THEN
+          errMsg = 'Negative species concentrations encountered! '         // &
                    'This may be fixed by increasing the background '      // &
                    'concentration or by shortening the transport '        // &
                    'time step.'
@@ -988,15 +965,15 @@ CONTAINS
     ENDDO
 
     !========================================================================
-    ! Convert species back to the original units
+    ! Convert species from [kg/m2] back to original units
     !========================================================================
     CALL Tend_Convert_Units(                                                 &
-         Input_Opt      = Input_Opt,                                         &
-         State_Chm      = State_Chm,                                         &
-         State_Grid     = State_Grid,                                        &
-         State_Met      = State_Met,                                         &
-         previous_units = previous_units,                                    &
-         RC             = RC                                                )
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         new_units  = previous_units,                                        &
+         RC         = RC                                                    )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error encountered in "Tend_Convert_Units" (from kg/m2)!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -1004,7 +981,7 @@ CONTAINS
     ENDIF
 
     !========================================================================
-    ! Emissions/dry deposition budget diagnostics - Part 2 of 2
+    ! Emissions/dry deposition budget diagnostics (part 2 of 2)
     !========================================================================
     CALL Tend_Budget(                                                        &
          Input_Opt   = Input_Opt,                                            &
@@ -1012,7 +989,7 @@ CONTAINS
          State_Diag  = State_Diag,                                           &
          State_Grid  = State_Grid,                                           &
          State_Met   = State_Met,                                            &
-         before      = .FALSE.                                               &
+         before      = .FALSE.,                                              &
          time_step   = DBLE( time_step ),                                    &
          RC          = RC                                                   )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -1045,7 +1022,7 @@ CONTAINS
 !
     USE HCO_Utilities_GC_Mod, ONLY : GetHcoValEmis
 #ifdef MODEL_CLASSIC
-    USE HCO_Utilities_GC_Mod, ONLY : TMP_MDL
+    USE HCO_Utilities_GC_Mod, ONLY : Tmp_MDL
 #endif
     USE Input_Opt_Mod,        ONLY : OptInput
     USE State_Chm_Mod,        ONLY : ChmState
@@ -1090,14 +1067,14 @@ CONTAINS
 #ifdef MODEL_CLASSIC
     IF ( Input_Opt%LIMGRID ) THEN
        found = .TRUE.
-       emis  = TMP_MDL(I,J,L)
+       emis  = Tmp_MDL(I,J,L)
     ELSE
 #endif
        CALL GetHcoValEmis(                                                   &
             I          = I,                                                  &
             J          = J,                                                  &
             L          = L,                                                  &
-            N          = N,                                                  &
+            TrcId      = N,                                                  &
             Input_Opt  = Input_Opt,                                          &
             State_Grid = State_Grid,                                         &
             SkipCheck  =.TRUE.,                                              &
@@ -1114,6 +1091,7 @@ CONTAINS
     flux = emis * time_step
 
 #ifdef ADJOINT
+    ! Debug printout (adjoint only)
     IF ( I == Input_Opt%IFD .and. J == Input_Opt%JFD .and.                   &
          L == Input_Opt%LFD .and. N == Input_Opt%NFD ) THEN
        WRITE( *, * ) ' GetHcoVal(IFD,JFD) = ', emis, ' FLUX = ', flux
@@ -1133,7 +1111,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: check_negative_conc
+! !IROUTINE: check_for_negative_conc
 !
 ! !DESCRIPTION: Flags (or, for TOMAS, resets) a negative concentration of
 !  species N at grid box (I,J,L).  CO2 is exempt.  Safe to call from
@@ -1146,7 +1124,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE ErrCode_Mod
     USE State_Chm_Mod, ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
@@ -1160,10 +1137,10 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(OUT)   :: isNegative  ! Was a negative value found?
-!   
+    LOGICAL,        INTENT(OUT)   :: is_negative ! Was a negative value found?
+!
 ! !REMARKS:
-!  Thread-safe: writes only Conc(I,J,L) and the private flag isNegative.
+!  Thread-safe: writes only Conc(I,J,L) and the private flag is_negative.
 !  The caller sets RC and the error message after the parallel loop.
 !
 ! !REVISION HISTORY:
@@ -1175,16 +1152,16 @@ CONTAINS
     !========================================================================
     ! Check_For_Negative_Conc begins here!
     !========================================================================
-    
+
     ! Initialize
-    isNegative = .FALSE.
-    
+    is_negative = .FALSE.
+
     ! Return if the species concentration is not negative
     IF ( .not. ( State_Chm%Species(N)%Conc(I,J,L) < 0.0_fp ) ) RETURN
 
 #ifdef TOMAS
 
-    ! For TOMAS simulations only, reset negatives to a 
+    ! For TOMAS simulations only, reset negatives to a
     ! small positive value while we look for the root cause.
     !  -- Betty Croft, Bob Yantosca (21 Jan 2022)
     !$OMP CRITICAL
@@ -1198,13 +1175,13 @@ CONTAINS
     ! so don't throw an error in this case.
     IF ( N == id_CO2 ) RETURN
 
-    ! Otherwise print a warning and set is_negative=T so that 
+    ! Otherwise print a warning and set is_negative=T so that
     ! we can trap the error outside of any parallel loops
     !$OMP CRITICAL
     PRINT*, 'WARNING: Negative concentration for species ',                  &
          TRIM( State_Chm%SpcData(N)%Info%Name ), ' at (I,J,L) = ', I, J, L
     !$OMP END CRITICAL
-    isNegative = .TRUE.
+    is_negative = .TRUE.
 
 #endif
 
@@ -1384,15 +1361,15 @@ CONTAINS
 !
 ! !DESCRIPTION: Computes the BudgetEmisDryDep* diagnostics.  Call with
 !  beforeOp=.TRUE. before applying tendencies (stores initial column
-!  masses), and with beforeOp=.FALSE. and timeStep afterwards (stores the
+!  masses), and with before=.FALSE. and time_step afterwards (stores the
 !  change in column mass [kg/s]).
 !\\
 !\\
 ! !INTERFACE:
 !
   SUBROUTINE Tend_Budget( Input_Opt,  State_Chm, State_Diag,                 &
-                          State_Grid, State_Met, beforeOp,   RC,             &
-                          timeStep                                          )
+                          State_Grid, State_Met, before,                     &
+                          RC,         time_step                             )
 !
 ! !USES:
 !
@@ -1409,8 +1386,8 @@ CONTAINS
     TYPE(OptInput), INTENT(IN)           :: Input_Opt   ! Input options
     TYPE(GrdState), INTENT(IN)           :: State_Grid  ! Grid state
     TYPE(MetState), INTENT(IN)           :: State_Met   ! Met state
-    LOGICAL,        INTENT(IN)           :: beforeOp    ! Before tendencies?
-    REAL(f8),       INTENT(IN), OPTIONAL :: timeStep    ! Time step [s]
+    LOGICAL,        INTENT(IN)           :: before      ! Before tendencies?
+    REAL(f8),       INTENT(IN), OPTIONAL :: time_step   ! Time step [s]
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1432,14 +1409,24 @@ CONTAINS
 !
     CHARACTER(LEN=255) :: errMsg, thisLoc
 
+    !========================================================================
+    ! Tend_Budget begins here!
+    !========================================================================
+
+    ! Initialize
     RC      = GC_SUCCESS
+    errMsg  = ''
     thisLoc = ' -> at Tend_Budget (in module GeosCore/mixing_mod.F90)'
 
+    ! Exit if budget diagnostics are disabled
     IF ( .not. State_Diag%Archive_BudgetEmisDryDep ) RETURN
 
-    IF ( beforeOp ) THEN
+    ! Compute diagnostics
+    IF ( before ) THEN
 
+       !---------------------------------------------------------------------
        ! Get initial column masses (full, trop, PBL, levels)
+       !---------------------------------------------------------------------
        CALL Compute_Budget_Diagnostics(                                      &
             Input_Opt   = Input_Opt,                                         &
             State_Chm   = State_Chm,                                         &
@@ -1461,11 +1448,18 @@ CONTAINS
             colMass     = State_Diag%BudgetColumnMass,                       &
             before_op   = .TRUE.,                                            &
             RC          = RC                                                )
-       errMsg = 'Emissions/dry deposition budget diagnostics error 1'
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = 'Error encountered in "Compute_Budget_Diagnostics" '   // &
+                   '(part 1 of 2)!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
 
     ELSE
 
+       !---------------------------------------------------------------------
        ! Compute change in column masses and store in diagnostics [kg/s]
+       !---------------------------------------------------------------------
        CALL Compute_Budget_Diagnostics(                                      &
             Input_Opt   = Input_Opt,                                         &
             State_Chm   = State_Chm,                                         &
@@ -1485,13 +1479,16 @@ CONTAINS
             diagLevs    = State_Diag%BudgetEmisDryDepLevs,                   &
             mapDataLevs = State_Diag%Map_BudgetEmisDryDepLevs,               &
             colMass     = State_Diag%BudgetColumnMass,                       &
-            timeStep    = timeStep,                                          &
+            timeStep    = time_step,                                         &
             RC          = RC                                                )
-       errMsg = 'Emissions/dry deposition budget diagnostics error 2'
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = 'Error encountered in "Compute_Budget_Diagnostics" '   // &
+                   '(part 2 of 2)!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
 
     ENDIF
-
-    IF ( RC /= GC_SUCCESS ) CALL GC_Error( errMsg, RC, thisLoc )
 
   END SUBROUTINE Tend_Budget
 !EOC
@@ -1510,8 +1507,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Tend_Convert_Units( Input_Opt, State_Chm, State_Grid,           &
-                                 State_Met, new_units, RC,                   &
+  SUBROUTINE Tend_Convert_Units( Input_Opt,     State_Chm, State_Grid,       &
+                                 State_Met,     new_units, RC,               &
                                  previous_units                             )
 !
 ! !USES:
@@ -1549,17 +1546,25 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    ! Strings
     CHARACTER(LEN=255) :: errMsg, thisLoc
 
+    !========================================================================
+    ! Tend_Convert_Units begins here!
+    !========================================================================
+
+    ! Initialize
     RC      = GC_SUCCESS
+    errMsg  = ''
     thisLoc = ' -> at Tend_Convert_Units (in module GeosCore/mixing_mod.F90)'
 
 #if defined( ADJOINT ) && defined( DEBUG )
+    ! Debug output (adjoint only)
     IF ( Input_Opt%Is_Adjoint .and. Input_Opt%IS_FD_SPOT_THIS_PET ) THEN
-       WRITE( *, * ) ' SpcAdj(IFD,JFD) before unit conversion: ',           &
+       WRITE( *, * ) ' SpcAdj(IFD,JFD) before unit conversion: ',            &
             State_Chm%SpeciesAdj( Input_Opt%IFD, Input_Opt%JFD,              &
                                   Input_Opt%LFD, Input_Opt%NFD )
-       WRITE( *, * ) ' Spc(IFD,JFD) before unit conversion: ',              &
+       WRITE( *, * ) ' Spc(IFD,JFD) before unit conversion: ',               &
             State_Chm%Species(Input_Opt%NFD)%Conc( Input_Opt%IFD,            &
                                                    Input_Opt%JFD,            &
                                                    Input_Opt%LFD )
@@ -1593,11 +1598,12 @@ CONTAINS
     ENDIF
 
 #if defined( ADJOINT ) && defined( DEBUG )
+    ! Debug output (adjoint only)
     IF ( Input_Opt%Is_Adjoint .and. Input_Opt%IS_FD_SPOT_THIS_PET ) THEN
-       WRITE( *, * ) ' SpcAdj(IFD,JFD) after unit conversion: ',            &
+       WRITE( *, * ) ' SpcAdj(IFD,JFD) after unit conversion: ',             &
             State_Chm%SpeciesAdj( Input_Opt%IFD, Input_Opt%JFD,              &
                                   Input_Opt%LFD, Input_Opt%NFD )
-       WRITE( *, * ) ' Spc(IFD,JFD) after unit conversion: ',               &
+       WRITE( *, * ) ' Spc(IFD,JFD) after unit conversion: ',                &
             State_Chm%Species(Input_Opt%NFD)%Conc( Input_Opt%IFD,            &
                                                    Input_Opt%JFD,            &
                                                    Input_Opt%LFD )
