@@ -481,9 +481,9 @@ CONTAINS
        ! Emission timestep
        TS             = GET_TS_EMIS()
 
-       ! Save emissions as [kg/m2/s].  These will be added
-       ! to the chemical species array in routine DO_TEND
-       ! (in mixing_mod.F90).
+       ! Save emissions as [kg/m2/s].  These will be added to the
+       ! State_Chm%SurfaceFlux array in routine Compute_Sflx_For_Vdiff
+       ! (in module GeosCore/hco_interface_gc_mod.F90).
        Hg_EMIS(I,J,N) = Hg_EMIS(I,J,N) + ( MAX( E_Hg, 0.0_fp ) / AM2 / TS )
 
     ELSE
