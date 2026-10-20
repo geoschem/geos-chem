@@ -14,4 +14,4 @@ source gchp.env
 cd build
 cmake ../CodeDir -DRUNDIR=..
 make -j
-make install
+ln -nsf build/bin/gchp
