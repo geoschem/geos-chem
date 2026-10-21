@@ -1042,7 +1042,6 @@ CONTAINS
           IQ = State_Diag%Map_AdvFluxMerid%slot2Id(S)
 
           ! Loop over grid boxes
-          !$OMP SIMD COLLAPSE( 3 )
           DO K = 1, KM
           DO J = 1, JM
           DO I = 1, IM
@@ -1095,7 +1094,6 @@ CONTAINS
           IQ = State_Diag%Map_AdvFluxVert%slot2Id(S)
 
           ! Loop over grid boxes
-          !$OMP SIMD COLLAPSE( 3 )
           DO K = 1, KM
           DO J = 1, JM
           DO I = 1, IM

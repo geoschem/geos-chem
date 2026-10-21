@@ -655,7 +655,7 @@ CONTAINS
 ! Average q at both poles
 !  do iq=1,nq
 !!$omp parallel do   &
-!!$omp shared(im)    &
+!!$omp default(shared) &
 !!$omp private(k)
 !     do k=1,km
 !        if ( jfirst == 1 ) then
@@ -1128,7 +1128,7 @@ CONTAINS
 !---------------------------------------------------
 
   !$OMP PARALLEL DO                                                          &
-  !$OMP SHARED( im, jm, iord, jord, mg, jfirst, jlast                       )&
+  !$OMP DEFAULT( SHARED                                                     )&
   !$OMP PRIVATE( i, j, k, dak, dbk                                          )&
   !$OMP SCHEDULE( STATIC                                                    )
   do k=1,km
@@ -1211,7 +1211,7 @@ CONTAINS
 
   !$OMP PARALLEL DO                                                          &
   !$OMP DEFAULT( SHARED                                                     )&
-  !$OMP PRIVATE( i, j, k                                                    )& 
+  !$OMP PRIVATE( i, j, k                                                    )&
   !$OMP SCHEDULE( STATIC                                                    )
   do j=jfirst,jlast
      do i=1,im
@@ -1229,7 +1229,7 @@ CONTAINS
      enddo
   enddo
   !$OMP END PARALLEL DO
-  
+
 !--------------------------------------------------------------
 ! Apply mass_flux adjuster to nudge predicted ps towards "data"
 !--------------------------------------------------------------
@@ -2328,7 +2328,7 @@ CONTAINS
 
 
   !$OMP PARALLEL DO                                                          &
-  !$OMP SHARED( im, km, jfirst, jlast, ng, iv, kord                         )&
+  !$OMP DEFAULT( SHARED                                                     )&
   !$OMP PRIVATE(i, j, k, iq, i1, i2, ixj, pe2                               )&
   !$OMP SCHEDULE( STATIC                                                    )
 ! do 2000 j=jfirst,jlast
@@ -2361,7 +2361,7 @@ CONTAINS
                         im, i1, i2,  j, jfirst, jlast, ng, iv, kord)
      enddo
 2000  continue
-  !$OMP END PARALLEL DO   
+  !$OMP END PARALLEL DO
 
  end subroutine qmap
 
@@ -3257,7 +3257,7 @@ CONTAINS
 
 !--- adjust fx ----
    !$OMP PARALLEL DO                                                         &
-   !$OMP SHARED( im                                                         )&
+   !$OMP DEFAULT( SHARED                                                    )&
    !$OMP PRIVATE( i, j, k, dbk, dps, dpy, tmpf, fx, fy                      )&
    !$OMP SCHEDULE( STATIC                                                   )
    do k=3,km

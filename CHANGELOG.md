@@ -38,6 +38,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed bug preventing GC-Classic instantaneous diagnostics with frequency, duration, and heartbeat all equal
 - Fixed thread-unsafe error handling in the KPP parallel loops of `GeosCore/fullchem_mod.F90`, `GeosCore/mercury_mod.F90`, and `GeosCore/carbon_gases_mod.F90`
 - Fixed thread-unsafe error handling in several routines
+- Fixed race condition on longitude & latitude in routine `Ocean_Mercury_Flux` (in `GeosCore/ocean_mercury_mod.F90`)
 
 ### Removed
 - Removed invalid OpenMP directives from the `MPI_LOAD_BALANCE` block of `GeosCore/fullchem_mod.F90`, which caused GCHP compilation to fail with `-DOMP=ON`
@@ -45,7 +46,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Took out (((METEOROLOGY brackets in HEMCO_Config.rc.carbon, as GCHP uses ExtData instead. 
 - Removed TAB characters in `HEMCO_Config.rc.carbon` templates for GC-Classic and GCHP
 - Removed unused variables `ISTATUS`, `RCNTRL`, and `RSTATE` from `GeosCore/carbon_gases_mod.F90`
-- Removed nested parallel loops in `GeosCore/vdiff_mod.F90`; they just add overhead
+- Removed nested parallel loops in `GeosCore/vdiff_mod.F90` and `GeosCore/tpcore_fvdas_mod.F90`; they just add overhead
 
 ## [14.8.0] - 2026-09-11
 ### Added

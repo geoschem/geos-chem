@@ -5283,12 +5283,12 @@ END FUNCTION WASHFRAC_DUSTBIN
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL            :: KIN
-    INTEGER            :: N,        NW,      S
-    REAL(fp)           :: WASHFRAC, WETLOSS, TMP, TK
+    LOGICAL                 :: KIN
+    INTEGER                 :: N,        NW,      S
+    REAL(fp)                :: WASHFRAC, WETLOSS, TMP, TK
 
     ! Strings
-    CHARACTER(LEN=255) :: ErrorMsg, ThisLoc
+    CHARACTER(LEN=255)      :: errorMsg, thisLoc
 
     ! Pointers
     TYPE(SpcConc), POINTER  :: Spc(:)
@@ -5299,8 +5299,8 @@ END FUNCTION WASHFRAC_DUSTBIN
 
     ! Initialize
     RC        = GC_SUCCESS
-    ErrorMsg  = ''
-    ThisLoc   = ' -> at Do_Washout_at_Sfc (in module GeosCore/wetscav_mod.F90)'
+    errorMsg  = ''
+    thisLoc   = ' -> at Do_Washout_at_Sfc (in module GeosCore/wetscav_mod.F90)'
 
     ! Point to the chemical species array [kg/m2]
     Spc => State_Chm%Species
@@ -5369,8 +5369,8 @@ END FUNCTION WASHFRAC_DUSTBIN
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrorMsg = 'Error encountered in "Washout"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          errorMsg = 'Error encountered in "Washout"!'
+          CALL GC_Error( errorMsg, RC, thisLoc )
           Spc => NULL()
           RETURN
        ENDIF
@@ -5475,26 +5475,26 @@ END FUNCTION WASHFRAC_DUSTBIN
           ! Print error message and stop simulaton
           CALL SAFETY( I, J, L, N, ERRMSG,                                   &
                        LS          = LS,                                     &
-                      PDOWN       = 0e+0_fp,                                 &
-                      QQ          = 0e+0_fp,                                 &
-                      ALPHA       = 0e+0_fp,                                 &
-                      ALPHA2      = 0e+0_fp,                                 &
-                      RAINFRAC    = 0e+0_fp,                                 &
-                      WASHFRAC    = 0e+0_fp,                                 &
-                      MASS_WASH   = 0e+0_fp,                                 &
-                      MASS_NOWASH = 0e+0_fp,                                 &
-                      WETLOSS     = WETLOSS,                                 &
-                      GAINED      = 0e+0_fp,                                 &
-                      LOST        = 0e+0_fp,                                 &
-                      State_Grid  = State_Grid,                              &
-                      DSpc        = DSpc(NW,:,I,J),                          &
-                      Spc         = Spc(N)%Conc(I,J,:),                      &
-                      RC          = RC                                      )
+                       PDOWN       = 0e+0_fp,                                &
+                       QQ          = 0e+0_fp,                                &
+                       ALPHA       = 0e+0_fp,                                &
+                       ALPHA2      = 0e+0_fp,                                &
+                       RAINFRAC    = 0e+0_fp,                                &
+                       WASHFRAC    = 0e+0_fp,                                &
+                       MASS_WASH   = 0e+0_fp,                                &
+                       MASS_NOWASH = 0e+0_fp,                                &
+                       WETLOSS     = WETLOSS,                                &
+                       GAINED      = 0e+0_fp,                                &
+                       LOST        = 0e+0_fp,                                &
+                       State_Grid  = State_Grid,                             &
+                       DSpc        = DSpc(NW,:,I,J),                         &
+                       Spc         = Spc(N)%Conc(I,J,:),                     &
+                       RC          = RC                                     )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
-             ErrorMsg = 'Error encountered in "Safety"!'
-             CALL GC_Error( ErrorMsg, RC, ThisLoc )
+             errorMsg = 'Error encountered in "Safety"!'
+             CALL GC_Error( errorMsg, RC, ThisLoc )
              Spc => NULL()
              RETURN
           ENDIF

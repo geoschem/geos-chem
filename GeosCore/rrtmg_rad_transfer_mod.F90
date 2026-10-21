@@ -1810,7 +1810,7 @@ CONTAINS
 
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I, J, LL, W                                            )&
+    !$OMP PRIVATE( I,      J,      LL,      W                               )&
     !$OMP PRIVATE( AODTMP, SSATMP, ASYMTMP                                  )&
     !$OMP PRIVATE( AODOUT, SSAOUT, ASYMOUT                                  )&
     !$OMP PRIVATE( iTrop                                                    )&
