@@ -594,7 +594,7 @@ CONTAINS
        !$OMP PRIVATE( DRYD_TOP, EMIS_TOP,     PNOXLOSS,   DENOM             )&
        !$OMP PRIVATE( S,        EC                                          )&
        !$OMP COLLAPSE( 2                                                    )&
-       !$OMP SCHEDULE( GUIDED                                               )&
+       !$OMP SCHEDULE( STATIC                                               )&
        !$OMP REDUCTION( .OR. : error                                        )
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
