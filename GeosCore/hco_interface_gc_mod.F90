@@ -5310,7 +5310,7 @@ CONTAINS
              !$OMP DEFAULT( SHARED                                          )&
              !$OMP PRIVATE( I, J, pbl_top_l, dep, height, found, L          )&
              !$OMP COLLAPSE( 2                                              )&
-             !$OMP SCHEDULE( GUIDED                                         )
+             !$OMP SCHEDULE( STATIC                                         )
              DO J = 1, State_Grid%NY
              DO I = 1, State_Grid%NX
 

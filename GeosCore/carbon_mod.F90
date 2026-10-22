@@ -1896,7 +1896,7 @@ CONTAINS
    !$OMP PRIVATE( ORG_AER,  ORG_GAS,   KOM,    MPOC                         )&
    !$OMP PRIVATE( KRO2NO,   KRO2HO2,   JSV                                  )&
    !$OMP COLLAPSE( 3                                                        )&
-   !$OMP SCHEDULE( GUIDED                                                   )
+   !$OMP SCHEDULE( STATIC                                                   )
    DO L = 1, State_Met%MaxChemLev
    DO J = 1, State_Grid%NY
    DO I = 1, State_Grid%NX
