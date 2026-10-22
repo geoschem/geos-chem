@@ -27,6 +27,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated `SET_SO2` in `KPP/fullchem/fullchem_SulfurChemFuncs.F90` to ensure `RC` and `size_res` are defined before exiting
 - Changed OpenMP loop scheduling from `DYNAMIC` to `STATIC` in loops that do the same work in every grid box (`aerosol_mod.F90`, `sulfate_mod.F90`, `ucx_mod.F90`)
 - Changed loops whose work is concentrated at upper levels (`linear_chem_mod.F90`, `ucx_mod.F90`) to `SCHEDULE( STATIC, State_Grid%NX  )`, for better load balancing
+- Updated the Harvard Cannon `geoschem.vtune-*.run` sample scripts to move each VTune result and the GEOS-Chem output into a `vtune_rNNN<analysis>` folder and to write reports there
 
 ### Fixed
 - Fixed parallelization errors in `GeosCore/apm_driv_mod.F90`
