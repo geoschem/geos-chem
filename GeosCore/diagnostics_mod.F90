@@ -202,7 +202,7 @@ CONTAINS
        !$OMP DEFAULT( SHARED                                                )&
        !$OMP PRIVATE( I, J, L                                               )&
        !$OMP COLLAPSE( 3                                                    )&
-       !$OMP SCHEDULE( DYNAMIC, 8                                           )
+       !$OMP SCHEDULE( STATIC                                               )
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX

@@ -25,9 +25,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Separated `CH4/CO2/CO/OCS_DATA` switches in `HEMCO_Config.rc.carbon` for GCHP to note they are not editable
 - Updated `keyValueUpdate` in `run/shared/singleCarbonSpecies.sh` to be tolerant of TABs and variable spacing; Added an error check as well.
 - Updated `SET_SO2` in `KPP/fullchem/fullchem_SulfurChemFuncs.F90` to ensure `RC` and `size_res` are defined before exiting
-- Changed OpenMP loop scheduling from `DYNAMIC` to `STATIC` in loops that do the same work in every grid box (`aerosol_mod.F90`, `sulfate_mod.F90`, `ucx_mod.F90`)
-- Changed loops whose work is concentrated at upper levels (`linear_chem_mod.F90`, `ucx_mod.F90`) to `SCHEDULE( STATIC, State_Grid%NX  )`, for better load balancing
-- Updated the Harvard Cannon `geoschem.vtune-*.run` sample scripts to move each VTune result and the GEOS-Chem output into a `vtune_rNNN<analysis>` folder and to write reports there
+- Changed scheduling from `DYNAMIC` to `STATIC` in parallel loops with uniform work per grid box (`aerosol_mod`, `sulfate_mod`, `ucx_mod`, `diagnostics_mod`, `wetscav_mod`)
+- Changed scheduling to `SCHEDULE( STATIC, State_Grid%NX  )`, in parallel loops where most of the work is done near the top of the atmosphere
+- Updated the Harvard Cannon `geoschem.vtune-*.run` sample scripts to move output and results `vtune_rNNN<analysis>` folder and to write reports there
 
 ### Fixed
 - Fixed parallelization errors in `GeosCore/apm_driv_mod.F90`
