@@ -534,11 +534,17 @@ CONTAINS
        ! Prescribe Br_y concentrations
        !--------------------------------------------------------------------
 
+       ! Because this loop skips boxes in the troposphere and stratosphere,
+       ! we'll send "longitude rows" (i.e. groups of State_Grid%NX grid
+       ! boxes) to each thread in a round-robin fashion.  This will make
+       ! sure that each thread gets rows from each level, avoiding a
+       ! situation where some threads would only get boxes with no work
+       ! to be done.  This should improve load balancing.
        !$OMP PARALLEL DO                                                     &
        !$OMP DEFAULT( SHARED                                                )&
        !$OMP PRIVATE( I, J, L, NN, ISBR2, BryTmp                            )&
        !$OMP COLLAPSE( 3                                                    )&
-       !$OMP SCHEDULE( DYNAMIC, 8                                           )
+       !$OMP SCHEDULE( STATIC, State_Grid%NX                                )
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX

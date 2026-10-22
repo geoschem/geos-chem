@@ -1713,7 +1713,11 @@ CONTAINS
     ! Partition H2SO4 before proceeding
     CALL CALC_H2SO4_GAS( Input_Opt, State_Chm, State_Grid, State_Met )
 
-    ! Loop over latitude boxes first
+    ! Because this loop does heavy work in the upper atmosphere, we'll
+    ! send "longitude rows" (i.e. groups of State_Grid%NX grid boxes) to
+    ! each thread in a round-robin fashion.  This will make sure that each
+    ! thread gets rows from each level, avoiding a situation where some
+    ! threads would only get boxes with little or no work to be done.
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
     !$OMP PRIVATE( I,            J,                  L                      )&
@@ -1743,7 +1747,7 @@ CONTAINS
     !$OMP PRIVATE( H2SO4_BOX_L,  KHET_COMMON,        KHET_SPECIFIC          )&
     !$OMP PRIVATE( VOL_TOT,      BOX_LAT                                    )&
     !$OMP COLLAPSE( 3                                                       )&
-    !$OMP SCHEDULE( DYNAMIC, 8                                              )
+    !$OMP SCHEDULE( STATIC, State_Grid%NX                                   )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
