@@ -25,6 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Separated `CH4/CO2/CO/OCS_DATA` switches in `HEMCO_Config.rc.carbon` for GCHP to note they are not editable
 - Updated `keyValueUpdate` in `run/shared/singleCarbonSpecies.sh` to be tolerant of TABs and variable spacing; Added an error check as well.
 - Updated `SET_SO2` in `KPP/fullchem/fullchem_SulfurChemFuncs.F90` to ensure `RC` and `size_res` are defined before exiting
+- Changed OpenMP loop scheduling from `DYNAMIC` to `STATIC` in loops that do the same work in every grid box (`aerosol_mod.F90`, `sulfate_mod.F90`, `ucx_mod.F90`)
 
 ### Fixed
 - Fixed parallelization errors in `GeosCore/apm_driv_mod.F90`

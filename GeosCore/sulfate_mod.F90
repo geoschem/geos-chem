@@ -7853,7 +7853,7 @@ CONTAINS
     !$OMP PRIVATE( I,     J,    L,     N,         SO4,  SO4s,  SO40         )&
     !$OMP PRIVATE( SO40s, SO4d, SO40d, SO40_dust, IBIN, PSO4d, IDTRC        )&
     !$OMP COLLAPSE( 3                                                       )&
-    !$OMP SCHEDULE( DYNAMIC, 8                                              )
+    !$OMP SCHEDULE( STATIC                                                  )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
@@ -8443,7 +8443,7 @@ CONTAINS
     !$OMP DEFAULT( SHARED                                                   )&
     !$OMP PRIVATE( I, J, L, NITd, NIT0d, IBIN, PNITd                        )&
     !$OMP COLLAPSE( 3                                                       )&
-    !$OMP SCHEDULE( DYNAMIC, 8                                              )
+    !$OMP SCHEDULE( STATIC                                                  )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
