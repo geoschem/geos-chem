@@ -189,9 +189,11 @@ CONTAINS
        IDDST(N) = HCO_GetHcoID( S, HcoState )
     ENDDO
 
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( N, J, I, A_M2, E_DST )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( N, J, I, A_M2, E_DST                                     )&
+    !$OMP COLLAPSE( 2                                                       )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -731,14 +733,9 @@ CONTAINS
     ! Dust settling timestep [s]
     DT_SETTL  = GET_TS_CHEM()
 
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I,     J,        L,    N,     DEN,  REFF, DP    ) &
-    !$OMP PRIVATE( CONST, AREA_CM2, VTS,  TEMP,  P,    PDP,  SLIP  ) &
-    !$OMP PRIVATE( VISC,  TC0,      DELZ, DELZ1, TOT1, TOT2, FLUX  ) &
-    !$OMP PRIVATE( NA,    ThisSpc,  ND,   S                        )
-
     ! Loop over only the advected dust species
+    ! NOTE: Parallelize over grid columns below instead of over the
+    ! few dust species, which would leave most threads idle.
     DO NA = Ind0, Ind1
 
        ! Look up this species in the species database
@@ -759,6 +756,13 @@ CONTAINS
        CONST   =  2e+0_fp * DEN * REFF**2 * g0 / 9e+0_fp
 
        ! Loop over grid latitude and longitude
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( I,    J,     L,    AREA_CM2, VTS,  TEMP, P, PDP       )&
+       !$OMP PRIVATE( SLIP, VISC,  TC0,  DELZ,     DELZ1                    )&
+       !$OMP PRIVATE( TOT1, TOT2,  FLUX, S                                  )&
+       !$OMP COLLAPSE( 2                                                    )&
+       !$OMP SCHEDULE( STATIC                                               )
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
 
@@ -872,11 +876,11 @@ CONTAINS
           ENDIF
        ENDDO
        ENDDO
+       !$OMP END PARALLEL DO
 
        ! Nullify pointer
        ThisSpc => NULL()
     ENDDO
-    !$OMP END PARALLEL DO
 
     ! Free pointers
     ThisSpc => NULL()
@@ -990,12 +994,13 @@ CONTAINS
 
     IDTEMP = APMIDS%id_DSTBIN1+NDSTB-1
 
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I, J, L, N, K, DEN, REFF, DP )       &
-    !$OMP PRIVATE( CONST, VTS, TEMP, P, PDP, SLIP )     &
-    !$OMP PRIVATE( MASS, OLD, VISC, TC0, DELZ, DELZ1  ) &
-    !$OMP SCHEDULE( DYNAMIC )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I, J, L, N, K, DEN, REFF, DP                             )&
+    !$OMP PRIVATE( CONST, VTS, TEMP, P, PDP, SLIP                           )&
+    !$OMP PRIVATE( MASS, OLD, VISC, TC0, DELZ, DELZ1                        )&
+    !$OMP COLLAPSE( 2                                                       )&
+    !$OMP SCHEDULE( DYNAMIC, 8                                              )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -1342,9 +1347,11 @@ CONTAINS
           ENDIF
        ENDIF
 
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I, J, L, N )
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( I, J, L, N                                            )&
+       !$OMP COLLAPSE( 4                                                    )&
+       !$OMP SCHEDULE( STATIC                                               )
        DO N = 1, NDUST
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
@@ -1391,9 +1398,11 @@ CONTAINS
     ! TAREA(:,1:NDUST) and ERADIUS(:,1:NDUST) are for
     ! the NDUST FAST-J dust wavelength bins (read into DUST)
     !==============================================================
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I, J, L, N, XRH )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I, J, L, N, XRH                                          )&
+    !$OMP COLLAPSE( 4                                                       )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO N = 1, NDUST
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
@@ -1440,9 +1449,11 @@ CONTAINS
        ENDDO
 
        ! Loop over dust bins, # of wavelengths, and all grid cells
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I, J, L, N, W, NOUT, LINTERP, S )
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( I, J, L, N, W, NOUT, LINTERP, S                       )&
+       !$OMP COLLAPSE( 5                                                    )&
+       !$OMP SCHEDULE( STATIC                                               )
        DO W = 1, Input_Opt%NWVSELECT
        DO N = 1, NDUST
        DO L = 1, State_Met%MaxChemLev
@@ -1503,9 +1514,11 @@ CONTAINS
        ! Set dust optical depth diagnostic
        !---------------------------------------------------
        IF ( State_Diag%Archive_AODDust ) THEN
-          !$OMP PARALLEL DO       &
-          !$OMP DEFAULT( SHARED ) &
-          !$OMP PRIVATE( I, J, L )
+          !$OMP PARALLEL DO                                                  &
+          !$OMP DEFAULT( SHARED                                             )&
+          !$OMP PRIVATE( I, J, L                                            )&
+          !$OMP COLLAPSE( 3                                                 )&
+          !$OMP SCHEDULE( STATIC                                            )
           DO L = 1, State_Met%MaxChemLev
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
@@ -1520,9 +1533,11 @@ CONTAINS
 
     ! Archive total dust surface area (sum across all bins)
     IF ( State_Diag%Archive_AerSurfAreaDust ) THEN
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I, J, L )
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( I, J, L                                               )&
+       !$OMP COLLAPSE( 3                                                    )&
+       !$OMP SCHEDULE( STATIC                                               )
        DO L = 1, State_Met%MaxChemLev
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX

@@ -330,11 +330,13 @@ CONTAINS
        !   CALL FLUSH(6)
        !END IF
 
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I,       J,     LBOT,   LPOS,   L      ) &
-       !$OMP PRIVATE( CLIMPML, DERO3, CLIMO3, DERCO3, DCO3   ) &
-       !$OMP PRIVATE( DERTMP,  DTMP,  SSO3,   DMASS )
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( I,       J,     LBOT,   LPOS,   L                     )&
+       !$OMP PRIVATE( CLIMPML, DERO3, CLIMO3, DERCO3, DCO3                  )&
+       !$OMP PRIVATE( DERTMP,  DTMP,  SSO3,   DMASS                         )&
+       !$OMP COLLAPSE( 2                                                    )&
+       !$OMP SCHEDULE( DYNAMIC, 8                                           )
        DO J = 1, JM
        DO I = 1, IM
 

@@ -586,7 +586,7 @@ CONTAINS
     !$OMP PRIVATE( AREA_CM2, FLUX,  ID,    SALT_MASS_TOTAL, VTS_WEIGHT      )&
     !$OMP PRIVATE( DMIDW,    RHO1,  WTP,   SALT_MASS,       S               )&
     !$OMP COLLAPSE( 2                                                       )&
-    !$OMP SCHEDULE( DYNAMIC, 4                                              )
+    !$OMP SCHEDULE( DYNAMIC, 8                                              )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -922,10 +922,11 @@ CONTAINS
     ! of 1.0e-5 /sec.
     !    Hydrophobic --> Hydrophilic,  k  = 1.0e-5
     !=================================================================
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I, J, L, TC0, FREQ, RKT, CNEW ) &
-    !$OMP SCHEDULE( DYNAMIC )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I, J, L, TC0, FREQ, RKT, CNEW                            )&
+    !$OMP COLLAPSE( 3                                                       )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
@@ -1029,10 +1030,11 @@ CONTAINS
     ! Set pointer to GEOS-Chem tracer array [kg]
     Spc => State_Chm%Species
 
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I, J, L, TC0, CCV, CNEW ) &
-    !$OMP SCHEDULE( DYNAMIC )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I, J, L, TC0, CCV, CNEW                                  )&
+    !$OMP COLLAPSE( 3                                                       )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
@@ -1369,12 +1371,12 @@ CONTAINS
        SALT = 0d0
        Spc_ID = Spc_IDs(N)
 
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I, J, A_M2, W10M, FOCEAN, SFCWINDSQR, SST, SCALESST ) &
-       !$OMP SCHEDULE( DYNAMIC )
-
        ! Loop over grid boxes
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( I, J, A_M2, W10M, FOCEAN, SFCWINDSQR, SST, SCALESST   )&
+       !$OMP COLLAPSE( 2                                                    )&
+       !$OMP SCHEDULE( DYNAMIC, 8                                           )
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
 
@@ -1436,10 +1438,11 @@ CONTAINS
        !=================================================================
        ! Now partition seasalt emissions through boundary layer
        !=================================================================
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I, J, NTOP, L, FEMIS ) &
-       !$OMP SCHEDULE( DYNAMIC )
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( I, J, NTOP, L, FEMIS                                  )&
+       !$OMP COLLAPSE( 2                                                    )&
+       !$OMP SCHEDULE( DYNAMIC, 8                                           )
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
 
@@ -1572,12 +1575,13 @@ CONTAINS
     IDTEMP1 = APMIDS%id_SEABIN1
     IDTEMP2 = APMIDS%id_SEABIN1+NSEA-1
 
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I, J, L, N, K, DEN, REFF, DP )       &
-    !$OMP PRIVATE( CONST, VTS, TEMP, P, PDP, SLIP )     &
-    !$OMP PRIVATE( MASS, OLD, VISC, TC0, DELZ, DELZ1  ) &
-    !$OMP SCHEDULE( DYNAMIC )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I, J, L, N, K, DEN, REFF, DP                             )&
+    !$OMP PRIVATE( CONST, VTS, TEMP, P, PDP, SLIP                           )&
+    !$OMP PRIVATE( MASS, OLD, VISC, TC0, DELZ, DELZ1                        )&
+    !$OMP COLLAPSE( 2                                                       )&
+    !$OMP SCHEDULE( DYNAMIC, 8                                              )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 

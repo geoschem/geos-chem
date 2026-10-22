@@ -438,23 +438,24 @@ CONTAINS
     ! J-values will be stored in the common-block variable ZPJ, and
     ! will be later accessed via function FJXFUNC.
     !=================================================================
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( NLAT,    NLON,   YLAT,      U0,      L       ) &
-    !$OMP PRIVATE( P_CTM ,  T_CTM,  RFL,       O3_TOMS, O3_CTM  ) &
-    !$OMP PRIVATE( LCHEM,   OPTAER, N,         IOPT,    J       ) &
-    !$OMP PRIVATE( OPTDUST, OPTD,   CLDF1D                      ) &
-#ifdef USE_MAXIMUM_RANDOM_OVERLAP
-    !$OMP PRIVATE( FMAX,    KK,     NUMB,      KBOT             ) &
-    !$OMP PRIVATE( KTOP     ODNEW,  INDICATOR, INDIC            ) &
-#endif
-    !$OMP PRIVATE( SZA, SOLF, ODCLOUD_COL                       ) &
-    !$OMP PRIVATE( AERX_COL,  T_CLIM, O3_CLIM, Z_CLIM, AIR_CLIM ) &
-    !$OMP PRIVATE( VALJXX,    FSBOT,  FJBOT,   FLXD,   FJFLX    ) &
-    !$OMP PRIVATE( FDIRECT,   FDIFFUSE, UVX_CONST, K, S         ) &
-    !$OMP SCHEDULE( DYNAMIC )
 
     ! Loop over latitudes and longitudes
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( NLAT,    NLON,   YLAT,      U0,      L                   )&
+    !$OMP PRIVATE( P_CTM ,  T_CTM,  RFL,       O3_TOMS, O3_CTM              )&
+    !$OMP PRIVATE( LCHEM,   OPTAER, N,         IOPT,    J                   )&
+    !$OMP PRIVATE( OPTDUST, OPTD,   CLDF1D,    ErrMsg                       )&
+#ifdef USE_MAXIMUM_RANDOM_OVERLAP
+    !$OMP PRIVATE( FMAX,    KK,     NUMB,      KBOT                         )&
+    !$OMP PRIVATE( KTOP,    ODNEW,  INDICATOR, INDIC                        )&
+#endif
+    !$OMP PRIVATE( SZA, SOLF, ODCLOUD_COL                                   )&
+    !$OMP PRIVATE( AERX_COL,  T_CLIM, O3_CLIM, Z_CLIM, AIR_CLIM             )&
+    !$OMP PRIVATE( VALJXX,    FSBOT,  FJBOT,   FLXD,   FJFLX                )&
+    !$OMP PRIVATE( FDIRECT,   FDIFFUSE, UVX_CONST, K,  S                    )&
+    !$OMP COLLAPSE( 2                                                       )&
+    !$OMP SCHEDULE( DYNAMIC, 8                                              )
     DO NLAT = 1, State_Grid%NY
     DO NLON = 1, State_Grid%NX
 

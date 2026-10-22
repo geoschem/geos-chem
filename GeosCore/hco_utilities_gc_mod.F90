@@ -294,7 +294,8 @@ CONTAINS
     IF ( Input_Opt%LIMGRID ) THEN
 
       ! Check if we have to load the data.
-      IF ( TrcID > 0 .and. (.not. ASSOCIATED(HcoState%Spc(TrcID)%Emis%Val)) ) RETURN
+      IF ( TrcID > 0 .and.                                                   &
+           (.not. ASSOCIATED(HcoState%Spc(TrcID)%DepV%Val)) ) RETURN
 
       ! The below section must be OMP CRITICAL because it is stateful.
       ! The first call to the critical section will update the container!!
@@ -1947,10 +1948,11 @@ CONTAINS
             ! Also print mass based on restart file mixing ratio and meteorology
             SpcMass = 0.d0
             SpcMassPtr => SpcMass
-            !$OMP PARALLEL DO                 &
-            !$OMP DEFAULT( SHARED           ) &
-            !$OMP PRIVATE( I, J, L, AirMass ) &
-            !$OMP COLLAPSE( 3 )
+            !$OMP PARALLEL DO                                                &
+            !$OMP DEFAULT( SHARED                                           )&
+            !$OMP PRIVATE( I, J, L, AirMass                                 )&
+            !$OMP COLLAPSE( 3                                               )&
+            !$OMP SCHEDULE( STATIC                                          )
             DO L = 1, State_Grid%NZ
             DO J = 1, State_Grid%NY
             DO I = 1, State_Grid%NX
@@ -1969,10 +1971,11 @@ CONTAINS
             ! from restart file pressure
             IF ( update_mixing_ratio ) THEN
                ! Update concentrations
-               !$OMP PARALLEL DO        &
-               !$OMP DEFAULT( SHARED  ) &
-               !$OMP PRIVATE( I, J, L ) &
-               !$OMP COLLAPSE( 3 )
+               !$OMP PARALLEL DO                                             &
+               !$OMP DEFAULT( SHARED                                        )&
+               !$OMP PRIVATE( I, J, L                                       )&
+               !$OMP COLLAPSE( 3                                            )&
+               !$OMP SCHEDULE( STATIC                                       )
                DO L = 1, State_Grid%NZ
                DO J = 1, State_Grid%NY
                DO I = 1, State_Grid%NX
@@ -1988,11 +1991,13 @@ CONTAINS
 
       ELSE
 
-         ! Set species to the background value
-         !$OMP PARALLEL DO       &
-         !$OMP DEFAULT( SHARED ) &
-         !$OMP PRIVATE( I, J, L )
          ! Loop over all grid boxes
+         ! Set species to the background value
+         !$OMP PARALLEL DO                                                   &
+         !$OMP DEFAULT( SHARED                                              )&
+         !$OMP PRIVATE( I, J, L                                             )&
+         !$OMP COLLAPSE( 3                                                  )&
+         !$OMP SCHEDULE( STATIC                                             )
          DO L = 1, State_Grid%NZ
          DO J = 1, State_Grid%NY
          DO I = 1, State_Grid%NX
@@ -2030,9 +2035,11 @@ CONTAINS
          !================================================================
          WRITE(*,*)'APM run does not find '// TRIM( SpcInfo%Name ),N
          IF(SpcInfo%Name(1:9)=='APMSPBIN2')THEN
-            !$OMP PARALLEL DO        &
-            !$OMP DEFAULT( SHARED  ) &
-            !$OMP PRIVATE( I, J, L )
+            !$OMP PARALLEL DO                                                &
+            !$OMP DEFAULT( SHARED                                           )&
+            !$OMP PRIVATE( I, J, L                                          )&
+            !$OMP COLLAPSE( 3                                               )&
+            !$OMP SCHEDULE( STATIC                                          )
             DO L = 1, State_Grid%NZ
             DO J = 1, State_Grid%NY
             DO I = 1, State_Grid%NX
@@ -2046,9 +2053,11 @@ CONTAINS
             !$OMP END PARALLEL DO
            ENDIF
            IF(SpcInfo%Name(1:9)=='APMSPBIN3')THEN
-              !$OMP PARALLEL DO        &
-              !$OMP DEFAULT( SHARED  ) &
-              !$OMP PRIVATE( I, J, L )
+            !$OMP PARALLEL DO                                                &
+            !$OMP DEFAULT( SHARED                                           )&
+            !$OMP PRIVATE( I, J, L                                          )&
+            !$OMP COLLAPSE( 3                                               )&
+            !$OMP SCHEDULE( STATIC                                          )
             DO L = 1, State_Grid%NZ
             DO J = 1, State_Grid%NY
             DO I = 1, State_Grid%NX
@@ -2063,9 +2072,11 @@ CONTAINS
            ENDIF
            !GanLuotest
            IF(SpcInfo%Name(1:10)=='APMSEABIN0')THEN
-              !$OMP PARALLEL DO        &
-              !$OMP DEFAULT( SHARED  ) &
-              !$OMP PRIVATE( I, J, L )
+            !$OMP PARALLEL DO                                                &
+            !$OMP DEFAULT( SHARED                                           )&
+            !$OMP PRIVATE( I, J, L                                          )&
+            !$OMP COLLAPSE( 3                                               )&
+            !$OMP SCHEDULE( STATIC                                          )
             DO L = 1, State_Grid%NZ
             DO J = 1, State_Grid%NY
             DO I = 1, State_Grid%NX
@@ -2079,9 +2090,11 @@ CONTAINS
             !$OMP END PARALLEL DO
            ENDIF
            IF(SpcInfo%Name(1:10)=='APMSEABIN1')THEN
-              !$OMP PARALLEL DO        &
-              !$OMP DEFAULT( SHARED  ) &
-              !$OMP PRIVATE( I, J, L )
+            !$OMP PARALLEL DO                                                &
+            !$OMP DEFAULT( SHARED                                           )&
+            !$OMP PRIVATE( I, J, L                                          )&
+            !$OMP COLLAPSE( 3                                               )&
+            !$OMP SCHEDULE( STATIC                                          )
             DO L = 1, State_Grid%NZ
             DO J = 1, State_Grid%NY
             DO I = 1, State_Grid%NX
@@ -2095,9 +2108,11 @@ CONTAINS
             !$OMP END PARALLEL DO
            ENDIF
            IF(SpcInfo%Name(1:10)=='APMDSTBIN1')THEN
-              !$OMP PARALLEL DO        &
-              !$OMP DEFAULT( SHARED  ) &
-              !$OMP PRIVATE( I, J, L )
+            !$OMP PARALLEL DO                                                &
+            !$OMP DEFAULT( SHARED                                           )&
+            !$OMP PRIVATE( I, J, L                                          )&
+            !$OMP COLLAPSE( 3                                               )&
+            !$OMP SCHEDULE( STATIC                                          )
             DO L = 1, State_Grid%NZ
             DO J = 1, State_Grid%NY
             DO I = 1, State_Grid%NX
@@ -2116,9 +2131,11 @@ CONTAINS
             !$OMP END PARALLEL DO
            ENDIF
            IF(SpcInfo%Name(1:8)=='APMBCBIN')THEN
-              !$OMP PARALLEL DO        &
-              !$OMP DEFAULT( SHARED  ) &
-              !$OMP PRIVATE( I, J, L )
+            !$OMP PARALLEL DO                                                &
+            !$OMP DEFAULT( SHARED                                           )&
+            !$OMP PRIVATE( I, J, L                                          )&
+            !$OMP COLLAPSE( 3                                               )&
+            !$OMP SCHEDULE( STATIC                                          )
             DO L = 1, State_Grid%NZ
             DO J = 1, State_Grid%NY
             DO I = 1, State_Grid%NX
@@ -2130,9 +2147,11 @@ CONTAINS
             !$OMP END PARALLEL DO
            ENDIF
            IF(SpcInfo%Name(1:8)=='APMOCBIN')THEN
-              !$OMP PARALLEL DO        &
-              !$OMP DEFAULT( SHARED  ) &
-              !$OMP PRIVATE( I, J, L )
+            !$OMP PARALLEL DO                                                &
+            !$OMP DEFAULT( SHARED                                           )&
+            !$OMP PRIVATE( I, J, L                                          )&
+            !$OMP COLLAPSE( 3                                               )&
+            !$OMP SCHEDULE( STATIC                                          )
             DO L = 1, State_Grid%NZ
             DO J = 1, State_Grid%NY
             DO I = 1, State_Grid%NX

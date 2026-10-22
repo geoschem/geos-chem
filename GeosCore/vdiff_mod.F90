@@ -353,9 +353,8 @@ CONTAINS
     IF (PRESENT(ustar_arg)) ustar = ustar_arg(:,lat)
 
     ! Set initial species concentrations
-    !$OMP PARALLEL DO                                                         &
-    !$OMP DEFAULT( SHARED                                                    )&
-    !$OMP PRIVATE( M, L, I, Conc, L_REVERSE                                  )
+    ! NOTE: Do not parallelize here, since vdiff is called from within
+    ! the parallel loop over latitudes in VDIFFDR.
     DO M = 1, nspcmix
 
        ! Point to the species concentrations
@@ -377,7 +376,6 @@ CONTAINS
        ! Free pointer
        Conc => NULL()
     ENDDO
-    !$OMP END PARALLEL DO
 
 ! resume...
 
@@ -752,10 +750,8 @@ CONTAINS
     IF (PRESENT(ustar_arg)) ustar_arg(:,lat) = ustar
 
     ! Set species concentrations
-    !$OMP PARALLEL DO                                                        &
-    !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( M, L, I                                                  )&
-    !$OMP COLLAPSE( 3                                                       )
+    ! NOTE: Do not parallelize here, since vdiff is called from within
+    ! the parallel loop over latitudes in VDIFFDR.
     DO M = 1, nspcmix
     DO L = 1, plev
     DO I = 1, plonl
@@ -763,7 +759,6 @@ CONTAINS
     ENDDO
     ENDDO
     ENDDO
-    !$OMP END PARALLEL DO
 
   end subroutine vdiff
 !EOC
@@ -1740,6 +1735,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
+    LOGICAL             :: error
     INTEGER             :: I, J, L, N, NA, nAdvect, EC
     REAL(fp)            :: dtime
 #ifdef LUO_WETDEP
@@ -1820,10 +1816,13 @@ CONTAINS
     t1       =  0.0_fp
     dtime    =  GET_TS_CONV()            ! second
     shflx    =  State_Met%EFLUX / latvap ! latent heat -> water vapor flux
+    error    =  .FALSE.
 
-!$OMP PARALLEL DO        &
-!$OMP DEFAULT( SHARED )  &
-!$OMP PRIVATE( I, J, L )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I, J, L                                                  )&
+    !$OMP COLLAPSE( 2                                                       )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -1838,7 +1837,7 @@ CONTAINS
        ENDDO
 
        ! PEDGE at the top of the atmosphere
-       pint(I,J,State_Grid%NZ+1) = State_Met%PEDGE(I,J,State_Grid%NZ+1)     &
+       pint(I,J,State_Grid%NZ+1) = State_Met%PEDGE(I,J,State_Grid%NZ+1)      &
                                  * 100.0_fp
 
        ! Corrected calculation of zm.
@@ -1846,8 +1845,8 @@ CONTAINS
        ! Therefore, use virtual temperature in hypsometric equation.
        ! (ewl, 3/3/15)
        do L = 1, State_Grid%NZ
-          zm(I,J,L) = SUM( State_Met%BXHEIGHT(I,J,1:L))                     &
-                    - log( pmid(I,J,L)/pint(I,J,L+1) )                      &
+          zm(I,J,L) = SUM( State_Met%BXHEIGHT(I,J,1:L))                      &
+                    - log( pmid(I,J,L)/pint(I,J,L+1) )                       &
                     * r_g * State_Met%TV(I,J,L)
 
           rpdel(I,J,L) = 1.0_fp / (pint(I,J,L) - pint(I,J,L+1))
@@ -1861,7 +1860,7 @@ CONTAINS
 
     enddo
     enddo
-!$OMP END PARALLEL DO
+    !$OMP END PARALLEL DO
 
     !### Debug
     IF ( Input_Opt%Verbose ) THEN
@@ -1897,21 +1896,42 @@ CONTAINS
        CALL DEBUG_MSG( '### VDIFFDR: before vdiff' )
     ENDIF
 
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( J, EC  )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( J, EC                                                    )&
+    !$OMP SCHEDULE( STATIC                                                  )&
+    !$OMP REDUCTION( .OR. : error                                           )
     DO J = 1, State_Grid%NY
-       CALL Vdiff( J,                 1,         p_um1,      p_vm1,           &
-                   p_tadv,            p_pmid,    p_pint,     p_rpdel,         &
-                   p_rpdeli,          dtime,     p_zm,       p_hflux,         &
-                   p_sflx,            p_thp,     p_pblh,                      &
-                   p_kvh,             p_kvm,     tpert,      qpert,           &
-                   p_cgs,             p_shp,     shflx,      State_Grid%NX,   &
-                   Input_Opt,         State_Met, State_Grid,                  &
-                   State_Chm,         State_Diag,                             &
-                   ustar_arg=p_ustar, RC=EC                                   )
+
+       ! Skip to the end of this loop if any of the threads returned with
+       ! an error.  Then exit this routine with failure status outside
+       ! of the loop.  This is the thread-safe implementation.
+       IF ( error ) CYCLE
+
+       ! Do PBL mixing
+       CALL Vdiff( J,                 1,         p_um1,      p_vm1,          &
+                   p_tadv,            p_pmid,    p_pint,     p_rpdel,        &
+                   p_rpdeli,          dtime,     p_zm,       p_hflux,        &
+                   p_sflx,            p_thp,     p_pblh,                     &
+                   p_kvh,             p_kvm,     tpert,      qpert,          &
+                   p_cgs,             p_shp,     shflx,      State_Grid%NX,  &
+                   Input_Opt,         State_Met, State_Grid,                 &
+                   State_Chm,         State_Diag,                            &
+                   ustar_arg=p_ustar, RC=EC                                 )
+
+       IF ( EC /= GC_SUCCESS ) THEN
+          error = .TRUE.
+          CYCLE
+       ENDIF
     ENDDO
     !$OMP END PARALLEL DO
+
+    ! Exit if any of the threads encountered an error
+    IF ( error ) THEN
+       errMsg = 'Error encountered in "Vdiff"!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
 
     !### Debug
     IF ( Input_Opt%Verbose ) THEN
@@ -1922,10 +1942,14 @@ CONTAINS
     p_shp    = p_shp * 1.0e+3_fp
 
 #ifdef LUO_WETDEP
-!$OMP PARALLEL DO DEFAULT( SHARED )      &
-!$OMP PRIVATE( I, J, L, F_CLD ) &
-!$OMP PRIVATE( YCLDICE, FICE, YB, volx34pi_cd, rrate, SQM, STK ) &
-!$OMP PRIVATE( log2R, DFKG, uptkrate )
+
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I, J, L, F_CLD                                           )&
+    !$OMP PRIVATE( YCLDICE, FICE, YB, volx34pi_cd, rrate, SQM, STK          )&
+    !$OMP PRIVATE( log2R, DFKG, uptkrate                                    )&
+    !$OMP COLLAPSE( 3                                                       )&
+    !$OMP SCHEDULE( DYNAMIC, 8                                              )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
@@ -2018,7 +2042,7 @@ CONTAINS
     ENDDO
     ENDDO
     ENDDO
-!$OMP END PARALLEL DO
+    !$OMP END PARALLEL DO
 #endif
 
     ! Nullify pointers

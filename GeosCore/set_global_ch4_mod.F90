@@ -216,10 +216,11 @@ CONTAINS
        RETURN
     ENDIF
 
-    !$OMP PARALLEL DO                            &
-    !$OMP DEFAULT( SHARED )                      &
-    !$OMP PRIVATE( I, J, L, PBL_TOP, CH4, dCH4 ) &
-    !$OMP SCHEDULE( DYNAMIC )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I, J, L, PBL_TOP, CH4, dCH4                              )&
+    !$OMP COLLAPSE( 2                                                       )&
+    !$OMP SCHEDULE( DYNAMIC, 8                                              )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 

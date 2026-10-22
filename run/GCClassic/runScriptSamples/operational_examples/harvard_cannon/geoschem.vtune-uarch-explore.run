@@ -2,17 +2,27 @@
 
 #SBATCH -c 48
 #SBATCH -N 1
-#SBATCH -t 0-12:00
+#SBATCH -t 0-1:00
 #SBATCH --exclusive
 #SBATCH -p huce_cascade,shared
-#SBATCH --mem=15000
+#SBATCH --mem=18000
 #SBATCH --mail-type=END
 
 ###############################################################################
 ### Sample GEOS-Chem Classic run script for Harvard Cannon (using SLURM).
+### Profiles GEOS-Chem with the Intel VTune "uarch-exploration"
+### (microarchitecture exploration) analysis.
 ###
-### If you are running a nested-grid simulation at fine resolution, you
-### will likely need to request additional memory, cores, and time.
+### Each run's VTune result (rNNNue) is moved, along with GC.log,
+### gcclassic_timers.json, OutputDir/*.nc*, and a copy of Restarts/*.nc*,
+### into a new folder named vtune_rNNNue.  These reports are then written
+### to that folder (tab-separated, despite the .csv extension):
+###
+###   rNNNue.summary.txt              : Pipeline slots, memory-bound, etc.
+###   rNNNue.uarch.by-func.csv        : Microarchitecture metrics per function
+###
+### NOTE: The vtune executable must be in your PATH when you submit
+### this script.
 ###
 ### -c           : Requests this many cores
 ### -N           : Requests a single node
@@ -29,9 +39,42 @@ source CodeDir/run/runScriptSamples/operational_examples/harvard_cannon/gcclassi
 # SLURM_CPUS_PER_TASK ensures this matches the number you set with -c above
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 
-# Run GEOS_Chem and collect microarchitectural information with Intel VTune
-srun -c $OMP_NUM_THREADS vtune -collect uarch-exploration -- ./gcclassic > GC.log
+# GEOS-Chem log file
+log=GC.log
 
-# Exit with return code
-exit $?
+# Pick the next VTune result number ourselves.  VTune cannot report it
+# in advance, and after rNNNue is moved to vtune_rNNNue its own
+# auto-numbering would start over at r000ue.
+last=$(ls -d r[0-9][0-9][0-9]ue vtune_r[0-9][0-9][0-9]ue 2>/dev/null \
+       | grep -o '[0-9]\{3\}' | sort -n | tail -1)
+if [[ -z "${last}" ]]; then
+    expt="r000ue"
+else
+    expt=$(printf "r%03due" $(( 10#${last} + 1 )))
+fi
 
+# Run GEOS-Chem and collect microarchitectural information with Intel VTune
+srun -c $OMP_NUM_THREADS time -p \
+     vtune -collect uarch-exploration -r ${expt} -- ./gcclassic >> ${log}
+rc=$?
+echo '===> Run ended at' `date` >> ${log}
+
+# Move the VTune result and GEOS-Chem output into one folder per result
+dest="vtune_${expt}"
+mkdir -p ${dest}/OutputDir
+mkdir -p ${dest}/Restarts
+mv ${expt} ${dest}/
+mv OutputDir/*.nc* ${dest}/OutputDir/ 2>/dev/null
+cp Restarts/*.nc* ${dest}/Restarts/ 2>/dev/null
+mv ${log} gcclassic_timers.json ${dest}/ 2>/dev/null
+
+# Generate reports from the moved VTune result.  Run them one at a
+# time: two reports on the same result at once can fail.
+res="${dest}/${expt}"
+vtune -report summary -r ${res} -format text \
+      -report-output ${dest}/${expt}.summary.txt
+vtune -report hotspots -r ${res} -format csv -csv-delimiter tab \
+      -report-output ${dest}/${expt}.uarch.by-func.csv
+
+# Exit with the return code from the GEOS-Chem run
+exit ${rc}
