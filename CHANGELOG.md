@@ -4,6 +4,16 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - TBD
+### Added
+- Added the EPA NEI2022 (2022v2 platform) monthly-mean anthropogenic emissions for the CONUS as the `NEI2022_MONMEAN` option (off by default); scaled to 2002-2024 with state-level annual scale factors
+
+### Changed
+- Updated `run/shared/singleCarbonSpecies.sh` to remove `EPA22_CO_*` instead of `EPA16_CO_*` entries
+
+### Removed
+- Removed the EPA NEI2016 (`NEI2016_MONMEAN`) option from the fullchem, aerosol, and carbon `HEMCO_Config.rc` templates, the GCHP fullchem `ExtData.rc` template, and the CESM and WRF `HEMCO_Config.rc` files; superseded by `NEI2022_MONMEAN`
+
 ## [14.8.0] - 2026-09-11
 ### Added
 - Added PSO4AQ and PH2SO4 as a product to certain reactions; see `KPP/fullchem/CHANGELOG_fullchem.md`

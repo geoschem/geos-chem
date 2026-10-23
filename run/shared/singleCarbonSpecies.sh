@@ -304,7 +304,7 @@ function updateExtData() {
         sed -i "/CMIP6_CO_/d"           "${file}"
         sed -i "/\#DICE_/d"             "${file}"
         sed -i "/EDGAR_CO_/d"           "${file}"
-        sed -i "/EPA16_CO_/d"           "${file}"
+        sed -i "/EPA22_CO_/d"           "${file}"
         sed -i "/HTAP_CO_/d"            "${file}"
         sed -i "/RCP3PD_CO /d"          "${file}"
         sed -i "/RCP45_CO /d"           "${file}"
