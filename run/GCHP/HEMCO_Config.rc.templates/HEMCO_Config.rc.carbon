@@ -1569,6 +1569,11 @@ ${RUNDIR_CO2_COPROD}
 
 # State-level annual CO scale factors (base year 2022), generated from
 # EPA national_state_sector_2002_2024_caps_21feb2025_tons.xlsx
+#
+# NOTE: COVID-19 (2020-2021) reductions are captured only as annual means
+# (e.g., US on-road CO ~16% lower in 2020 than 2019). Monthly, weekly and
+# diurnal patterns are those of 2022, so the spring 2020 lockdowns are not
+# resolved.
 2507 NEI2022_CO_agr   $ROOT/NEI2022/v2026-09/Emiscaling_22_new_adjusted_Apr4.nc4 CO_agr     2002-2024/1/1/0 C xy 1 1
 2508 NEI2022_CO_ene   $ROOT/NEI2022/v2026-09/Emiscaling_22_new_adjusted_Apr4.nc4 CO_ene     2002-2024/1/1/0 C xy 1 1
 2509 NEI2022_CO_ind   $ROOT/NEI2022/v2026-09/Emiscaling_22_new_adjusted_Apr4.nc4 CO_ind     2002-2024/1/1/0 C xy 1 1
