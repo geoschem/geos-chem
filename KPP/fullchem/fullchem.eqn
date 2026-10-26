@@ -1802,13 +1802,13 @@ MCRHNB = IONITA :              VOCuptk1stOrd( SR_MW(ind_MCRHNB), 5.0E-3_dp, Stat
 MCRHN = IONITA :               VOCuptk1stOrd( SR_MW(ind_MCRHN), 5.0E-3_dp, State_Het );                     {2019/11/06; Bates2019; KHB}
 NPHEN = AONITA :               VOCuptk1stOrd( SR_MW(ind_NPHEN), 1.0E-2_dp, State_Het );                     {2021/09/29; Bates2021b; KHB,MSL}
 { HFO-1234ze(E) degradation -- Killen et al. 2026 }
-HFO1234zeE + OH = TFALD + CHFO    : GCARR_abc(7.1d-12, 2.44d0, -666d0);   {Antinolo et al.}
-TFALD + OH      = CF3CO + H2O     : GCARR_abc(3.8d-13, -2.0d0, 131.0d0);  {Baumann et al.}
-HFO1234zeE + O3 = 0.079HFC23      : 2.44d-21;                             {McGillen et al.}
-HFC23 + OH      = CF3 + H2O       : 3.1d-16;                              {Sander et al.}
-TFALD + HO2     = CF3CHOHOO       : GCARR_ac(8.89d-16, 1723.0d0);         {Long et al.}
-CF3CHOHOO       = TFALD + HO2     : GCARR_ac(2.29d+14, -7621.0d0);        {Long et al.}
-CF3CHOHOO + NO  = CF3CHOHO + NO2  : 1.5d-11;                              {Long et al.}
+HFO1234zeE + OH = TFALD + CHFO    : GCARR_abc(6.99d-12, 2.44d0, -666.0d0); {2026/10/26; Antinolo2017; BK}
+TFALD + OH      = CF3CO + H2O     : GCARR_abc(3.8d-13, -2.0d0, 131.0d0);   {2026/10/26; Baumann2025; BK}
+HFO1234zeE + O3 = 0.079HFC23      : 2.44d-21;                              {2026/10/26; McGillen2023; BK}
+HFC23 + OH      = CF3 + H2O       : 3.1d-16;                               {2026/10/26; JPL 10-6; BK}
+TFALD + HO2     = CF3CHOHOO       : GCARR_ac(8.89d-16, 1723.0d0);          {2026/10/26; Long2022; BK}
+CF3CHOHOO       = TFALD + HO2     : GCARR_ac(2.29d+14, -7621.0d0);         {2026/10/26; Long2022; BK}
+CF3CHOHOO + NO  = CF3CHOHO + NO2  : 1.5d-11;                               {2026/10/26; Long2022; BK}
 //
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 // %%%%% Photolysis reactions                                            %%%%%
@@ -2047,5 +2047,5 @@ PIP + hv = OH + HO2 + 0.450MVK + 0.45ACET +
  0.100CH2O + 0.675MYRCO :                    PHOTOL(105);    {2024/08/20; Travis2024; KRT} 
 LIMAL + hv = CO + HO2 + 0.900LIMO3 :         PHOTOL(177);    {2024/08/20; Travis2024; KRT}  
 { HFO-1234ze(E) photolysis -- Killen et al. 2026 }
-TFALD + hv = CF3 + CO + HO2 :                PHOTOL(178);    {Killen et al. 2026}
-TFALD + hv = HFC23 + CO :                    PHOTOL(179);    {Killen et al. 2026}
+TFALD + hv = CF3 + CO + HO2 :                PHOTOL(178);    {2026/10/26; Killen2026; BK}
+TFALD + hv = HFC23 + CO :                    PHOTOL(179);    {2026/10/26; Killen2026; BK}

@@ -1,58 +1,6 @@
-/^A3O2:# GEOS-Chem Species Database
+# GEOS-Chem Species Database
 # Core species only (neglecting microphysics)
 # NOTE: Anchors must be defined before any variables that reference them.
-CF3:
-  Formula: CF3
-  FullName: trifluoromethyl radical
-  Is_Gas: true
-  MW_g: 69.006
-CF3CHOHO:
-  Formula: CF3CH(OH)O
-  FullName: hydroxyalkoxy radical from CF3CHOHOO + NO
-  Is_Gas: true
-  MW_g: 115.0
-CF3CHOHOO:
-  Formula: CF3CH(OH)OO
-  FullName: hydroxyperoxy radical from TFALD + HO2
-  Is_Advected: true
-  Is_Gas: true
-  MW_g: 131.0
-CF3CO:
-  Formula: C2F3O
-  FullName: acyl radical from OH abstraction of TFALD
-  Is_Gas: true
-  MW_g: 97.016
-CHFO:
-  Formula: CHFO
-  FullName: formyl fluoride
-  Is_Gas: true
-  MW_g: 48.016
-HFC23:
-  Formula: CHF3
-  FullName: HFC-23
-  Is_Advected: true
-  Is_Gas: true
-  MW_g: 70.01
-HFO1234zeE:
-  Formula: C3H2F4
-  FullName: HFO-1234ze(E)
-  Is_Advected: true
-  Is_Gas: true
-  MW_g: 114.04
-TFALD:
-  DD_F0: 1.0
-  DD_Hstar: 1.0e+5
-  Formula: CF3CHO
-  FullName: trifluoroacetaldehyde
-  Henry_CR: 5900.0
-  Henry_K0: 1.0e+5
-  Is_Advected: true
-  Is_DryDep: true
-  Is_Gas: true
-  Is_Photolysis: true
-  Is_WetDep: true
-  MW_g: 98.024
-  WD_RetFactor: 2.0e-2
 A3O2:
   Formula: CH3CH2CH2OO
   FullName: Primary peroxy radical from C3H8
@@ -888,6 +836,26 @@ CdF2:
   FullName: Cadmium on dust, Reff = 1.4 microns
   MW_g: 112.41
   Radius: 1.4e-6
+CF3:
+  Formula: CF3
+  FullName: trifluoromethyl radical
+  Is_Gas: true
+  MW_g: 69.006
+CF3CHOHO:
+  Formula: CF3CH(OH)O
+  FullName: hydroxyalkoxy radical from CF3CHOHOO + NO
+  Is_Gas: true
+  MW_g: 115.0
+CF3CHOHOO:
+  Formula: CF3CH(OH)OO
+  FullName: hydroxyperoxy radical from TFALD + HO2
+  Is_Gas: true
+  MW_g: 131.0
+CF3CO:
+  Formula: C2F3O
+  FullName: acyl radical from OH abstraction of TFALD
+  Is_Gas: true
+  MW_g: 97.016
 CFC11:
   Formula: CCl3F
   FullName: CFC-11
@@ -1091,6 +1059,11 @@ CHCl3:
   FullName: Chloroform
   Is_Gas: true
   MW_g: 119.35
+CHFO:
+  Formula: CHFO
+  FullName: formyl fluoride
+  Is_Gas: true
+  MW_g: 48.016
 Cl:
   Formula: Cl
   FullName: Atomic chlorine
@@ -1803,6 +1776,18 @@ HCOOH:
   Is_WetDep: true
   MW_g: 46.03
   WD_RetFactor: 2.0e-2
+HFC23:
+  Formula: CHF3
+  FullName: HFC-23
+  Is_Advected: true
+  Is_Gas: true
+  MW_g: 70.01
+HFO1234zeE:
+  Formula: C3H2F4
+  FullName: HFO-1234ze(E)
+  Is_Advected: true
+  Is_Gas: true
+  MW_g: 114.04
 Hg0:
   DD_F0: 3.0e-5
   DD_Hstar: 0.11
@@ -4978,6 +4963,20 @@ STYR:
   FullName: Styrene
   Is_Gas: true
   MW_g: 104.1491
+TFALD:
+  DD_F0: 1.0
+  DD_Hstar: 1.0e+5
+  Formula: CF3CHO
+  FullName: trifluoroacetaldehyde
+  Henry_CR: 5900.0
+  Henry_K0: 1.0e+5
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_Photolysis: true
+  Is_WetDep: true
+  MW_g: 98.024
+  WD_RetFactor: 2.0e-2
 TiF1:
   << : *METALSproperties
   Density: 2500.0
