@@ -787,6 +787,7 @@ CONTAINS
     INTEGER                        :: N
 
     ! Whether to scale mixing ratio with meteorology update in AirQnt
+    LOGICAL                        :: bootstrapped
     LOGICAL, SAVE                  :: scaleMR = .FALSE.
 
     ! Debug variables
@@ -985,8 +986,11 @@ CONTAINS
     ! Only do this the first timestep if DELP_DRY found in restart.
     IF ( FIRST .and. .not. Input_Opt%LTRAN ) THEN
 #ifdef MAPL3
-       ! TODO(MAPL3): no RESTART attribute; DELP_DRY is not read from a restart yet
-       scaleMR = .FALSE.
+       ! Scale only if DELP_DRY was read from the restart (not bootstrapped)
+       call MAPL_GridCompGetInternalState(GC, INTSTATE, _RC)
+       call ESMF_StateGet(INTSTATE, 'DELP_DRY', IntField, _RC)
+       call MAPL_FieldGet(IntField, bootstrapped=bootstrapped, _RC)
+       scaleMR = .not. bootstrapped
 #else
        CALL MAPL_Get ( STATE, INTERNAL_ESMF_STATE=INTSTATE, __RC__ )
        CALL ESMF_StateGet( INTSTATE, 'DELP_DRY', IntField, RC=STATUS )

@@ -34,7 +34,7 @@ module GEOSChem_GridCompMod
   type(ESMF_Time)             :: simStartTime         ! for hElapsed
   type(ESMF_GridComp), target :: gc_saved ! targets for HcoState pointers
   type(ESMF_State),    target :: import_saved, export_saved
-  logical :: spc_init_from_background
+  logical :: cold_start_spc_from_background
 
   ! Run-time settings from geoschem_gridcomp.yaml (setting names are in comments)
   integer :: IsCTM                     ! GEOSChem_CTM
@@ -439,8 +439,8 @@ contains
          ringInterval=chemInterval, sticky=.true., _RC)
 
     !-- Optional cold start: initialize all species from species-database background values
-    call MAPL_GridCompGetResource(gc, "SPC_INIT_FROM_BACKGROUND", &
-         spc_init_from_background, default=.false., _RC)
+    call MAPL_GridCompGetResource(gc, "COLD_START_SPC_FROM_BACKGROUND", &
+         cold_start_spc_from_background, default=.false., _RC)
 
     !---------------------------------------------------------------------
     ! Initialize complete
@@ -482,11 +482,13 @@ contains
     type(ESMF_Time)              :: currTime
     type(ESMF_TimeInterval)      :: elapsed
     logical                      :: IsChemTime, IsRadTime, IsRunTime
+    logical                      :: bootstrapped
     integer                      :: nymd, nhms, year, month, day, dayOfYr
     integer                      :: hour, minute, second, eh, em, es
     real                         :: utc, hElapsed
     integer                      :: I, J, L, N, TT, LM, IND, z_lb, z_ub
     character(len=2)             :: landTypeStr
+    type(ESMF_Field)             :: spcField
     type(Species), pointer       :: ThisSpc => null()
     real, pointer                :: Ptr2d(:,:) => null()
     real(ESMF_KIND_R8), pointer  :: ptr3d_r8(:,:,:) => null()
@@ -545,7 +547,7 @@ contains
        HcoState%gridComp    => gc_saved
        HcoState%importState => import_saved
        HcoState%exportState => export_saved
-    end if
+    endif
 
     !---------------------------------------------------------------------
     ! Set GEOS-Chem state objects
@@ -566,13 +568,20 @@ contains
     !---------------------------------------------------------------------
     if (first) then
 
-       ! Cold start option to initialize all species from background values
-       ! ewl: why would we ever want to do this? Check on previous behavior.
-       if (spc_init_from_background) then
-          do N = 1, State_Chm%nSpecies
-             ThisSpc => State_Chm%SpcData(N)%Info
-             IND = IND_(trim(ThisSpc%Name))
-             if (IND <= 0) cycle
+       ! Initialize concentrations for species missing from the restart
+       ! file to background values if MAPL bootstrapping is on
+       ! (geoschem_gridcomp.yaml setting -> mapl: misc: restart: bootstrap: true)
+       ! Always set to background values for all species is bootstrapping is
+       ! on and init from background setting is on
+       ! (geoschem_gridcomp.yaml setting -> cold_start_spc_from_background: true)
+       do N = 1, State_Chm%nSpecies
+          ThisSpc => State_Chm%SpcData(N)%Info
+          IND = IND_(trim(ThisSpc%Name))
+          if (IND <= 0) cycle
+          call ESMF_StateGet(internal, itemName=trim(SPFX)//trim(ThisSpc%Name), &
+               field=spcField, _RC)
+          call MAPL_FieldGet(spcField, bootstrapped=bootstrapped, _RC)
+          if (bootstrapped .or. cold_start_spc_from_background) then
              do L = 1, LM
                 if (L > State_Met%MaxChemLev .and. .not. ThisSpc%Is_Advected) then
                    State_Chm%Species(IND)%Conc(:,:,L) = 1.0e-30_fp
@@ -580,10 +589,16 @@ contains
                    State_Chm%Species(IND)%Conc(:,:,L) = ThisSpc%BackgroundVV
                 end if
              end do
-             ThisSpc => null()
-          end do
-          call logger%info("GEOS-Chem species initialized from species database background values")
-       end if
+             if (bootstrapped) then
+                call logger%info("Species " // trim(ThisSpc%Name) // &
+                     " not in restart; initialized to background value")
+             else
+                call logger%info("Species " // trim(ThisSpc%Name) // &
+                     " cold start from background value")
+             endif
+          endif
+          ThisSpc => null()
+       enddo
 
        ! Set State_Chm fields from Internal state (restart)
        if (associated(State_Chm%H2O2AfterChem))  State_Chm%H2O2AfterChem  = H2O2AfterChem(:,:,LM:1:-1)

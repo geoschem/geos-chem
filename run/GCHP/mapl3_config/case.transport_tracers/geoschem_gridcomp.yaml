@@ -12,7 +12,7 @@ MET_NONADVECTION_IS_TOP_DOWN: false
 
 IMPORT_DYN_HEATING: 0
 
-SPC_INIT_FROM_BACKGROUND: false # temporary until hook up restart file
+SPC_INIT_FROM_BACKGROUND: false
 
 mapl:
   setServices:
