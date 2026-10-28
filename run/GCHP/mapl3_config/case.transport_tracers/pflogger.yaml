@@ -98,7 +98,7 @@ loggers:
        
    MAPL:
        handlers: [mpi_shared]
-       level: ERROR
+       level: WARNING
        root_level: DEBUG
 
    MAPL.profiler:
