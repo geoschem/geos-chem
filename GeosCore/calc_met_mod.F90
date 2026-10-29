@@ -679,8 +679,9 @@ CONTAINS
     ! following air quantity change is during GEOS-Chem initialization and
     ! in transport after the pressure fixer is applied
     IF ( UpdtMR .AND.                                  &
+         ! Update the mixing ratio only when dry pressure changes
          ( ABS( SUM(State_Met%DP_DRY_PREV )            &
-                - SUM(State_Met%DELP_DRY  ) ) < 1d-14 ) ) THEN
+                - SUM(State_Met%DELP_DRY  ) ) >= 1d-14 ) ) THEN
        ! The concentration update formula works only for dry mixing ratios
        ! (kg/kg or v/v) so check if units are correct
        IF ( .not. allSpeciesInDryMixingRatio( State_Chm ) ) THEN
