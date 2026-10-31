@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added `.release/changeVersionNumbers.sh` to change version numbers in relevant files in this repository
 - Added AI disclosure section to `.github/PULL_REQUEST_TEMPLATE.md`
 - Added `.github/dependabot.yml` to open monthly version-update PRs for GitHub Actions against `main`
+- Added GCHP operational example environment file and run script for the Imperial College London (ICL) HX2 cluster in `run/GCHP/runScriptSamples/operational_examples/icl_hx2`
 
 ### Changed
 - Updated the Hg0 soil emissions parameterization to improve the response of emissions to light availability
