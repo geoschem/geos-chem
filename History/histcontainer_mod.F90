@@ -783,8 +783,20 @@ CONTAINS
     IF ( Container%Operation == COPY_FROM_SOURCE ) THEN
 
        ! %%% INSTANTANEOUS %%%
-       ! Create a new file ASAP so that we can start writing data to it
-       Container%FileCloseAlarm = 0.0_f8
+       IF ( Container%UpdateIvalSec == Container%FileCloseIvalSec .and.      &
+            TRIM( Container%Name ) /= 'BoundaryConditions'        ) THEN
+
+          ! If frequency == duration, then each file holds a single time
+          ! slice so create the file at the first write time
+          Container%FileCloseAlarm = Container%FileWriteIvalSec
+
+       ELSE
+
+          ! For the case of frequency != duration or boundary conditions,
+          ! do not wait to create the file
+          Container%FileCloseAlarm = 0.0_f8
+
+       ENDIF
 
     ELSE
 

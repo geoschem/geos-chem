@@ -344,65 +344,50 @@ CONTAINS
        ! Get the number of levels (nLev) and level interfaces (nIlev)
        CALL Get_Number_Of_Levels( Container, nLev, nIlev )
 
-       !---------------------------------------------------------------------
-       ! Do not create netCDF file on first timestep if instantaneous
-       ! collection and frequency = duration. This will avoid creating
-       ! of a netCDF file containing all missing values.
-       !---------------------------------------------------------------------
-       IF ( Container%Operation      == COPY_FROM_SOURCE            .and.    &
-            Container%UpdateIvalSec  == Container%FileCloseIvalSec  .and.    &
-            Container%FileCloseAlarm == 0.0                         .and.    &
-            TRIM(Container%Name) .ne. 'BoundaryConditions' )  THEN
-          RETURN
+       !------------------------------------------------------------------
+       ! Create the file and add global attributes
+       ! Remain in netCDF define mode upon exiting this routine
+       !
+       ! NOTE: Container%Reference is a global attribute lists the
+       ! GEOS-Chem web and wiki page.  It has nothing to do with the
+       ! reference data/time computed by History_Set_RefDateTime.
+       !------------------------------------------------------------------
 
-       ELSE
-
-          !------------------------------------------------------------------
-          ! Create the file and add global attributes
-          ! Remain in netCDF define mode upon exiting this routine
-          !
-          ! NOTE: Container%Reference is a global attribute lists the
-          ! GEOS-Chem web and wiki page.  It has nothing to do with the
-          ! reference data/time computed by History_Set_RefDateTime.
-          !------------------------------------------------------------------
-
-          ! Echo info about the file we are creating
-          IF ( Input_Opt%amIRoot ) THEN
-             WRITE( 6, 100 ) TRIM( Container%Name ),                         &
-                             Container%ReferenceYmd,                         &
-                             Container%ReferenceHms
-             WRITE( 6, 110 ) TRIM( FileName       )
-          ENDIF
-
-          ! Create the file
-          CALL Nc_Create( Create_Nc4     = .TRUE.,                           &
-                          NcFile         = fileName,                         &
-                          nLon           = Container%nX,                     &
-                          nLat           = Container%nY,                     &
-                          nLev           = nLev,                             &
-                          nIlev          = nILev,                            &
-                          nTime          = NF90_UNLIMITED,                   &
-                          nBounds        = 2,                                &
-                          NcFormat       = Container%NcFormat,               &
-                          Conventions    = Container%Conventions,            &
-                          History        = Container%History,                &
-                          ProdDateTime   = Container%ProdDateTime,           &
-                          Reference      = Container%Reference,              &
-                          Title          = Container%Title,                  &
-                          Contact        = Container%Contact,                &
-                          StartTimeStamp = Container%StartTimeStamp,         &
-                          EndTimeStamp   = Container%EndTimeStamp,           &
-                          fId            = Container%FileId,                 &
-                          TimeId         = Container%tDimId,                 &
-                          LevId          = Container%zDimId,                 &
-                          ILevId         = Container%iDimId,                 &
-                          LatId          = Container%yDimId,                 &
-                          LonId          = Container%xDimId,                 &
-                          boundsId       = Container%bDimId,                 &
-                          KeepDefMode    = .TRUE.,                           &
-                          Varct          = VarCt                            )
-
+       ! Echo info about the file we are creating
+       IF ( Input_Opt%amIRoot ) THEN
+          WRITE( 6, 100 ) TRIM( Container%Name ),              &
+               Container%ReferenceYmd,                         &
+               Container%ReferenceHms
+          WRITE( 6, 110 ) TRIM( FileName       )
        ENDIF
+
+       ! Create the file
+       CALL Nc_Create( Create_Nc4     = .TRUE.,                &
+            NcFile         = fileName,                         &
+            nLon           = Container%nX,                     &
+            nLat           = Container%nY,                     &
+            nLev           = nLev,                             &
+            nIlev          = nILev,                            &
+            nTime          = NF90_UNLIMITED,                   &
+            nBounds        = 2,                                &
+            NcFormat       = Container%NcFormat,               &
+            Conventions    = Container%Conventions,            &
+            History        = Container%History,                &
+            ProdDateTime   = Container%ProdDateTime,           &
+            Reference      = Container%Reference,              &
+            Title          = Container%Title,                  &
+            Contact        = Container%Contact,                &
+            StartTimeStamp = Container%StartTimeStamp,         &
+            EndTimeStamp   = Container%EndTimeStamp,           &
+            fId            = Container%FileId,                 &
+            TimeId         = Container%tDimId,                 &
+            LevId          = Container%zDimId,                 &
+            ILevId         = Container%iDimId,                 &
+            LatId          = Container%yDimId,                 &
+            LonId          = Container%xDimId,                 &
+            boundsId       = Container%bDimId,                 &
+            KeepDefMode    = .TRUE.,                           &
+            Varct          = VarCt                            )
 
        !---------------------------------------------------------------------
        ! Denote that the file has been created and is open
@@ -748,17 +733,6 @@ CONTAINS
     TYPE(MetaHistItem), POINTER :: Current
     TYPE(HistItem),     POINTER :: Item
 
-    !========================================================================
-    ! Make sure the netCDF file is open and defined
-    !========================================================================
-    IF ( ( .not. Container%IsFileOpen   )    .and.                           &
-         ( .not. Container%IsFileDefined ) ) THEN
-       RC     = GC_FAILURE
-       ErrMsg = 'NetCDF file is not open or defined for collection: '     // &
-                 TRIM( Container%Name )
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
 
     !========================================================================
     ! Initialize
@@ -773,6 +747,18 @@ CONTAINS
     ErrMsg    =  ''
     ThisLoc   =  &
          ' -> at History_Netcdf_Write (in History/history_netcdf_mod.F90)'
+    
+    !========================================================================
+    ! Make sure the netCDF file is open and defined
+    !========================================================================
+    IF ( ( .not. Container%IsFileOpen   )    .and.                           &
+         ( .not. Container%IsFileDefined ) ) THEN
+       RC     = GC_FAILURE
+       ErrMsg = 'NetCDF file is not open or defined for collection: '     // &
+                 TRIM( Container%Name )
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
     ! Test if this is the SatDiagn or SatDiagnEdge collection
     CALL SatDiagn_or_SatDiagnEdge( Container%Name, isSatDiagn, isSatDiagnEdge )

@@ -33,6 +33,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed vertical coordinate variables in `History/history_netcdf_mod.F90` for collections whose `levels` do not start at 1
 - Fixed `Set_Boundary_Conditions` so that the CH4 BC perturbation (carbon nested-grid simulations) is applied only once per BC update and is thread-safe
 - Fixed CodeQL security alert `py/incomplete-url-substring-sanitization` by using the `urlparse` in `run/shared/download_data.py`
+- Fixed bug preventing GC-Classic instantaneous diagnostics with frequency, duration, and heartbeat all equal
 
 ### Removed
 - Removed invalid OpenMP directives from the `MPI_LOAD_BALANCE` block of `GeosCore/fullchem_mod.F90`, which caused GCHP compilation to fail with `-DOMP=ON`
