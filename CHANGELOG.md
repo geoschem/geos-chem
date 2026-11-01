@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added calls to KPP `Initialize` routine from `INIT_FULLCHEM` and `INIT_MERCURY` to specify an absolute tolerance threshold for passive species
 
 ### Changed
+- Updated the multiphase SO4 formation via HMS: Use literature values of aerosol-phase OH, remove OH from the LHS of the equation in KPP, and compensate SO2 concentration in KaqHMS2 calculation.
 - Renamed `State_Chm%Isorrop*` fields to `State_Chm%Ate*` (aerosol thermodynamical equilibrium), as ISORROPIA is no longer used
 - Updated routine `fullchem_SetStateHet` to accept `id_DSTbin{1..7}`, `id_pFe`, `id_SO2`, and `id_SO4` as arguments
 - Renamed `CRITRH` to `RH_35_PERCENT` and `CRITRH2` to `RH_50_PERCENT` in `KPP/fullchem/fullchem_RateLawFuncs.F90`
