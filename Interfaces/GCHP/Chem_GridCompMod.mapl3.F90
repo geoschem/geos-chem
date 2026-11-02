@@ -568,12 +568,17 @@ contains
     !---------------------------------------------------------------------
     if (first) then
 
-       ! Initialize concentrations for species missing from the restart
-       ! file to background values if MAPL bootstrapping is on
-       ! (geoschem_gridcomp.yaml setting -> mapl: misc: restart: bootstrap: true)
-       ! Always set to background values for all species is bootstrapping is
-       ! on and init from background setting is on
-       ! (geoschem_gridcomp.yaml setting -> cold_start_spc_from_background: true)
+       ! Set species concentrations to species-database background values. There
+       ! are two scenarios for this:
+       !
+       ! (1) species missing from the restart file (MAPL will mark them bootstrapped).
+       !     Set in geoschem_gridcomp.yaml: 'mapl: misc: restart: bootstrap: true'
+       !     (note that if 'bootstrap: false' a missing species triggers an error)
+       !
+       ! (2) you want ALL species in restart file ignored and set to background values.
+       !     Set in geoschem_gridcomp.yaml: 'COLD_START_SPC_FROM_BACKGROUND: true'
+       !     (note that for a cold start with no restart file you must have
+       !     'bootstrap: true' to avoid missing species errors.
        do N = 1, State_Chm%nSpecies
           ThisSpc => State_Chm%SpcData(N)%Info
           IND = IND_(trim(ThisSpc%Name))
@@ -589,12 +594,14 @@ contains
                    State_Chm%Species(IND)%Conc(:,:,L) = ThisSpc%BackgroundVV
                 end if
              end do
-             if (bootstrapped) then
-                call logger%info("Species " // trim(ThisSpc%Name) // &
-                     " not in restart; initialized to background value")
-             else
-                call logger%info("Species " // trim(ThisSpc%Name) // &
-                     " cold start from background value")
+             if (MAPL_Am_I_Root()) then
+                if (cold_start_spc_from_background) then
+                   call logger%info("Species " // trim(ThisSpc%Name) // &
+                        " initialized from background value (COLD_START_SPC_FROM_BACKGROUND)")
+                else
+                   call logger%info("Species " // trim(ThisSpc%Name) // &
+                        " not in restart; initialized to background value")
+                endif
              endif
           endif
           ThisSpc => null()
@@ -700,6 +707,12 @@ contains
     end if
     call CopyGCStates2Exports(MAPL_Am_I_Root(), Input_Opt, HistoryConfig, status)
     _ASSERT(status == GC_SUCCESS, 'Error calling CopyGCStates2Exports')
+
+    ! ewl debugging
+    IND=3
+    print *, "ewl: IND, State_Chm%Species(IND)%Conc(1,1,1)  : ", IND, State_Chm%Species(IND)%Conc(1,1,1)
+    print *, "ewl: IND, ptr3d_r8(1,1,LM)                    : ", IND, ptr3d_r8(1,1,LM)
+    print *, "ewl: IND, State_Diag%SpeciesConcVV(1,1,1,IND) : ", IND, State_Diag%SpeciesConcVV(1,1,1,IND)
 
     !---------------------------------------------------------------------
     ! Run complete
@@ -888,7 +901,7 @@ MODULE Chem_GridCompMod
   
   ! !REMARKS:
   !  Developed for GEOS-5 release Fortuna 2.0 and later.
-  !                                                                             .
+  !                                                   .
   !  NOTES:
   !  - The abbreviation "PET" stands for "Persistent Execution Thread".
   !    It is a synomym for CPU.

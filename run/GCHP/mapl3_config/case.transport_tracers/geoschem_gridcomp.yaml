@@ -12,7 +12,7 @@ MET_NONADVECTION_IS_TOP_DOWN: false
 
 IMPORT_DYN_HEATING: 0
 
-SPC_INIT_FROM_BACKGROUND: false
+COLD_START_SPC_FROM_BACKGROUND: false
 
 mapl:
   setServices:
@@ -25,3 +25,4 @@ mapl:
       internal: true
     restart:
       internal: true
+      bootstrap: true
