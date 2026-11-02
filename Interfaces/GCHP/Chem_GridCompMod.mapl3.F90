@@ -1,6 +1,14 @@
+!------------------------------------------------------------------------------
+! MAPL3 DEVELOPMENT ONLY
+!
+! This is the GEOS-Chem gridded component for GCHP built with MAPL3, which is
+! in development and not supported for general use. It is compiled only if
+! GCHP is configured with -DMAPL3=y and is NOT used in standard GCHP builds.
+! The operational (MAPL2) gridded component is in Chem_GridCompMod.F90.
+!------------------------------------------------------------------------------
+#ifdef MAPL3
 #include "MAPL.h"
 
-#ifdef MAPL3
 module GEOSChem_GridCompMod
 
   use ESMF
@@ -579,6 +587,10 @@ contains
        !     Set in geoschem_gridcomp.yaml: 'COLD_START_SPC_FROM_BACKGROUND: true'
        !     (note that for a cold start with no restart file you must have)
        !     'bootstrap: true' to avoid missing species errors.
+       ! TODO(MAPL3): port the JACOBIAN restart handling from the MAPL2
+       ! Chem_GridCompMod.F90 (skip Jacobian tracers here, error if the primary
+       ! species is bootstrapped, set bootstrapped Jacobian tracers from the
+       ! primary species)
        do N = 1, State_Chm%nSpecies
           ThisSpc => State_Chm%SpcData(N)%Info
           IND = IND_(trim(ThisSpc%Name))
@@ -892,7 +904,7 @@ MODULE Chem_GridCompMod
   ! module variables so that we have to assign them only on first call.
 
 #include "GCHPchem_DeclarePointer___.h"
-  
+
   ! !REMARKS:
   !  Developed for GEOS-5 release Fortuna 2.0 and later.
   !                                                   .
@@ -983,7 +995,7 @@ CONTAINS
          short_name="TRADV", &
          standard_name="advected_quantities", &
          itemtype=MAPL_STATEITEM_SERVICE, _RC)
-    
+
     call MAPL_GridCompSetEntryPointer(gc, ESMF_Method_Initialize, Initialize, _RC)
     call MAPL_GridCompSetEntryPointer(gc, ESMF_Method_Run, Run, phase_name="Run", _RC)
     call MAPL_GridCompSetEntryPointer(gc, ESMF_Method_Finalize, Finalize, _RC)
@@ -999,9 +1011,9 @@ CONTAINS
 !    ! Identify this routine to MAPL
 !    Iam = TRIM(compName)//'::SetServices'
 
-    ! Root CPU? 
-    am_I_Root = MAPL_am_I_Root()    
-    
+    ! Root CPU?
+    am_I_Root = MAPL_am_I_Root()
+
     !=======================================================================
     ! Wrap internal state for storing in this gridded component
     ! Rename this to a "legacy state"
@@ -2424,12 +2436,12 @@ CONTAINS
                 IF ( MAPL_am_I_Root()) THEN
                    WRITE(*,*)  &
                         '   WARNING: using background values from species database'&
-                        //' for species '//trim(ThisSpc%Name) 
+                        //' for species '//trim(ThisSpc%Name)
                 ENDIF
              ENDIF
 
 #ifdef JACOBIAN
-             ! Do special handling if this is a Jacobian tracer             
+             ! Do special handling if this is a Jacobian tracer
              IF ( ThisSpc%Is_JacobianTracer ) THEN
                 primarySpcName = ThisSpc%Name(1:LEN(trim(ThisSpc%Name))-8)
                 primarySpcId = IND_(trim(primarySpcName))
@@ -2582,7 +2594,7 @@ CONTAINS
        DO N = 1, State_Chm%nSpecies
           WHERE ( State_Chm%Species(N)%Conc < 0.0e0 )
              State_Chm%Species(N)%Conc = 1.0e-36
-          END WHERE 
+          END WHERE
        ENDDO
 
        ! Execute GEOS-Chem if it's time to run it
@@ -2778,7 +2790,7 @@ CONTAINS
           ENDIF
           Ptr2d_R8 => NULL()
        ENDIF
-       
+
        ! Stop timer
        ! ----------
        CALL MAPL_TimerOff(STATE, "RUN"  )
@@ -2830,11 +2842,11 @@ CONTAINS
 
   END SUBROUTINE Run_
 
-  
+
   !------------------------------------------------------------------------------
   !                  GEOS-Chem Global Chemical Model                            !
   !------------------------------------------------------------------------------
-  
+
   ! !DESCRIPTION: Finalize_ is the finalize method of the GEOSCHEMchem gridded
   !  component.
 
@@ -2877,7 +2889,7 @@ CONTAINS
     INTEGER                    :: myPet       ! # of PET we are on now
     INTEGER                    :: I,  J,  L   ! Loop indices
     REAL                       :: UTC         ! UTC time [hours]
-    
+
     ! ewl: added for new internal state vars
     CHARACTER(LEN=ESMF_MAXSTR) :: importName, intStr
     INTEGER                    :: LM

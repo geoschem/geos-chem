@@ -655,7 +655,9 @@ CONTAINS
 ! !USES:
 !
     USE ESMF, ONLY : ESMF_GridComp
+#ifdef MAPL3
     USE ESMF, ONLY : ESMF_STATEINTENT_EXPORT, ESMF_TYPEKIND_R4
+#endif
     USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:

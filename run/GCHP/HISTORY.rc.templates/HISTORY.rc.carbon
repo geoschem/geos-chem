@@ -266,7 +266,7 @@ COLLECTIONS: 'SpeciesConc',
   GCHPctmEnvLevEdge.frequency:      010000
   GCHPctmEnvLevEdge.duration:       010000
   GCHPctmEnvLevEdge.mode:           'time-averaged'
-  GCHPctmEnvLevEdge.fields:         'UpwardsMassFlux_R4    ', 'GCHPctmEnv',
+  GCHPctmEnvLevEdge.fields:         'UpwardsMassFlux       ', 'GCHPctmEnv',
                                     'PLE0_R4               ', 'GCHPctmEnv',
                                     'PLE1_R4               ', 'GCHPctmEnv',
                                     'DryPLE0_R4            ', 'GCHPctmEnv',

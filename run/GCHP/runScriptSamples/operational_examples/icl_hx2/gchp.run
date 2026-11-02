@@ -1,0 +1,100 @@
+#!/bin/bash
+#SBATCH --job-name=GCHP
+#SBATCH --partition=medium
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=60
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=150G
+#SBATCH --time=1:00:00
+#SBATCH --output=%x.o%j
+
+# Run script is for use with Slurm on HX2 (Imperial College London)
+# To modify your resource request, change the #SBATCH lines:
+#   --nodes             number of nodes (at most 8 per job)
+#   --ntasks-per-node   MPI processes per node (at most 142)
+#   --mem               memory PER NODE
+#   --time              wall time, H:MM:SS (at most 3 days)
+# The partition must fit the request (HX2 limits in October 2026):
+#   small        1 node,   1-16 cores, at most 128 GB
+#   medium       1 node,  17-72 cores
+#   large        1 node,  73-142 cores
+#   capability   2-8 nodes, at most 1136 cores in total
+# Current limits: sacctmgr show qos format=Name,MaxTRESPerJob,MinTRESPerJob
+# TOTAL_CORES, NUM_NODES and NUM_CORES_PER_NODE in setCommonRunSettings.sh
+# must match --nodes and --ntasks-per-node.
+
+cd $SLURM_SUBMIT_DIR
+
+# Unlimit resources (to prevent OS killing GCHP due to resource usage)
+ulimit -c 0                  # coredumpsize
+ulimit -l unlimited          # memorylocked
+ulimit -u 50000              # maxproc
+ulimit -v unlimited          # vmemoryuse
+ulimit -s unlimited          # stacksize
+
+# Exit if command fails
+set -e
+
+# Debug option to print all commands executed in this script
+#set -x
+
+# Define log name to include simulation start date
+start_str=$(sed 's/ /_/g' cap_restart)
+log=gchp.${start_str:0:13}z.log
+echo "Writing output to ${log}"
+
+# Update config files, set restart symlink, load run env, and do sanity checks
+source setCommonRunSettings.sh > ${log}
+source setRestartLink.sh >> ${log}
+source gchp.env >> ${log}
+source checkRunSettings.sh >> ${log}
+
+# Turn off the Open MPI 5 hierarchical collectives component (coll/han).
+# In Open MPI 5 it is on by default (priority 35, above coll/tuned at 30)
+# and is used for every communicator that spans more than one node. With
+# it, GCHP crashes at the first time step on 3 or more nodes ("corrupted
+# size vs. prev_size" in ESMF regridding), and results depend on the node
+# layout. With it off, runs on 1 to 8 nodes complete, and restart files
+# are bit-for-bit identical for the same total number of cores, however
+# the cores are spread over nodes. No slowdown was seen on 2 nodes.
+# See https://github.com/geoschem/GCHP/issues/578
+export OMPI_MCA_coll=^han
+
+# Turn off exit if command fails to allow script to finish if GCHP exits early
+set +e
+
+# Run the code
+# Note: GCHP 14.7.1 aborts at exit on HX2 after all output is written (see
+# README). The checks below use cap_restart, so the new restart file is
+# still renamed and the job still ends normally.
+mpirun -np ${TOTAL_CORES} ./gchp >> $log
+
+# Rename mid-run checkpoint files, if any. Discard file if time corresponds
+# to run start time since duplicate with initial restart file.
+chkpnts=$(ls Restarts)
+for chkpnt in ${chkpnts}
+do
+    if [[ "$chkpnt" == *"gcchem_internal_checkpoint."* ]]; then
+       chkpnt_time=${chkpnt:27:13}
+       if [[ "${chkpnt_time}" = "${start_str:0:13}" ]]; then
+          rm ./Restarts/${chkpnt}
+       else
+          new_chkpnt=./Restarts/GEOSChem.Restart.${chkpnt_time}z.c${N}.nc4
+          mv ./Restarts/${chkpnt} ${new_chkpnt}
+       fi
+    fi
+done
+
+# Rename restart file and update restart symlink if new start time ok
+new_start_str=$(sed 's/ /_/g' cap_restart)
+if [[ "${new_start_str}" = "${start_str}" || "${new_start_str}" = "" ]]; then
+   echo "ERROR: GCHP failed to run to completion. Check the log file for more information."
+   rm -f Restarts/gcchem_internal_checkpoint
+   exit 1
+else
+    N=$(grep "CS_RES=" setCommonRunSettings.sh | cut -c 8- | xargs )
+    mv Restarts/gcchem_internal_checkpoint Restarts/GEOSChem.Restart.${new_start_str:0:13}z.c${N}.nc4
+    source setRestartLink.sh
+fi
+
+trap times EXIT

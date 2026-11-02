@@ -149,6 +149,9 @@ CONTAINS
 !
     INTEGER,             INTENT(OUT)   :: RC             ! Success or failure?
 !
+! !REMARKS:
+!  Need to add better error checking
+!
 ! !REVISION HISTORY:
 !  18 Jul 2011 - M. Long     - Initial Version
 !  See https://github.com/geoschem/geos-chem for history
@@ -198,13 +201,7 @@ CONTAINS
     ! Assume success
     RC = GC_SUCCESS
 
-       ! Error trap
-    Iam = 'GCHP_CHUNK_INIT (gchp_chunk_mod.F90)'
-
-    ! Assume success
-    RC = GC_SUCCESS
-
-#ifndef MODEL_GEOS
+#if !defined( MODEL_GEOS )
     ! Get memory debug level
 #ifdef MAPL3
     call MAPL_GridCompGetResource(GC, "MEMORY_DEBUG_LEVEL", MemDebugLevel, default=0, _RC)
@@ -216,8 +213,6 @@ CONTAINS
     _VERIFY(STATUS)
 #endif
 #endif
-
-! ewl: rest of MAPL3 part not yet adapted
 
     ! Update Input_Opt with timing fields
     ! We will skip defining these in READ_INPUT_FILE
@@ -787,7 +782,9 @@ CONTAINS
     INTEGER                        :: N
 
     ! Whether to scale mixing ratio with meteorology update in AirQnt
+#ifdef MAPL3
     LOGICAL                        :: bootstrapped
+#endif
     LOGICAL, SAVE                  :: scaleMR = .FALSE.
 
     ! Debug variables
@@ -973,8 +970,9 @@ CONTAINS
     CALL SET_DRY_SURFACE_PRESSURE( State_Grid, State_Met, 2 )
 
     ! Initialize surface pressures to match the post-advection pressures
-    State_Met%PSC2_WET = State_Met%PS1_WET
-    State_Met%PSC2_DRY = State_Met%PS1_DRY
+    ! and use them to set floating pressure in pressure module
+    State_Met%PSC2_WET = State_Met%PS2_WET
+    State_Met%PSC2_DRY = State_Met%PS2_DRY
     CALL SET_FLOATING_PRESSURES( State_Grid, State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 

@@ -15,4 +15,3 @@ mapl:
       config_file: extdata_gridcomp.yaml
     HISTORY:
       config_file: history_gridcomp.yaml
-

@@ -67,7 +67,7 @@ handlers:
       class: MpiFileHandler
       formatter: basic
       filename:  debug_%(rank)i3.3~.log
-      comm: MPI_COMM_WORLD      
+      comm: MPI_COMM_WORLD
       rank_prefix: rank
       level: DEBUG
 
@@ -95,7 +95,7 @@ loggers:
    cap:
        level: WARNING
        root_level: DEBUG
-       
+
    MAPL:
        handlers: [mpi_shared]
        level: WARNING
@@ -112,7 +112,7 @@ loggers:
        level: WARNING
        root_level: DEBUG
        propagate: false
-   
+
    GCHPctmEnv:
        handlers: [mpi_shared]
        level: WARNING

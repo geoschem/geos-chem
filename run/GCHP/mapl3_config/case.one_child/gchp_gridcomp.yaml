@@ -20,4 +20,3 @@ mapl:
   children:
     GCHPctmEnv:
       config_file: gchpctmenv_gridcomp.yaml
-

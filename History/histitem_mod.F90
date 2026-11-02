@@ -173,9 +173,9 @@ CONTAINS
     REAL(f4),          OPTIONAL    :: AddOffset4         ! COARDS-compliant
     REAL(f4),          OPTIONAL    :: MissingValue4      !  attributes for
     REAL(f4),          OPTIONAL    :: ScaleFactor4       !  netCDF output
-    REAL(f4),          OPTIONAL    :: AddOffset8         ! COARDS-compliant
-    REAL(f4),          OPTIONAL    :: MissingValue8      !  attributes for
-    REAL(f4),          OPTIONAL    :: ScaleFactor8       !  netCDF output
+    REAL(f8),          OPTIONAL    :: AddOffset8         ! COARDS-compliant
+    REAL(f8),          OPTIONAL    :: MissingValue8      !  attributes for
+    REAL(f8),          OPTIONAL    :: ScaleFactor8       !  netCDF output
     INTEGER,           OPTIONAL    :: Operation          ! Operation code
                                                          !  0=copy  from source
                                                          !  1=accum from source
@@ -428,7 +428,7 @@ CONTAINS
     !--------------------------------------------
     ! Scale_Factor - 8 bytes
     !--------------------------------------------
-    IF ( PRESENT( ScaleFactor4 ) ) THEN
+    IF ( PRESENT( ScaleFactor8 ) ) THEN
        Item%ScaleFactor8 = ScaleFactor8
     ELSE
        Item%ScaleFactor8 = 1.0_f8

@@ -60,8 +60,8 @@ CONTAINS
 !
    USE ErrCode_Mod,      ONLY : GC_SUCCESS, GC_Error
    USE Input_Opt_Mod,    ONLY : OptInput
-   USE Species_Mod,      ONLY : Species, SpcConc
-   USE State_Chm_Mod,    ONLY : ChmState
+   USE Species_Mod,      ONLY : Species,    SpcConc
+   USE State_Chm_Mod,    ONLY : ChmState,   Ind_
    USE State_Grid_Mod,   ONLY : GrdState
    USE Time_Mod,         ONLY : TIMESTAMP_STRING
    USE PhysConstants,    ONLY : AIRMW
@@ -95,8 +95,9 @@ CONTAINS
 !
    ! Scalars
    INTEGER              :: I, J, L, N, NA     ! lon, lat, lev, spc indexes
-   LOGICAL              :: Perturb_CH4_BC
-   REAL(fp)             :: MW_g_CH4           ! CH4 molecular weight
+   INTEGER              :: id_CH4             ! CH4 species index
+   LOGICAL              :: Perturb_CH4_BC     ! Are we perturbing CH4?
+   REAL(fp)             :: MW_g_CH4           ! CH4 MW in grams
 
    ! Strings
    CHARACTER(LEN=16)    :: STAMP
@@ -111,7 +112,6 @@ CONTAINS
    errMsg  = ''
    thisLoc = &
  ' -> at Set_Boundary_Conditions (in GeosCore/set_boundary_conditions_mod.F90)'
-
 
    ! We only need to get boundary conditions if this is a nested-grid
    ! simulation.  Otherwise the BoundaryCond field won't be allocated.
@@ -131,34 +131,40 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! Optionally perturb the CH4 boundary conditions
+    ! Use ppb values specified in geoschem_config.yml
+    ! Convert to [kg/kg dry] (nbalasus, 8/31/2023)
+    ! Pull these out of the parallel loop for efficiency (bmy, 9/28/2026)
+    id_CH4         = Ind_( 'CH4' )
+    MW_g_CH4       = 0.0_fp
+    Perturb_CH4_BC = ( id_CH4 > 0                                      .AND. &
+                       Input_Opt%ITS_A_CARBON_SIM                      .AND. &
+                       Input_Opt%DoPerturbCH4BoundaryConditions        .AND. &
+                       ( .NOT. State_Chm%IsCH4BCPerturbed )                 )
+    IF ( Perturb_CH4_BC ) THEN
+       MW_g_CH4 = State_Chm%SpcData(id_CH4)%Info%MW_g
+    ENDIF
+
    !=========================================================================
    ! Loop over grid boxes and apply BCs to the specified buffer zone
    !=========================================================================
    !$OMP PARALLEL DO                                                         &
    !$OMP DEFAULT( SHARED                                                    )&
-   !$OMP PRIVATE( I, J, L, N                                                )&
-   !$OMP COLLAPSE( 2                                                        )
+   !$OMP PRIVATE( I, J, L, N, NA                                            )&
+   !$OMP COLLAPSE( 2                                                        )&
+   !$OMP SCHEDULE( STATIC                                                   )
    DO NA = 1, State_Chm%nAdvect
    DO L  = 1, State_Grid%NZ
 
       ! Get the species ID from the advected species ID
       N = State_Chm%Map_Advect(NA)
 
-      ! Optionally perturb the CH4 boundary conditions
-      ! Use ppb values specified in geoschem_config.yml
-      ! Convert to [kg/kg dry] (nbalasus, 8/31/2023)
-      Perturb_CH4_BC = ( State_Chm%SpcData(N)%Info%Name == "CH4"  .AND. &
-                         Input_Opt%ITS_A_CARBON_SIM               .AND. &
-                         Input_Opt%DoPerturbCH4BoundaryConditions .AND. &
-                         ( .NOT. State_Chm%IsCH4BCPerturbed ) )
-      MW_g_CH4       =   State_Chm%SpcData(N)%Info%MW_g
-
       ! First loop over all latitudes of the nested domain
       DO J = 1, State_Grid%NY
 
          ! West BC
          DO I = 1, State_Grid%WestBuffer
-            IF ( Perturb_CH4_BC ) THEN
+            IF ( Perturb_CH4_BC .and. N == id_CH4 ) THEN
                State_Chm%BoundaryCond(I,J,L,N) = State_Chm%BoundaryCond(I,J,L,N) + &
                                                  Input_Opt%CH4BoundaryConditionIncreaseWest * 1.0e-9_fp * MW_g_CH4 / AIRMW
             ENDIF
@@ -167,7 +173,7 @@ CONTAINS
 
          ! East BC
          DO I = (State_Grid%NX-State_Grid%EastBuffer)+1, State_Grid%NX
-            IF ( Perturb_CH4_BC ) THEN
+            IF ( Perturb_CH4_BC .and. N == id_CH4 ) THEN
                State_Chm%BoundaryCond(I,J,L,N) = State_Chm%BoundaryCond(I,J,L,N) + &
                                                  Input_Opt%CH4BoundaryConditionIncreaseEast * 1.0e-9_fp * MW_g_CH4 / AIRMW
             ENDIF
@@ -181,7 +187,7 @@ CONTAINS
 
          ! South BC
          DO J = 1, State_Grid%SouthBuffer
-            IF ( Perturb_CH4_BC ) THEN
+            IF ( Perturb_CH4_BC .and. N == id_CH4 ) THEN
                State_Chm%BoundaryCond(I,J,L,N) = State_Chm%BoundaryCond(I,J,L,N) + &
                                                  Input_Opt%CH4BoundaryConditionIncreaseSouth * 1.0e-9_fp * MW_g_CH4 / AIRMW
             ENDIF
@@ -190,7 +196,7 @@ CONTAINS
 
          ! North BC
          DO J = (State_Grid%NY-State_Grid%NorthBuffer)+1, State_Grid%NY
-            IF ( Perturb_CH4_BC ) THEN
+            IF ( Perturb_CH4_BC .and. N == id_CH4 ) THEN
                State_Chm%BoundaryCond(I,J,L,N) = State_Chm%BoundaryCond(I,J,L,N) + &
                                                  Input_Opt%CH4BoundaryConditionIncreaseNorth * 1.0e-9_fp * MW_g_CH4 / AIRMW
             ENDIF
@@ -200,7 +206,7 @@ CONTAINS
 
    ENDDO
    ENDDO
-   !OMP END PARALLEL DO
+   !$OMP END PARALLEL DO
 
    ! If the boundary conditions have already been perturbed, don't do it again
    IF ( Perturb_CH4_BC ) THEN

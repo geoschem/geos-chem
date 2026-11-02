@@ -1733,22 +1733,12 @@ CONTAINS
        RETURN
     ENDIF
 
-    !$OMP PARALLEL DO                                                        &
-    !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I,        J,        L,       N                           )&
-    !$OMP PRIVATE( ICNTRL,   C_before_integrate                             )&
-    !$OMP PRIVATE( SO4_FRAC, IERR,     RCNTRL,  ISTATUS,   RSTATE           )&
-    !$OMP PRIVATE( SpcID,    KppID,    F,       P,         Vloc             )&
-    !$OMP PRIVATE( Aout,     Thread,   RC,      S,         LCH4             )&
-    !$OMP PRIVATE( OHreact,  PCO_TOT,  PCO_CH4, PCO_NMVOC, SR               )&
-    !$OMP PRIVATE( SIZE_RES, LWC                                            )&
-#ifdef MODEL_GEOS
-    !$OMP PRIVATE( NOxTau,     NOxConc, NOx_weight, NOx_tau_weighted        )&
-#endif
-    !$OMP COLLAPSE( 3                                                       )&
-    !$OMP SCHEDULE( DYNAMIC, 24                                             )&
-    !$OMP REDUCTION( +:errorCount                                           )
-
+    ! NOTE: No OpenMP parallelization is used in the MPI load-balancing
+    ! code below.  Work is distributed across the MPI ranks on each node
+    ! via a shared-memory counter (MPI_Fetch_and_op), which is not
+    ! thread-safe without MPI_THREAD_MULTIPLE.  The DO loop below also has
+    ! no loop control and cannot be the target of an OMP PARALLEL DO.
+    !  -- see https://github.com/geoschem/geos-chem/issues/3365
     origin_val = 1                      ! add 1 each time
     disp       = 0_MPI_ADDRESS_KIND     ! first integer in the window
     CALL MPI_Win_lock_all(MPI_MODE_NOCHECK, win_next_cell_index, ierr)
@@ -1902,8 +1892,6 @@ CONTAINS
              !ENDIF
 #else
              !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-             ! Make sure only one thread at a time executes this block
-             !$OMP CRITICAL
              !
              ! Set a flag to break out of loop gracefully
              ! NOTE: You can set a GDB breakpoint here to examine the error
@@ -1927,7 +1915,6 @@ CONTAINS
                 PRINT*, RCONST(N), TRIM( ADJUSTL( EQN_NAMES(N) ) )
              ENDDO
              !
-             !$OMP END CRITICAL
              !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
              ! Start skipping to end of loop upon 2 failures in a row
@@ -2333,7 +2320,6 @@ CONTAINS
     ENDDO
     ENDDO
     ENDDO
-    !$OMP END PARALLEL DO
 
 #endif  ! MPI_LOAD_BALANCE
 
@@ -2556,7 +2542,7 @@ CONTAINS
 
     ! Assume success
     RC  = GC_SUCCESS
-      ! print*,'PREVIOUS units', previous_units
+
     ! Convert species to [kg]
     CALL Convert_Spc_Units(                                                  &
          Input_Opt      = Input_Opt,                                         &
@@ -3515,10 +3501,12 @@ CONTAINS
     USE aciduptake_DustChemFuncs, ONLY : aciduptake_InitDustChem
     USE ErrCode_Mod
     USE fullchem_SulfurChemFuncs, ONLY : fullchem_InitSulfurChem
-    USE Gckpp_Monitor,            ONLY : Eqn_Names, Fam_Names
+    USE Gckpp_Global,             ONLY : ATOL,       Henry_CR,  Henry_K0
+    USE Gckpp_Global,             ONLY : MW,         SR_MW
+    USE Gckpp_Initialize,         ONLY : Initialize
+    USE Gckpp_Monitor,            ONLY : Eqn_Names,  Fam_Names, Spc_Names
+    USE Gckpp_Parameters,         ONLY : nFam,       nReact,    nSpec
     USE Gckpp_Precision
-    USE Gckpp_Parameters,         ONLY : nFam, nReact, nSpec
-    USE Gckpp_Global,             ONLY : Henry_K0, Henry_CR, MW, SR_MW
     USE Input_Opt_Mod,            ONLY : OptInput
     USE KppSa_Interface_Mod,      ONLY : KppSa_Config
     USE State_Chm_Mod,            ONLY : ChmState
@@ -3698,7 +3686,6 @@ CONTAINS
                                State_Diag%Archive_O1DconcAfterChem      .or. &
                                State_Diag%Archive_O3PconcAfterChem          )
 
-
     !========================================================================
     ! Assign default values for KPP absolute and relative tolerances
     ! for species where these have not been explicitly defined.
@@ -3710,6 +3697,13 @@ CONTAINS
     WHERE( State_Chm%KPP_RelTol == MISSING_DBLE )
        State_Chm%KPP_RelTol = 0.5e-2_f8
     ENDWHERE
+
+    !========================================================================
+    ! Call the KPP Initialize routine to zero concentration arrays
+    ! and to denote dummy species as those having ATOL > 1e25.
+    !========================================================================
+    ATOL = State_Chm%KPP_AbsTol
+    CALL Initialize( PassiveSpc_ATOL_Threshold = 1.0e+25_dp )
 
     !========================================================================
     ! Save physical parameters from the species database into KPP arrays
@@ -3724,6 +3718,7 @@ CONTAINS
           HENRY_CR(KppId) = State_Chm%SpcData(N)%Info%Henry_CR
        ENDIF
     ENDDO
+
     !========================================================================
     ! Allocate arrays
     !========================================================================

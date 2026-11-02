@@ -480,6 +480,8 @@ PSO4AQ     = IGNORE; {SO4 from cloud chemistry}
 PSO4MP     = IGNORE; {SO4 from aerosol multiphase chemistry}
 PHMSAQ     = IGNORE; {HMS from cloud chemistry}
 PHMSMP     = IGNORE; {HMS from aerosol multiphase chemistry}
+LHMSAQ     = IGNORE; {HMS loss in cloud chemistry}
+LHMSMP     = IGNORE; {HMS loss in aerosol multiphase chemistry}
 ZRO2       = IGNORE; {Lumped RO2 from aromatics}
 #DEFFIX
 
@@ -510,7 +512,7 @@ SO2 {+O2}           = SO4 + PSO4AQ          : K_CLD(3);  {2025/10/14; FS added P
 //
 // HMS
 CH2O + SO2          = HMS + PHMSAQ          : K_CLD(4);  {Sep 2021; Moch2020; MSL}
-HMS                 = SO2 + CH2O            : K_CLD(5);  {Sep 2021; Moch2020; MSL}
+HMS                 = SO2 + CH2O + LHMSAQ   : K_CLD(5);  {Sep 2021; Moch2020; MSL}
 HMS + OH + SO2      = 2SO4 + CH2O + 2PSO4AQ : K_CLD(6);  {Sep 2021; Moch2020; MSL}
 //
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1808,8 +1810,8 @@ SO2 + H2O2  = SO4 + PSO4MP :   SO2uptkbyH2O2(State_Het);                        
 SO2 + O3    = SO4 + PSO4MP :   SO2uptkbyO3(State_Het);                                                      {2026/03/02; Travis2025; KRT}
 SO2 {+O2}   = SO4 + PSO4MP :   SO2uptkbyTMIO2(State_Het);                                                   {2026/03/02; Travis2025; KRT}
 SO2 + NO2   = SO4 + PSO4MP :   SO2uptkbyNO2(State_Het);                                                     {2026/03/02; Travis2025; KRT}
-SO2 + CH2O  = HMS + PSO4MP :   SO2uptkbyCH2O(State_Het);                                                    {2026/03/02; Travis2025; KRT}
-HMS         = SO2 + CH2O + PHMSMP :    HMSDecomp(State_Het);                                                {2026/03/02; Travis2025; KRT}
+SO2 + CH2O  = HMS + PHMSMP :   SO2uptkbyCH2O(State_Het);                                                    {2026/03/02; Travis2025; KRT}
+HMS         = SO2 + CH2O + LHMSMP :    HMSDecomp(State_Het);                                                {2026/03/02; Travis2025; KRT}
 HMS + OH + SO2  = 2SO4 + CH2O + 2PSO4MP : HMSOxidation(State_Het);                                          {2026/03/02; Travis2025; KRT}       
 //
 //

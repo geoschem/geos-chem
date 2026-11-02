@@ -110,7 +110,7 @@ CONTAINS
     REAL(dp) :: K0, TK
     REAL(dp) :: FeIII, MnII
     REAL(dp) :: XSO2aq_a, XSO3_a, XHSO3_a
-    REAL(dp) :: DUST,  Mn_ant,  Mn_nat
+    REAL(dp) :: DUST_PM25, Mn_ant,  Mn_nat
     REAL(dp) :: Mn_tot, Mn_d,    Fe_d
     REAL(dp) :: Fe_ant, Fe_nat,  Fe_tot
     REAL(dp) :: Fe_d_ant, Fe_d_nat
@@ -316,16 +316,14 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Metal catalyzed oxidation of SO2 pathway
     !-----------------------------------------------------------------------
-    ! Get dust concentrations [MND -> ng/m3]
+    ! Get fine dust concentrations [MND -> ng/m3]
     ! Get the MW_g from DSTbin1, all dust bins have the same MW
+    ! NOTE: 0.546 of DSTbin4 is considered fine dust
     !-----------------------------------------------------------------------
-    DUST            = ( Spc(id_DSTbin1)%Conc(I,J,L) +                        &
+    DUST_PM25       = ( Spc(id_DSTbin1)%Conc(I,J,L) +                        &
                         Spc(id_DSTbin2)%Conc(I,J,L) +                        &
                         Spc(id_DSTbin3)%Conc(I,J,L) +                        &
-                        Spc(id_DSTbin4)%Conc(I,J,L) +                        &
-                        Spc(id_DSTbin5)%Conc(I,J,L) +                        &
-                        Spc(id_DSTbin6)%Conc(I,J,L) +                        &
-                        Spc(id_DSTbin7)%Conc(I,J,L)   )                      &
+                        Spc(id_DSTbin4)%Conc(I,J,L) * 0.546 )                &
                     * 1.e+15_dp                                              &
                     * State_Chm%SpcData(id_DSTbin1)%Info%MW_g                &
                     / AVO
@@ -333,12 +331,12 @@ CONTAINS
     ! Calculate Fe and Mn natural [ng m-3]
     ! Assume that Fe is 3.5% of total dust mass based on
     ! Taylor and McLennan [1985]
-    Fe_nat          = DUST * 35.0e-3_dp
+    Fe_nat          = DUST_PM25 * 35.0e-3_dp
 
     ! and Mn is 50 times less than Fe based on Desbouefs et al.[2005]
     !Mn_nat = Fe_nat / 50e+0_dp
     ! Use Cai et al
-    Mn_nat          = DUST * 3.0e-3_dp
+    Mn_nat          = DUST_PM25 * 3.0e-3_dp
     
     ! Anthropogenic Fe concentrations [mcl/cm3 -> ng/m3]
     Fe_ant          = Spc(id_pFe)%Conc(I,J,L)                                &
@@ -357,11 +355,6 @@ CONTAINS
     Fe_tot          = Fe_ant + Fe_nat
     
     ! Convert Mn and Fe [ng m-3] to [mole l-1]
-    ! Below I guess we are making the assumption that we won't have
-    ! LWC and ALWC at the same time in one grid box?
-    ! Are the aerosols scavenged before this occurs?  Are we double counting?
-    !krt, for aerosols
-    
     Mn_d_a          = 0.0_dp
     IF ( ALWC > 0.0_dp ) THEN
        ! Units: ng/m3 * (g/ng) / (g/mol) / (m3 H2O / m3 air) * (m3/L)
@@ -391,8 +384,6 @@ CONTAINS
                     / ALWC                                                   &
                     * 1.0e-3_fp
 
-       ! currently not sure how to account for different
-       ! solubility between anthropogenic and natural
        ! Max possible solubility
        FeIII_Max    = ( Fe_d_ant_a * 0.1_fp ) + ( Fe_d_nat_a * 0.1_fp )
 

@@ -6,10 +6,49 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased] - TBD
 ### Added
+- Added `Is_DryAlt` flag for SO4, NIT, NH4, SOAS in `run/shared/species_database.yml` to enable the `SpeciesConcALT1` diagnostic for these species
+- Added `.gitattributes`, `CITATION.cff`, `GOVERNANCE.md`, `SECURITY.md` for GitHub
+- Added `CLAUDE.md`, which gives guidance to Claude Code AI
+- Added `.release/changeVersionNumbers.sh` to change version numbers in relevant files in this repository
+- Added AI disclosure section to `.github/PULL_REQUEST_TEMPLATE.md`
+- Added `.github/dependabot.yml` to open monthly version-update PRs for GitHub Actions against `main`
+- Added GCHP operational example environment file and run script for the Imperial College London (ICL) HX2 cluster in `run/GCHP/runScriptSamples/operational_examples/icl_hx2`
+- Added developer-only GCHP MAPL3 run directory option to `run/GCHP/createRunDir.sh`, offered only if `GCHP_MAPL3_DEV=y`
+
+### Changed
+- Updated the Hg0 soil emissions parameterization to improve the response of emissions to light availability
+- Disallowed the GC-Classic `SatDiagn` and `SatDiagnEdge` collections from being subset, or from being specified without `hrrange`
+- Improved error checks in GC-Classic History modules to mitigate side-effects caused by bad or missing input in `HISTORY.rc`
+- Standardized the format of error messages in GC-Classic History modules
+- Converted `GTMM/CMakeLists.txt` line endings from CRLF to LF, per `.gitattributes`
+- Changed `#MINVERSION` to 3.5.0 in `KPP/custom/custom.kpp`, to match the `fullchem`, `carbon`, and `Hg` mechanisms
+- Retitled `test/README.md` so it no longer names the GCClassic-only path `src/GEOS-Chem/test`
+- Added GitHub language-detection overrides to `.gitattributes` to avoid spurious CodeQL GitHub Action errors
+- Separated `CH4/CO2/CO/OCS_DATA` switches in `HEMCO_Config.rc.carbon` for GCHP to note they are not editable
+- Updated `keyValueUpdate` in `run/shared/singleCarbonSpecies.sh` to be tolerant of TABs and variable spacing; Added an error check as well.
+- Updated MAPL3 code for compatibility with latest MAPL develop branch without breaking changes for MAPL2
+
+### Fixed
+- Fixed parallelization errors in `GeosCore/apm_driv_mod.F90`
+- Fixed date range in `HEMCO_Config.rc.gmao_metfields_0125`
+- Fixed minor issues with longer intervals in GC-Classic History diagnostics
+- Fixed vertical coordinate variables in `History/history_netcdf_mod.F90` for collections whose `levels` do not start at 1
+- Fixed `Set_Boundary_Conditions` so that the CH4 BC perturbation (carbon nested-grid simulations) is applied only once per BC update and is thread-safe
+- Fixed CodeQL security alert `py/incomplete-url-substring-sanitization` by using the `urlparse` in `run/shared/download_data.py`
+- Fixed bug preventing GC-Classic instantaneous diagnostics with frequency, duration, and heartbeat all equal
+
+### Removed
+- Removed invalid OpenMP directives from the `MPI_LOAD_BALANCE` block of `GeosCore/fullchem_mod.F90`, which caused GCHP compilation to fail with `-DOMP=ON`
+- Removed confusing comments from `KPP/fullchem/fullchem_HetStateFuncs.F90`
+- Took out (((METEOROLOGY brackets in HEMCO_Config.rc.carbon, as GCHP uses ExtData instead. 
+- Removed TAB characters in `HEMCO_Config.rc.carbon` templates for GC-Classic and GCHP
+
+## [14.8.0] - 2026-09-11
+### Added
 - Added PSO4AQ and PH2SO4 as a product to certain reactions; see `KPP/fullchem/CHANGELOG_fullchem.md`
 - Added methanediol (MDL) as a transported gas-phase species and to the KPP fullchem and custom mechanisms
 - Added routine `Cloud_CH2O_MDL` in `KPP/fullchem/fullchem_SulfurChemFuncs.F90`
-- Added multiphase sulfate chemistry and cloud Hplus diagnostic for Travis et al. (2025)
+- Added multiphase sulfate chemistry, cloud Hplus diagnostic, and related prod/loss species per Travis et al. (2025), see `KPP/fullchem/CHANGELOG_fullchem.md`
 - Added `IONIC` output argument in calls to HETP driver routine `MACH_HETP_Main15Cases`
 - Added APM restart file paths to `run/shared/download_data.yml`
 - Added for TOMAS, organic and Dunne new particle formation, 3D GFAS capability, and updates for accomodation coefficients
@@ -17,7 +56,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added GCHP utility script extractPerformance.sh to scrape allPEs.log for timing summary in GCHP run directories
 - Added GCHP build scripts to GCHP runScriptSamples for Harvard
 - Added several additional run, build, and utility scripts to GCHP runScriptSamples for Harvard and AWS pcluster
-- Added MODEL_CTMENV compile and simulation options to skip GEOS-Chem and advection and use ctmEnv grid comp only
+- Added calls to KPP `Initialize` routine from `INIT_FULLCHEM` and `INIT_MERCURY` to specify an absolute tolerance threshold for passive species
 
 ### Changed
 - Renamed `State_Chm%Isorrop*` fields to `State_Chm%Ate*` (aerosol thermodynamical equilibrium), as ISORROPIA is no longer used
@@ -31,6 +70,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Changed the order of DO loops in `GeosCore/tomas_mod.F90` from `I-J-L` to `L-J-I` and added `!$OMP COLLAPSE( 3 )` statements
 - Updated run directory configuration files for GFAS (extension number 112)
 - Changed time cycle for GFAS data in the `gc_4x5_merra2_carbon_CH4_straddle_00z` from `EFY` to `C` to avoid runtime error
+- Changed `#MINVERSION` to 3.5.0 in `Hg.kpp`, `fullchem.kpp` and `carbon.kpp` files
+- Gave all dummy species `KPP_AbsTol = 1.0e25` in `run/shared/species_database.yml` so that they would be not included in the Rosenbrock error norm
+- Updated Harvard Cannon environment files for GCHP & GCClassic to refer to new library location
+- Change `State_Met%T` and `State_Met%SPHU` in GCHP to be post-advection values rather than mid-point for consistency with State_Met%PEDGE
+- Changed `NK5` to `NK05` and `NK8` to `NK08` in `fullchem_mod.F90` to fix missing leading zero bug for TOMAS
+- Renamed GCHP history diagnostics for upwards mass flux to remove the `_R4` suffix
+- Updated utility script `run/shared/rtd_species_by_simulation.py` to read the `species_database.yml` for Hg simulations
+- Updated default GCHP resolution in createRunDir.sh from c24 for MERRA2/GEOS-FP and c30 for GEOS-IT to c90 in all cases.
+- Updated `download_data.yml` and GCHP `createRunDir.sh` to use restart files from the 14.8.0-rc.0 benchmarks (for some simulations)
+- Changed frequency of SpeciesConcVV and SpeciesConcMND diagnostic update to every chemistry timestep (previously dynamic timestep) to avoid value oscillation for certain species when dynamic timestep is less than chemistry timestep
 
 ### Fixed
 - Fixed incorrect variable names and removed unused variables in `NcdfUtil/ncdf_mod.F90`
@@ -39,10 +88,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed OpenMP parallelization error in `GeosCore/tomas_mod.F90`
 - Fixed typos (extra `:` characters) in `run/shared/kpp_standalone_interface.yml`
 - Fixed bug in creating GCHP run directories using raw GEOS-IT C180 meteorology
+- Fixed bugs in Jacobian tracers simulation
+- Fixed missing entries in `SpeciesConc`, `CloudConvFlux`, `WetLossConv`, and `WetLossLS` collections in the GCHP `HISTORY.rc.fullchem` template file
+- Fixed minor issues causing APM simulation failure when debug flags turned on
+- Fixed incorrect treatment of `e90_s/n` and `nh_5/50` tracer in TransportTracer simulation
+- Fixed bug where `KPP_AbsTol` and `KPP_RelTol` tags were not being read from `species_database.yml`
+- Fixed error where `State_Chm%phCloud` was always being reset to 4.5
+- Fixed floating surface pressures in GCHP to be post-advection rather than pre-advection
+- Restored missing line `CH4_BBN:` to `run/shared/species_database.yml`
+- Fixed a bug preventing GC-Classic HISTORY collection subsetting with `LON_RANGE` and `LAT_RANGE` from working properly
+- Fixed incorrect `InvAFCID` diagnostic entries `HEMCO_Diagn.rc.fullchem` and `HISTORY.rc.fullchem` template files
+- Fixed the species database entry of `DMS` to use `Is_Gas: true`, as DMS is a gas-phase species and not an aerosol
 
 ### Removed
 - Removed obsolete code in dust_mod.F90
-- Removed unused subroutine I_Am_UnOPENed in inquireMod.F90
+- Removed unused subroutine `I_Am_UnOPENed` in inquireMod.F90
+- Removed duplicate Dynamical Heating entry in gchp fullchem ExtData.rc file.
 
 ## [14.7.1] - 2026-04-08
 ### Added
@@ -91,7 +152,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed timestep mismatch between GCHP C180 and GCC 0.5x0.625
 - Fixed incorrect dust species names in `run/GCClassic/HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.fullchem.onlineE` 
 - Fixed incorrect extension number for `InvDustL23M` entries in `run/GCHP/HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.fullchem`
-- Fixed incorrect `InvAFCID` diagnostic entries `HEMCO_Diagn.rc.fullchem` and `HISTORY.rc.fullchem` template files
 
 ### Removed
 - Removed `ARCTAS_SHIP`, `CORBETT_SHIP`, `ICOADS_SHIP` from `HEMCO_Config.rc` template files
@@ -99,12 +159,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Removed `GeosUtil/grid_registry_mod.F90`.
 - Removed `OHconcAfterChem` from GCClassic and GCHP `HISTORY.rc.carbon` templates, as OH is fixed during the simulation
 - Removed `State_Grid` argument from `Set_Prof_FJX` routine
-
-### Fixed
-- Fixed the species database entry of `DMS` to use `Is_Gas: true`, as DMS is a gas-phase species and not an aerosol
-
-### Changed
-- Changed frequency of SpeciesConcVV and SpeciesConcMND diagnostic update to every chemistry timestep (previously dynamic timestep) to avoid value oscillation for certain species when dynamic timestep is less than chemistry timestep
 
 ## [14.7.0] - 2026-02-05
 ### Added

@@ -16,4 +16,3 @@ mapl:
   setServices:
     sharedObj: libGCHP_GridComp
     userRoutine: gchp_setservices_
-
