@@ -72,7 +72,7 @@ if(MODEL_GCHP)
 endif()
 
 #-----------------------------------------------------------------------------
-# Additional GEOS-Chem settings if using GCHP
+# Additional GEOS-Chem settings if using GCHP with MAPL3 (in development)
 #-----------------------------------------------------------------------------
 # This next part is in the GCHP repo if using MAPL2, but is moved here for
 # MAPL3 to make maintenance of most GEOS-Chem settings confined to one
@@ -123,30 +123,18 @@ if(MODEL_GCHP)
   )
 
   target_link_libraries(GEOSChemBuildProperties INTERFACE
-    $<LINK_ONLY:MAPL.base>
     $<LINK_ONLY:FVdycoreCubed_GridComp>
     $<LINK_ONLY:HCOI_MAPL_ESMF>
     $<$<BOOL:${OMP}>:OpenMP::OpenMP_Fortran>
     MPI::MPI_C MPI::MPI_Fortran
-    $<LINK_ONLY:mapl3g>
-    $<LINK_ONLY:MAPL.generic3g>
-    $<LINK_ONLY:MAPL.state>
+    $<LINK_ONLY:MAPL>
   )
   target_include_directories(GEOSChemBuildProperties INTERFACE
-    $<TARGET_PROPERTY:mapl3g,INTERFACE_INCLUDE_DIRECTORIES>
-    $<TARGET_PROPERTY:MAPL.generic3g,INTERFACE_INCLUDE_DIRECTORIES>
-    $<TARGET_PROPERTY:MAPL.state,INTERFACE_INCLUDE_DIRECTORIES>
-    $<TARGET_PROPERTY:MAPL.base,INTERFACE_INCLUDE_DIRECTORIES>
+    $<TARGET_PROPERTY:MAPL,INTERFACE_INCLUDE_DIRECTORIES>
     $<TARGET_PROPERTY:FVdycoreCubed_GridComp,INTERFACE_INCLUDE_DIRECTORIES>
     $<TARGET_PROPERTY:HCOI_MAPL_ESMF,INTERFACE_INCLUDE_DIRECTORIES>
     ${CMAKE_Fortran_MODULE_DIRECTORY}
   )
-  # Turn off acg for now
-  #mapl_acg(GEOSchem_GridComp GEOSchem_StateSpecs.rc
-  #  IMPORT_SPECS EXPORT_SPECS INTERNAL_SPECS
-  #  GET_POINTERS DECLARE_POINTERS
-  #  3g
-  #)
 
   set(GEOSChem_Fortran_FLAGS_Intel
       -cpp -w -auto -noalign "SHELL:-convert big_endian" "SHELL:-fp-model source"

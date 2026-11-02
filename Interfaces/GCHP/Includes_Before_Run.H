@@ -28,6 +28,13 @@
   ! Two-dimensional fields
   !=========================================================================
 
+#ifdef MAPL3
+  ! Grid horizontal area exported from AdvCore
+  State_Grid%Area_M2 = AREA
+  State_Met%Area_M2  = AREA
+#endif
+
+  ! Meteorology fields read from file through ExtData
   State_Met%ALBD                = ALBD                       ! 1
   State_Met%CLDFRC              = CLDFRC                     ! 1
   State_Met%EFLUX               = EFLUX                      ! W m-2
@@ -55,8 +62,10 @@
   State_Met%TO3                 = TO3                        ! dobson
   State_Met%SNODP               = SNODP                      ! m
   State_Met%SNOMAS              = SNOMAS                     ! kg/m2
+#ifndef MAPL3
   State_Met%SUNCOS              = zenith                     ! unitless
   State_Met%SUNCOSmid           = zenith                     ! 1
+#endif
   State_Met%U10M                = U10M                       ! m/s
   State_Met%USTAR               = USTAR                      ! m/s
   State_Met%V10M                = V10M                       ! m/s
@@ -73,8 +82,8 @@
   ! Get UV albedo for photolysis
   Ptr2d => NULL()
 #ifdef MAPL3
-  CALL MAPL_StateGetPointer ( IMPORT, Ptr2D, 'UV_ALBEDO', &
-                              notFoundOK=.TRUE., __RC__ )
+  ! UV_ALBEDO is not a GEOSChem import (not in GEOSChem_StateSpecs.acg)
+  ! skip for now, but need to look into this (ewl)
 #else
   CALL MAPL_GetPointer ( IMPORT, Ptr2D, 'UV_ALBEDO', &
                          notFoundOK=.TRUE., __RC__ )
@@ -88,12 +97,21 @@
   ! Three-dimensional fields on level edges
   !=========================================================================
 
+#ifdef MAPL3
+    ! ewl: temporary until MAPL3 can handle level edge imports
+  State_Met%CMFMC   = 0.0_fp
+  State_Met%PFICU   = 0.0_fp
+  State_Met%PFILSAN = 0.0_fp
+  State_Met%PFLCU   = 0.0_fp
+  State_Met%PFLLSAN = 0.0_fp
+#else
   ! kg/m2/s
   State_Met%CMFMC  (:,:,1:State_Grid%NZ+1) = CMFMC  (:,:,0:State_Grid%NZ)
   State_Met%PFICU  (:,:,1:State_Grid%NZ+1) = PFICU  (:,:,0:State_Grid%NZ)
   State_Met%PFILSAN(:,:,1:State_Grid%NZ+1) = PFILSAN(:,:,0:State_Grid%NZ)
   State_Met%PFLCU  (:,:,1:State_Grid%NZ+1) = PFLCU  (:,:,0:State_Grid%NZ)
   State_Met%PFLLSAN(:,:,1:State_Grid%NZ+1) = PFLLSAN(:,:,0:State_Grid%NZ)
+#endif
 
   if (met_nonadv_is_top_down) then
     z_lb = lbound(State_Met%CMFMC,3)
@@ -114,7 +132,13 @@
   ! the instantaneous meteorology surface pressures PS1 and PS2 through
   ! time-interpolation to time after advection. This means PEDGE in
   ! GEOS-Chem represents post-advection pressure.
+#ifdef MAPL3
+  ! MAPL3 returns pointers to 3D edge arrays with 1-based lev dim
+  State_Met%PEDGE  (:,:,1:State_Grid%NZ+1) = PLE(:,:,State_Grid%NZ+1:1:-1) / 1d2
+#else
+  ! MAPL2 returns pointers to 3D edge arrays with 0-based lev dim
   State_Met%PEDGE  (:,:,1:State_Grid%NZ+1) = PLE(:,:,State_Grid%NZ:0:-1) / 1d2
+#endif
 
   ! These will be set based on PS1_WET and PS2_WET in gchp_chunk_mod.F90
   State_Met%PS1_DRY(:,:) = 0.0d0 
@@ -136,7 +160,11 @@
   ! Read MODIS leaf area index (LAI) from imports of post-processed MODIS files.
   ! The third dimension is land type and not level, possible to do with MAPL
   ! only because the # of land types is the same as # of level edges.
+#ifdef MAPL3
+  State_Met%XLAI_NATIVE(:,:,:) = 0.0_fp   ! ewl: temporary placeholder
+#else
   State_Met%XLAI_NATIVE(:,:,:) = XLAIMULTI
+#endif
 
   !=========================================================================
   ! Three-dimensional fields on level centers

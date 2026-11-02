@@ -1,0 +1,10 @@
+RUN_DT: 600
+RUN_WITH_ADVCORE: false
+
+mapl:
+  setServices:
+    sharedObj: libGCHPctmEnv_GridComp
+    userRoutine: gchpctmenv_setservices_
+
+  misc:
+    activate_all_exports: true

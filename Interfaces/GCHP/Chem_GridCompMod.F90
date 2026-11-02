@@ -1,8 +1,6 @@
-#ifdef MAPL3
-#include "MAPL.h"
-#else
+! This file is only for use with MAPL2
+#ifndef MAPL3
 #include "MAPL_Generic.h"
-#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
@@ -4299,3 +4297,5 @@ END MODULE GEOSCHEMchem_GridCompMod
 #else
 END MODULE Chem_GridCompMod
 #endif
+
+#endif ! Not MAPL3

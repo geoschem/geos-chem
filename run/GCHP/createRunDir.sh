@@ -105,6 +105,7 @@ printf "   1. Full chemistry\n"
 printf "   2. TransportTracers\n"
 printf "   3. Carbon\n"
 printf "   4. Tagged O3\n"
+printf "   5. GCHP using MAPL3 (in development)\n"
 
 valid_sim=0
 while [ "${valid_sim}" -eq 0 ]; do
@@ -118,13 +119,49 @@ while [ "${valid_sim}" -eq 0 ]; do
 	sim_name=carbon
     elif [[ ${sim_num} = "4" ]]; then
 	sim_name=tagO3
+    elif [[ ${sim_num} = "5" ]]; then
+        sim_name=mapl3
     else
         valid_sim=0
 	printf "Invalid simulation option. Try again.\n"
     fi
 done
 
-RUNDIR_VARS+="RUNDIR_SIM_NAME=$sim_name\n"
+# MAPL3 test cases are based on the transport tracers simulation
+if [[ "x${sim_name}" == "xmapl3" ]]; then
+    RUNDIR_VARS+="RUNDIR_SIM_NAME=TransportTracers\n"
+else
+    RUNDIR_VARS+="RUNDIR_SIM_NAME=$sim_name\n"
+fi
+
+#-----------------------------------------------------------------
+# If using MAPL3, ask user what test scenario they want to run
+#-----------------------------------------------------------------
+if [[ "x${sim_name}" == "xmapl3" ]]; then
+    printf "${thinline}Choose MAPL3 test scenario:${thinline}"
+    printf "   1. GCHP with no children\n"
+    printf "   2. GCHP with one child (GCHPctmEnv)\n"
+    printf "   3. GCHP with two children (GCHPctmEnv and AdvCore)\n"
+    printf "   4. GCHP transport tracer simulation\n"
+
+    valid_response=0
+    while [ "${valid_response}" -eq 0 ]; do
+        read -p "${USER_PROMPT}" user_response
+        valid_response=1
+        if [[ ${user_response} = "1" ]]; then
+            mapl3_scenario=no_children
+        elif [[ ${user_response} = "2" ]]; then
+            mapl3_scenario=one_child
+        elif [[ ${user_response} = "3" ]]; then
+            mapl3_scenario=two_children
+        elif [[ ${user_response} = "4" ]]; then
+            mapl3_scenario=transport_tracers
+        else
+            valid_response=0
+            printf "Invalid test scenario. Try again.\n"
+        fi
+    done
+fi
 
 #-----------------------------------------------------------------
 # Ask user to specify full-chemistry simulation options
@@ -596,6 +633,9 @@ if [ -z "$1" ]; then
 	if [[ "x${adv_flux_src}" != "x" ]]; then
 	    rundir_name=${rundir_name}_using_${adv_flux_src}
 	fi
+        if [[ "x${sim_name}" == "xmapl3" ]]; then
+            rundir_name=${rundir_name}_${mapl3_scenario}
+        fi
 	printf "  -- Using default directory name ${rundir_name}\n"
     fi
 else
@@ -644,6 +684,9 @@ cp ./gitignore                        ${rundir}/.gitignore
 # (extdata.yaml not yet available for other simulations)
 if [[ "x${sim_name}" == "xTransportTracers" || "x${sim_name}" == "xtagO3" ]]; then
     cp ./ExtData2G.yaml.templates/extdata.yaml.${sim_name} ${rundir}/extdata.yaml
+fi
+if [[ "x${sim_name}" == "xmapl3" ]]; then
+    cp ./ExtData2G.yaml.templates/extdata.yaml.TransportTracers ${rundir}/extdata.yaml
 fi
 
 # Copy file to auto-update common settings
@@ -715,6 +758,8 @@ elif [[ ${sim_name} = "carbon" ]]; then
     start_date='20190101'
     restart_dir='GC_14.7.0'
     restart_name="${sim_name}"
+elif [[ "x${sim_name}" == "xmapl3" ]]; then
+    start_date='20210101'
 fi
 for N in 24 30 48 90 180
 do
@@ -849,10 +894,65 @@ if [[ "x${sim_name}" == "xcarbon" ]]; then
     fi
 fi
 
+#-----------------------------------------------------------------
+# If doing a MAPL3 simulation then customize the run directory
+#-----------------------------------------------------------------
+if [[ "x${sim_name}" == "xmapl3" ]]; then
+
+    # Copy in all the config files specific to MAPL3
+    cp ${srcrundir}/mapl3_config/case.${mapl3_scenario}/* ${rundir}
+
+    # Assume using discover for testing, so get scripts and env
+    printf "${thinline}Would you like to setup run scripts for the NASA discover cluster? (y/n)${thinline}"
+    valid_response=0
+    while [ "$valid_response" -eq 0 ]; do
+        read -p "${USER_PROMPT}" use_discover_scripts
+        if [[ ${use_discover_scripts} = "y" ]]; then
+            cp ${srcrundir}/runScriptSamples/operational_examples/nasa_discover/mapl3/* ${rundir}
+            valid_response=1
+        elif [[ ${use_discover_scripts} = "n" ]]; then
+            valid_response=1
+        else
+            printf "Invalid option. Try again.\n"
+        fi
+    done
+
+    # Move run directory files/symlinks not used to local archive for reference
+    refdir=${rundir}/unused_config_for_reference
+    mkdir ${refdir}
+    mv ${rundir}/CAP.rc                  ${refdir}
+    mv ${rundir}/cap_restart             ${refdir}
+    mv ${rundir}/ESMF.rc                 ${refdir}
+    mv ${rundir}/ExtData.rc              ${refdir}
+    mv ${rundir}/GCHP.rc                 ${refdir}
+    mv ${rundir}/logging.yml             ${refdir}
+    mv ${rundir}/setCommonRunSettings.sh ${refdir}
+    mv ${rundir}/checkRunSettings.sh     ${refdir}
+    mv ${rundir}/extractPerformance.sh   ${refdir}
+    if [[ "${mapl3_scenario}" != "transport_tracers" ]]; then
+        mv ${rundir}/HISTORY.rc          ${refdir}
+    fi
+    if [[ "${mapl3_scenario}" == "no_children" || "${mapl3_scenario}" == "one_child" ]]; then
+        mv ${rundir}/input.nml           ${refdir}
+    fi
+    if [[ "${mapl3_scenario}" != "transport_tracers" ]]; then
+        mv ${rundir}/geoschem_config.yml  ${refdir}
+        mv ${rundir}/HEMCO_Config.rc      ${refdir}
+        mv ${rundir}/HEMCO_Diagn.rc       ${refdir}
+        mv ${rundir}/species_database.yml ${refdir}
+        mv ${rundir}/Restarts             ${refdir}
+        mv ${rundir}/ChemDir              ${refdir}
+        mv ${rundir}/HcoDir               ${refdir}
+        mv ${rundir}/setRestartLink.sh    ${refdir}
+    fi
+fi
+
 # Call setCommonRunSettings.sh so that all config files are consistent with its
-# default settings. Suppress informational prints.
-chmod +x setCommonRunSettings.sh
-./setCommonRunSettings.sh --silent
+# default settings. Suppress informational prints. (Not used with MAPL3.)
+if [[ "x${sim_name}" != "xmapl3" ]]; then
+    chmod +x setCommonRunSettings.sh
+    ./setCommonRunSettings.sh --silent
+fi
 
 #--------------------------------------------------------------------
 # Navigate back to source code directory
@@ -912,16 +1012,25 @@ done
 printf "\n${thinline}Created ${rundir}\n"
 printf "\n  -- See ${rundir_config_dirname}/${rundir_config_logname} for summary of default run directory settings"
 printf "\n  -- This run directory is set up for simulation start date $start_date"
-printf "\n  -- Restart files for this date at different grid resolutions are in the"
-printf "\n     Restarts subdirectory"
-printf "\n  -- To update start time, edit configuration file cap_restart and"
-printf "\n     add or symlink file Restarts/GEOSChem.Restart.YYYYMMDD_HHmmz.cN.nc"
-printf "\n     where YYYYMMDD_HHmm is start date and time"
+if [[ "x${sim_name}" != "xmapl3" ]]; then
+    printf "\n  -- Restart files for this date at different grid resolutions are in the"
+    printf "\n     Restarts subdirectory"
+    printf "\n  -- To update start time, edit configuration file cap_restart and"
+    printf "\n     add or symlink file Restarts/GEOSChem.Restart.YYYYMMDD_HHmmz.cN.nc"
+    printf "\n     where YYYYMMDD_HHmm is start date and time"
+fi
 printf "\n  -- Edit other commonly changed run settings in setCommonRunSettings.sh"
 printf "\n  -- See build/README for compilation instructions"
 printf "\n  -- Example run scripts are in the runScriptSamples subdirectory"
 printf "\n  -- For more information visit the GCHP user guide at"
 printf "\n     https://readthedocs.org/projects/gchp/\n\n"
+
+if [[ "x${sim_name}" == "xmapl3" ]]; then
+    printf "\n*** WARNING: This run directory is for GCHP with MAPL3, which is in development! ***\n"
+    printf " - MAPL3 config files (*.yaml) replace CAP.rc, ExtData.rc, GCHP.rc, and logging.yml\n"
+    printf " - setCommonRunSettings.sh is not used; edit the yaml files directly\n"
+    printf " - Unused MAPL2 config files are in unused_config_for_reference\n"
+fi
 
 if [[ "x${sim_name}" == "xTransportTracers" || "x${sim_name}" == "xtagO3" ]]; then
     printf "\n\n*** NOTE: ExtData2G is now available as beta! ***\n"
@@ -963,6 +1072,7 @@ ftr="<<<<\n"
 EXTRA_CMAKE_OPTIONS=""
 [[ "x${sim_name}" == "xcarbon" ]] && EXTRA_CMAKE_OPTIONS="-DMECH=carbon "
 [[ "x${sim_name}" == "xHg"     ]] && EXTRA_CMAKE_OPTIONS="-DMECH=Hg -DFASTJX=y "
+[[ "x${sim_name}" == "xmapl3"  ]] && EXTRA_CMAKE_OPTIONS="-DMAPL3=y "
 if [[ "x${sim_name}" == "xfullchem" ]]; then
     [[ "x${sim_extra_option}" == "xAPM"     ]] && EXTRA_CMAKE_OPTIONS="-DAPM=y "
     [[ "x${sim_extra_option}" == "xRRTMG"   ]] && EXTRA_CMAKE_OPTIONS="-DRRTMG=y "

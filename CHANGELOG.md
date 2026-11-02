@@ -25,6 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added GitHub language-detection overrides to `.gitattributes` to avoid spurious CodeQL GitHub Action errors
 - Separated `CH4/CO2/CO/OCS_DATA` switches in `HEMCO_Config.rc.carbon` for GCHP to note they are not editable
 - Updated `keyValueUpdate` in `run/shared/singleCarbonSpecies.sh` to be tolerant of TABs and variable spacing; Added an error check as well.
+- Updated MAPL3 code for compatibility with latest MAPL develop branch without breaking changes for MAPL2
 
 ### Fixed
 - Fixed parallelization errors in `GeosCore/apm_driv_mod.F90`
