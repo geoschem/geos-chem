@@ -577,7 +577,7 @@ contains
        !
        ! (2) you want ALL species in restart file ignored and set to background values.
        !     Set in geoschem_gridcomp.yaml: 'COLD_START_SPC_FROM_BACKGROUND: true'
-       !     (note that for a cold start with no restart file you must have
+       !     (note that for a cold start with no restart file you must have)
        !     'bootstrap: true' to avoid missing species errors.
        do N = 1, State_Chm%nSpecies
           ThisSpc => State_Chm%SpcData(N)%Info
@@ -707,12 +707,6 @@ contains
     end if
     call CopyGCStates2Exports(MAPL_Am_I_Root(), Input_Opt, HistoryConfig, status)
     _ASSERT(status == GC_SUCCESS, 'Error calling CopyGCStates2Exports')
-
-    ! ewl debugging
-    IND=3
-    print *, "ewl: IND, State_Chm%Species(IND)%Conc(1,1,1)  : ", IND, State_Chm%Species(IND)%Conc(1,1,1)
-    print *, "ewl: IND, ptr3d_r8(1,1,LM)                    : ", IND, ptr3d_r8(1,1,LM)
-    print *, "ewl: IND, State_Diag%SpeciesConcVV(1,1,1,IND) : ", IND, State_Diag%SpeciesConcVV(1,1,1,IND)
 
     !---------------------------------------------------------------------
     ! Run complete
