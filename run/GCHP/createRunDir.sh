@@ -105,7 +105,12 @@ printf "   1. Full chemistry\n"
 printf "   2. TransportTracers\n"
 printf "   3. Carbon\n"
 printf "   4. Tagged O3\n"
-printf "   5. GCHP using MAPL3 (in development)\n"
+
+# MAPL3 test cases are for GCHP developers only and require a MAPL3 build.
+# The option is offered only if environment variable GCHP_MAPL3_DEV=y.
+if [[ "x${GCHP_MAPL3_DEV}" == "xy" ]]; then
+    printf "   5. GCHP using MAPL3 (developers only; requires MAPL3 build)\n"
+fi
 
 valid_sim=0
 while [ "${valid_sim}" -eq 0 ]; do
@@ -119,7 +124,7 @@ while [ "${valid_sim}" -eq 0 ]; do
 	sim_name=carbon
     elif [[ ${sim_num} = "4" ]]; then
 	sim_name=tagO3
-    elif [[ ${sim_num} = "5" ]]; then
+    elif [[ ${sim_num} = "5" && "x${GCHP_MAPL3_DEV}" == "xy" ]]; then
         sim_name=mapl3
     else
         valid_sim=0

@@ -97,7 +97,7 @@ if(MODEL_GCHP)
     "Switch to build the KPP-Standalone Box Model"
   )
   set(MAPL3 OFF CACHE BOOL
-    "Switch to build with MAPL3 rather than MAPL2"
+    "Experimental: build with MAPL3 rather than MAPL2 (in development, not supported)"
   )
   
   # Local variables

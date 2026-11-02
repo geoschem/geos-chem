@@ -1,6 +1,10 @@
 schema_version: 2.0.0
 component: GEOSChem
 
+# MAPL3 DEVELOPMENT ONLY: state specs for the MAPL3 GEOS-Chem gridded component
+# (Chem_GridCompMod.mapl3.F90). Used only if GCHP is configured with -DMAPL3=y.
+# Standard (MAPL2) GCHP builds use the Registry files instead.
+
 # ewl NOTE: Error when getting 73-level field imports from ExtData3G. Need to investigate...
 # Commenting out those fields for now. 73-level imports from other gridcomp exports are fine.
 

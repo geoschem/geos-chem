@@ -1,6 +1,14 @@
+!------------------------------------------------------------------------------
+! MAPL3 DEVELOPMENT ONLY
+!
+! This is the GEOS-Chem gridded component for GCHP built with MAPL3, which is
+! in development and not supported for general use. It is compiled only if
+! GCHP is configured with -DMAPL3=y and is NOT used in standard GCHP builds.
+! The operational (MAPL2) gridded component is in Chem_GridCompMod.F90.
+!------------------------------------------------------------------------------
+#ifdef MAPL3
 #include "MAPL.h"
 
-#ifdef MAPL3
 module GEOSChem_GridCompMod
 
   use ESMF
