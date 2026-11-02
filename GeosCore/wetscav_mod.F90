@@ -605,8 +605,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE COMPUTE_F( N, F, ISOL, Input_Opt, State_Chm, State_Grid, &
-                        State_Met, RC )
+  SUBROUTINE COMPUTE_F( N,          ISOL,      Input_Opt, State_Chm,         &
+                        State_Grid, State_Met, RC                           )
 !
 ! !USES:
 !
@@ -636,7 +636,6 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     INTEGER,        INTENT(OUT)   :: ISOL       ! Index for ND38 diag
-    REAL(fp),       INTENT(OUT)   :: F(:,:,:)   ! Soluble fraction of species
     INTEGER,        INTENT(OUT)   :: RC         ! Success or failure?
 !
 ! !REVISION HISTORY:
@@ -649,66 +648,64 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER                  :: I, J, L
-    REAL(fp)                 :: SO2LOSS,   Ki
+    INTEGER                            :: I,       J,      L
+    REAL(fp)                           :: SO2LOSS, Ki
 #ifdef LUO_WETDEP
-    REAL(fp)                 :: LIQCOV, ICECOV
+    REAL(fp)                           :: LIQCOV,  ICECOV
 #endif
 #ifdef TOMAS
-    REAL(fp)                 :: SOLFRAC,   XFRAC
+    REAL(fp)                           :: SOLFRAC, XFRAC
 #endif
 
     ! Arrays
-    REAL(fp)                 :: KcScale(3)
+    REAL(fp)                           :: KcScale(3)
 
     ! Pointers
-    REAL(fp),      POINTER   :: p_C_H2O
-    REAL(fp),      POINTER   :: p_CLDICE
-    REAL(fp),      POINTER   :: p_CLDLIQ
-    REAL(fp),      POINTER   :: p_T
-    REAL(fp),      POINTER   :: H2O2s(:,:,:)
-    REAL(fp),      POINTER   :: SO2s(:,:,:)
+    REAL(fp),      POINTER             :: p_C_H2O
+    REAL(fp),      POINTER             :: p_CLDICE
+    REAL(fp),      POINTER             :: p_CLDLIQ
+    REAL(fp),      POINTER             :: p_T
+    REAL(fp),      POINTER, CONTIGUOUS :: F(:,:,:)
+    REAL(fp),      POINTER             :: H2O2s(:,:,:)
+    REAL(fp),      POINTER             :: SO2s(:,:,:)
 #ifdef LUO_WETDEP
-    REAL(fp),      POINTER   :: p_pHcloud
+    REAL(fp),      POINTER             :: p_pHcloud
 #endif
 
     ! Objects
-    TYPE(Species), POINTER   :: SpcInfo
+    TYPE(Species), POINTER             :: SpcInfo
 !
 ! !DEFINED PARAMETERS:
 !
     ! Kc is the conversion rate from cloud condensate to precip [s^-1]
-    REAL(fp),      PARAMETER :: Kc = 5e-3_fp
+    REAL(fp),      PARAMETER           :: Kc = 5e-3_fp
 
     !=================================================================
     ! COMPUTE_F begins here!
     !=================================================================
 
-    ! Assume success
-    RC         =  GC_SUCCESS
-
     ! Initialize
-    F          =  0.0_fp
-    p_C_H2O    => NULL()
-    p_CLDICE   => NULL()
-    p_CLDLIQ   => NULL()
-    p_T        => NULL()
-    H2O2s      => State_Chm%H2O2AfterChem
-    SO2s       => State_Chm%SO2AfterChem
+    RC         =  GC_SUCCESS
     SpcInfo    => State_Chm%SpcData(N)%Info
-
-    ! ISOL is the wetdep ID (will be -999 if not a wetdep species)
     ISOL       =  SpcInfo%WetDepId
 
-    ! Exit with F=0, ISOL=0 if this is not a wetdep species
+    ! Exit if this is not a wetdep species.
+    ! ISOL will be returned as MISSING_INT (-999).
     IF ( .not. SpcInfo%Is_WetDep ) THEN
        SpcInfo => NULL()
        RETURN
     ENDIF
 
-    ! Temperature-dependent scale factors for the KC rate
-    ! (conversion of cloud condensate -> precipitation)
-    KcScale    = SpcInfo%WD_KcScaleFac
+    ! Continue initializing
+    p_C_H2O    => NULL()
+    p_CLDICE   => NULL()
+    p_CLDLIQ   => NULL()
+    p_T        => NULL()
+    F          => State_Chm%FSOL(:,:,:,ISOL)  ! Frac of spc lost in updrafts
+    H2O2s      => State_Chm%H2O2AfterChem     ! H2O2 after chemistry
+    SO2s       => State_Chm%SO2AfterChem      ! SO2 after chemistry
+    KcScale    =  SpcInfo%WD_KcScaleFac       ! T-dependent scale factors
+                                              !  for cloud cond -> precip
 
     !=================================================================
     ! %%% SPECIAL CASE %%%
@@ -887,6 +884,9 @@ CONTAINS
        ENDDO
        ENDDO
        ENDDO
+#else
+       ! Zero F for safety's sake (non-TOMAS case)
+       F = 0.0_fp
 #endif
 
     !-----------------------------------------------------------
@@ -916,6 +916,9 @@ CONTAINS
        ENDDO
        ENDDO
        ENDDO
+#else
+       ! Zero F for safety's sake (non-TOMAS case)
+       F = 0.0_fp
 #endif
 
     !-----------------------------------------------------------
@@ -944,6 +947,7 @@ CONTAINS
     p_CLDICE  => NULL()
     p_CLDLIQ  => NULL()
     p_T       => NULL()
+    F         => NULL()
     H2O2s     => NULL()
     SO2s      => NULL()
     SpcInfo   => NULL()

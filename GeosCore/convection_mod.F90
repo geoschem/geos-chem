@@ -95,8 +95,8 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: N, NA, nAdvect, NW, EC, ISOL, S
-    INTEGER            :: I, J, L, NN, TS_DYN
+    INTEGER            :: N,       NW,        EC, ISOL, S
+    INTEGER            :: I,       J,         L,  NN,   TS_DYN
     REAL(fp)           :: AREA_M2, DT
     LOGICAL            :: DO_ND14, DoConvFlux
     LOGICAL            :: DO_ND38, DoWetLoss
@@ -110,15 +110,12 @@ CONTAINS
     REAL(fp)           :: PEDGE (State_Grid%NZ+1)
     REAL(fp)           :: DIAG14(State_Grid%NZ,State_Chm%nAdvect)
     REAL(fp)           :: DIAG38(State_Grid%NZ,State_Chm%nWetDep)
-    REAL(fp), TARGET   :: FSOL  (State_Grid%NX,State_Grid%NY,&
-                                 State_Grid%NZ,State_Chm%nAdvect)
 
     ! Pointers
     REAL(fp), POINTER  :: F(:,:)
-    REAL(fp), POINTER  :: p_FSOL(:,:,:)
 
     !========================================================================
-    ! DO_CONVECT begins here!
+    ! DO_CONVECTION begins here!
     !========================================================================
 
     !------------------------------------------------------------------------
@@ -126,7 +123,6 @@ CONTAINS
     !------------------------------------------------------------------------
     RC      = GC_SUCCESS
     F       => NULL()
-    p_FSOL  => NULL()
     ErrMsg  = ''
     ThisLoc = ' -> at Do_Convection (in module GeosCore/convection_mod.F)'
 
@@ -171,33 +167,26 @@ CONTAINS
     !------------------------------------------------------------------------
     TS_DYN     = GET_TS_DYN()                           ! Dyn timestep [sec]
     DT         = DBLE( TS_DYN )                         ! Dyn timestep [sec]
-    FSOL       = 0e+0_fp                                ! Zero the FSOL array
     DoConvFlux = State_Diag%Archive_CloudConvFlux       ! Save mass flux?
     DoWetLoss  = ( State_Diag%Archive_WetLossConv                       .or. &
                    State_Diag%Archive_SatDiagnWetLossConv )
 
-    ! Number of advected species
-    nAdvect = State_Chm%nAdvect
-
     !========================================================================
     ! Compute fraction of soluble species lost in conv. updrafts
     !========================================================================
-
-    ! Loop over advected species
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( NA, N, p_FSOL, EC, ISOL, S                               )
-    DO NA = 1, nAdvect
+    !$OMP PRIVATE( NW, N, EC, ISOL, S                                       )&
+    !$OMP SCHEDULE( DYNAMIC, 1                                              )
+    DO NW = 1, State_Chm%nWetDep
 
-       ! Species ID
-       N = State_Chm%Map_Advect(NA)
+       ! Get the modelId from the wetdep ID
+       N = State_Chm%Map_WetDep(NW)
 
-       ! Now point to a 3D slice of the FSOL array
-       p_FSOL => FSOL(:,:,:,NA)
-
-       ! Fraction of soluble species
-       CALL COMPUTE_F( N, p_FSOL, ISOL, Input_Opt, State_Chm, &
-                       State_Grid, State_Met, RC=EC )
+       ! Save fraction of soluble species lost in convective
+       ! updrafts directly into State_Chm%FSOL(:,:,:,NW)
+       CALL COMPUTE_F( N,          ISOL,      Input_Opt, State_Chm,          &
+                       State_Grid, State_Met, RC=EC                         )
 
        ! Trap potential errors (we can't exit an OpenMP loop)
        IF ( EC /= GC_SUCCESS ) THEN
@@ -209,15 +198,12 @@ CONTAINS
        !
        ! Fraction of soluble species lost in convective updrafts
        !--------------------------------------------------------------------
-       IF ( State_Diag%Archive_WetLossConvFrac .and. ISOL > 0 ) THEN
+       IF ( State_Diag%Archive_WetLossConvFrac ) THEN
           S = State_Diag%Map_WetLossConvFrac%id2Slot(ISOL)
           IF ( S > 0 ) THEN
-             State_Diag%WetLossConvFrac(:,:,:,S) = p_FSOL
+             State_Diag%WetLossConvFrac(:,:,:,S) = State_Chm%FSOL(:,:,:,NW)
           ENDIF
        ENDIF
-
-       ! Free pointer memory
-       p_FSOL => NULL()
 
     ENDDO
     !$OMP END PARALLEL DO
@@ -259,7 +245,7 @@ CONTAINS
        AREA_M2 =  State_Grid%Area_M2(I,J)
        
        ! Soluble fraction
-       F       => FSOL(I,J,:,:)
+       F       => State_Chm%FSOL(I,J,:,:)
 
        !--------------------------
        ! Do the cloud convection
@@ -464,8 +450,9 @@ CONTAINS
     REAL(fp),       INTENT(IN)    :: AREA_M2     ! Surface area [m2]
     REAL(fp),       INTENT(IN)    :: F(:,:)      ! Fraction of soluble species
                                                  !  for updraft scavenging
-                                                 !  [unitless].  Computed by
-                                                 !  routine  COMPUTE_F.
+                                                 !  [unitless], dimensioned
+                                                 !  (NZ,nWetDep). Computed by
+                                                 !  routine COMPUTE_F.
     REAL(fp),       INTENT(IN)    :: TS_DYN      ! Dynamic timestep [sec]
     LOGICAL,        INTENT(IN)    :: USE_DIAG14  ! Archive DIAG14?
     LOGICAL,        INTENT(IN)    :: USE_DIAG38  ! Archive DIAG38?
@@ -541,23 +528,24 @@ CONTAINS
     CHARACTER(LEN=255)     :: ErrMsg, ThisLoc
 
     ! Arrays
-    REAL(fp)               :: BMASS    (State_Grid%NZ)
-    REAL(fp)               :: PDOWN    (State_Grid%NZ)
+    REAL(fp)               :: BMASS(State_Grid%NZ)
+    REAL(fp)               :: FCOL (State_Grid%NZ)
+    REAL(fp)               :: PDOWN(State_Grid%NZ)
 
     ! Pointers
-    REAL(fp),      POINTER :: BXHEIGHT     (:)
-    REAL(fp),      POINTER :: CMFMC        (:)
-    REAL(fp),      POINTER :: DTRAIN       (:)
-    REAL(fp),      POINTER :: DQRCU        (:)
-    REAL(fp),      POINTER :: PFICU        (:)
-    REAL(fp),      POINTER :: PFLCU        (:)
-    REAL(fp),      POINTER :: REEVAPCN     (:)
-    REAL(fp),      POINTER :: DELP_DRY     (:)
-    REAL(fp),      POINTER :: T            (:)
-    REAL(fp),      POINTER :: H2O2s        (:)
-    REAL(fp),      POINTER :: SO2s         (:)
-    REAL(fp),      POINTER :: Q            (:)
-    TYPE(SpcConc), POINTER :: Spc          (:)
+    REAL(fp),      POINTER :: BXHEIGHT(:)
+    REAL(fp),      POINTER :: CMFMC   (:)
+    REAL(fp),      POINTER :: DTRAIN  (:)
+    REAL(fp),      POINTER :: DQRCU   (:)
+    REAL(fp),      POINTER :: PFICU   (:)
+    REAL(fp),      POINTER :: PFLCU   (:)
+    REAL(fp),      POINTER :: REEVAPCN(:)
+    REAL(fp),      POINTER :: DELP_DRY(:)
+    REAL(fp),      POINTER :: T       (:)
+    REAL(fp),      POINTER :: H2O2s   (:)
+    REAL(fp),      POINTER :: SO2s    (:)
+    REAL(fp),      POINTER :: Q       (:)
+    TYPE(SpcConc), POINTER :: Spc     (:)
     TYPE(Species), POINTER :: SpcInfo
 
     !========================================================================
@@ -707,9 +695,12 @@ CONTAINS
        ! Zero the DIAG14 diagnostic array
        DIAG14(:,NA) = 0.0_fp
 
-       ! Zero the DIAG38 diagnostic array
+       ! Zero the DIAG38 diagnostic array and set FCOL
        IF ( NW > 0 ) THEN
           DIAG38(:,NW) = 0.0_fp
+          FCOL         = F(:,NW) ! This frac of spc is lost in conv updrafts
+       ELSE
+          FCOL         = 0.0_fp  ! Spc is insoluble, no loss in conv updrafts
        ENDIF
 
        !=====================================================================
@@ -814,7 +805,7 @@ CONTAINS
                 !------------------------------------------------------------
                 ! (3.1)  M a s s   B a l a n c e   i n   C l o u d
                 !
-                ! F(K,NA) = fraction of species IC in level K that is
+                ! FCOL(K) = fraction of species IC in level K that is
                 !           available for wet-scavenging by cloud updrafts.  
                 !
                 ! If ENTRN > 0 then compute the new value of QC:
@@ -841,13 +832,11 @@ CONTAINS
                 ENTRN   = CMOUT - CMFMC_BELOW
 
                 ! Amount of QC preserved against scavenging [kg/kg]
-                !QC_PRES = QC * ( 1e+0_fp - F(K,IC) )
-                QC_PRES = QC * ( 1e+0_fp - F(K,NA) )
+                QC_PRES = QC * ( 1e+0_fp - FCOL(K) )
 
                 ! Amount of QC lost to scavenging [kg/kg]
                 ! QC_SCAV = 0 for non-soluble species
-                !QC_SCAV = QC * F(K,IC)
-                QC_SCAV = QC * F(K,NA)
+                QC_SCAV = QC * FCOL(K)
 
                 ! - - - - - - - - FOR SOLUBLE SPECIES ONLY - - - - - - - - - 
                 IF ( QC_SCAV > 0e+0_fp ) THEN
@@ -934,16 +923,16 @@ CONTAINS
                 ! For convenience we denote:
                 !
                 !  QC_SCAV = Amount of species wet-scavenged in updrafts
-                !          = QC_k-1 * F(k,IC)    [kg/kg]
+                !          = QC_k-1 * FCOL(K)    [kg/kg]
                 !
                 !  QC_PRES = Amount of species preserved against
                 !            wet-scavenging in updrafts [kg/kg]
-                !          = QC_k-1 * ( 1 - F(k,IC) )
+                !          = QC_k-1 * ( 1 - FCOL(K) )
                 !
-                ! Where F(k,IC) is the fraction of species IC in level k
+                ! Where FCOL(K) is the fraction of species IC in level k
                 ! that is available for wet-scavenging by cloud updrafts.
-                ! F(k,IC) is computed by routine COMPUTE_UPDRAFT_FSOL
-                ! and passed to this routine as an argument.
+                ! FCOL(K) is computed by routine COMPUTE_F and passed to
+                ! this routine as an argument.
                 !
                 ! The cumulus transport above the cloud base is done as
                 ! follows:
@@ -1143,32 +1132,32 @@ CONTAINS
                       ! For TOMAS, indicate that we are not calling WASHOUT
                       ! from wet deposition, so that the proper unit conversions
                       ! will be applied. -- Bob Yantosca (11 Apr 2024)
-                      CALL WASHOUT(                                             &
+                      CALL WASHOUT(                                          &
                            ! --- Input ---
-                           I          = I,                                      &
-                           J          = J,                                      &
-                           L          = K,                                      &
-                           N          = IC,                                     &
-                           BXHEIGHT   = BXHEIGHT(K),                            &
-                           TK         = T(K),                                   &
-                           PP         = QDOWN,                                  &
-                           DT         = SDT,                                    &
-                           F          = F_WASHOUT,                              &
-                           Input_Opt  = Input_Opt,                              &
-                           State_Grid = State_Grid,                             &
-                           State_Met  = State_Met,                              &
-                           pHRain     = pHRain,                                 &
+                           I          = I,                                   &
+                           J          = J,                                   &
+                           L          = K,                                   &
+                           N          = IC,                                  &
+                           BXHEIGHT   = BXHEIGHT(K),                         &
+                           TK         = T(K),                                &
+                           PP         = QDOWN,                               &
+                           DT         = SDT,                                 &
+                           F          = F_WASHOUT,                           &
+                           Input_Opt  = Input_Opt,                           &
+                           State_Grid = State_Grid,                          &
+                           State_Met  = State_Met,                           &
+                           pHRain     = pHRain,                              &
 #ifdef TOMAS    
-                           fromWetDep = .FALSE.,                                &
+                           fromWetDep = .FALSE.,                             &
 #endif
                            ! --- Input/Output ---
-                           State_Chm  = State_Chm,                              &
-                           H2O2s      = H2O2s(K),                               &
-                           SO2s       = SO2s(K),                                &
+                           State_Chm  = State_Chm,                           &
+                           H2O2s      = H2O2s(K),                            &
+                           SO2s       = SO2s(K),                             &
                            ! --- Output ---
-                           WASHFRAC   = WASHFRAC,                               &
-                           KIN        = AER,                                    &
-                           RC         = RC                                     )
+                           WASHFRAC   = WASHFRAC,                            &
+                           KIN        = AER,                                 &
+                           RC         = RC                                  )
 
                       ! Trap potential errors
                       IF ( RC /= GC_SUCCESS ) THEN
@@ -1318,7 +1307,7 @@ CONTAINS
                    !%%% NOTE: SHOULD TEST FOR NW > 0 BUT IF WE DO THAT WE
                    !%%% NO LONGER GET IDENTICAL RESULTS WITH THE REF CODE.
                    !%%% LOOK INTO THIS LATER.  (bmy, 7/7/16)
-                   IF ( USE_DIAG38 .and. F(K,NA) > 0.0_fp ) THEN
+                   IF ( USE_DIAG38 .and. FCOL(K) > 0.0_fp ) THEN
                       DIAG38(K,NW) = DIAG38(K,NW) + ( WETLOSS * AREA_M2 / NDT )
                    ENDIF
 
@@ -1466,8 +1455,9 @@ CONTAINS
     REAL(fp),       INTENT(IN)    :: AREA_M2     ! Surface area [m2]
     REAL(fp),       INTENT(IN)    :: F(:,:)      ! Fraction of soluble species
                                                  !  for updraft scavenging
-                                                 !  [unitless].  Computed by
-                                                 !  routine  COMPUTE_F.
+                                                 !  [unitless], dimensioned
+                                                 !  (NZ,nWetDep). Computed by
+                                                 !  routine COMPUTE_F.
     REAL(fp),       INTENT(IN)    :: TS_DYN      ! Dynamic timestep [sec]
     LOGICAL,        INTENT(IN)    :: USE_DIAG14  ! Archive DIAG14?
     LOGICAL,        INTENT(IN)    :: USE_DIAG38  ! Archive DIAG38?
@@ -1542,23 +1532,24 @@ CONTAINS
     CHARACTER(LEN=255)     :: ErrMsg, ThisLoc
 
     ! Arrays
-    REAL(fp)               :: BMASS    (State_Grid%NZ)
-    REAL(fp)               :: PDOWN    (State_Grid%NZ)
-    REAL(fp)               :: REEVAPCN (State_Grid%NZ)
+    REAL(fp)               :: BMASS   (State_Grid%NZ)
+    REAL(fp)               :: FCOL    (State_Grid%NZ)
+    REAL(fp)               :: PDOWN   (State_Grid%NZ)
+    REAL(fp)               :: REEVAPCN(State_Grid%NZ)
 
     ! Pointers
-    REAL(fp),      POINTER :: BXHEIGHT     (:)
-    REAL(fp),      POINTER :: CMFMC        (:)
-    REAL(fp),      POINTER :: DTRAIN       (:)
-    REAL(fp),      POINTER :: DQRCU        (:)
-    REAL(fp),      POINTER :: REEVAPCN_CUM (:)
-    REAL(fp),      POINTER :: DELP_DRY     (:)
-    REAL(fp),      POINTER :: DELP         (:)
-    REAL(fp),      POINTER :: T            (:)
-    REAL(fp),      POINTER :: H2O2s        (:)
-    REAL(fp),      POINTER :: SO2s         (:)
-    REAL(fp),      POINTER :: Q            (:)
-    TYPE(SpcConc), POINTER :: Spc          (:)
+    REAL(fp),      POINTER :: BXHEIGHT    (:)
+    REAL(fp),      POINTER :: CMFMC       (:)
+    REAL(fp),      POINTER :: DTRAIN      (:)
+    REAL(fp),      POINTER :: DQRCU       (:)
+    REAL(fp),      POINTER :: REEVAPCN_CUM(:)
+    REAL(fp),      POINTER :: DELP_DRY    (:)
+    REAL(fp),      POINTER :: DELP        (:)
+    REAL(fp),      POINTER :: T           (:)
+    REAL(fp),      POINTER :: H2O2s       (:)
+    REAL(fp),      POINTER :: SO2s        (:)
+    REAL(fp),      POINTER :: Q           (:)
+    TYPE(SpcConc), POINTER :: Spc         (:)
     TYPE(Species), POINTER :: SpcInfo
 
     !========================================================================
@@ -1713,9 +1704,12 @@ CONTAINS
        ! Zero the DIAG14 diagnostic array
        DIAG14(:,NA) = 0.0_fp
 
-       ! Zero the DIAG38 diagnostic array
+       ! Zero the DIAG38 diagnostic array and set FCOL
        IF ( NW > 0 ) THEN
           DIAG38(:,NW) = 0.0_fp
+          FCOL         = F(:,NW) ! This frac of spc is lost in conv updrafts
+       ELSE
+          FCOL         = 0.0_fp  ! Spc is insoluble, no loss in conv updrafts
        ENDIF
 
        !=====================================================================
@@ -1761,7 +1755,7 @@ CONTAINS
                 !------------------------------------------------------------
                 ! (3.1)  M a s s   B a l a n c e   i n   C l o u d
                 !
-                ! F(K,NA) = fraction of species IC in level K that is
+                ! FCOL(K) = fraction of species IC in level K that is
                 !           available for wet-scavenging by cloud updrafts.  
                 !
                 ! If ENTRN > 0 then compute the new value of QC:
@@ -1789,8 +1783,8 @@ CONTAINS
 
                 ! Only do the scavenging above the cloud base
                 IF ( K > CLDBASE ) THEN
-                   QC_PRES = QC * ( 1e+0_fp - F(K,NA) )
-                   QC_SCAV = QC * F(K,NA)
+                   QC_PRES = QC * ( 1e+0_fp - FCOL(K) )
+                   QC_SCAV = QC * FCOL(K)
                 ELSE
                    QC_PRES = QC
                    QC_SCAV = 0e+0_fp
@@ -1819,16 +1813,16 @@ CONTAINS
                 ! For convenience we denote:
                 !
                 !  QC_SCAV = Amount of species wet-scavenged in updrafts
-                !          = QC_k-1 * F(k,IC)    [kg/kg]
+                !          = QC_k-1 * FCOL(K)    [kg/kg]
                 !
                 !  QC_PRES = Amount of species preserved against
                 !            wet-scavenging in updrafts [kg/kg]
-                !          = QC_k-1 * ( 1 - F(k,IC) )
+                !          = QC_k-1 * ( 1 - FCOL(K) )
                 !
-                ! Where F(k,IC) is the fraction of species IC in level k
+                ! Where FCOL(K) is the fraction of species IC in level k
                 ! that is available for wet-scavenging by cloud updrafts.
-                ! F(k,IC) is computed by routine COMPUTE_UPDRAFT_FSOL
-                ! and passed to this routine as an argument.
+                ! FCOL(K) is computed by routine COMPUTE_F and passed to
+                ! this routine as an argument.
                 !
                 ! The cumulus transport above the cloud base is done as
                 ! follows:

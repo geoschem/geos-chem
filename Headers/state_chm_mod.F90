@@ -156,6 +156,8 @@ MODULE State_Chm_Mod
      REAL(fp), POINTER :: SSAlk      (:,:,:,:)  ! Sea-salt alkalinity[-]
      REAL(fp), POINTER :: H2O2AfterChem(:,:,:)  ! H2O2, SO2 [v/v]
      REAL(fp), POINTER :: SO2AfterChem (:,:,:)  !  after sulfate chem
+     REAL(fp), POINTER :: FSOL       (:,:,:,:)  ! Frac of soluble species
+                                                !  scavenged in updrafts [1]
      REAL(fp), POINTER :: OMOC           (:,:)  ! OM:OC Ratio [unitless]
      REAL(fp), POINTER :: OMOC_POA       (:,:)  ! OM:OC Ratio (OCFPOA) [unitless]
      REAL(fp), POINTER :: OMOC_OPOA      (:,:)  ! OM:OC Ratio (OCFOPOA) [unitless]
@@ -597,6 +599,7 @@ CONTAINS
     State_Chm%SurfaceFlux       => NULL()
 
     ! Wetdep quantities
+    State_Chm%FSOL              => NULL()
     State_Chm%H2O2AfterChem     => NULL()
     State_Chm%SO2AfterChem      => NULL()
     State_Chm%QQ3D              => NULL()
@@ -2115,6 +2118,27 @@ CONTAINS
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
+
+    !------------------------------------------------------------------------
+    ! FSOL (Fraction of each soluble species scavenged in conv updrafts)
+    !------------------------------------------------------------------------
+    chmId = 'FSOL'
+    CALL Init_and_Register(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         chmId      = chmId,                                                 &
+         Ptr2Data   = State_Chm%FSOL,                                        &
+         nSlots     = State_Chm%nWetDep,                                     &
+         noRegister = .TRUE.,                                                &
+         RC         = RC                                                    )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
     !------------------------------------------------------------------------
     ! HPlusCloud
     !------------------------------------------------------------------------
@@ -3657,6 +3681,13 @@ CONTAINS
        CALL GC_CheckVar( 'State_Chm%SSAlk', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%SSAlk => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%FSOL ) ) THEN
+       DEALLOCATE( State_Chm%FSOL, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%FSOL', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%FSOL => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%H2O2AfterChem ) ) THEN
