@@ -50,6 +50,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Removed TAB characters in `HEMCO_Config.rc.carbon` templates for GC-Classic and GCHP
 - Removed unused variables `ISTATUS`, `RCNTRL`, and `RSTATE` from `GeosCore/carbon_gases_mod.F90`
 - Removed nested parallel loops in `GeosCore/vdiff_mod.F90` and `GeosCore/tpcore_fvdas_mod.F90`; they just add overhead
+- Removed `USE` statement importing `OCEAN_MERCURY_FLUX` from routine `EMISSMERCURY`; it not called and is thus dead code
 
 ## [14.8.0] - 2026-09-11
 ### Added

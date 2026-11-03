@@ -219,7 +219,6 @@ CONTAINS
     USE Land_Mercury_Mod,     ONLY : Land_Mercury_Flux
     USE Land_Mercury_Mod,     ONLY : SOILEMIS
     USE Land_Mercury_Mod,     ONLY : SNOWPACK_MERCURY_FLUX
-    USE Ocean_Mercury_Mod,    ONLY : OCEAN_MERCURY_FLUX
     USE State_Chm_Mod,        ONLY : ChmState
     USE State_Diag_Mod,       ONLY : DgnState
     USE State_Grid_Mod,       ONLY : GrdState
