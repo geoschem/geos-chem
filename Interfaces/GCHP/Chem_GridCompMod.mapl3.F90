@@ -734,21 +734,64 @@ contains
 !=============================================================================
   subroutine Finalize( gc, import, export, clock, rc )
 
+    use ErrCode_Mod,             only: GC_SUCCESS
+    use HCO_Interface_GC_Mod,    only: HCOI_GC_Final
+    use Input_Opt_Mod,           only: Cleanup_Input_Opt
+    use State_Chm_Mod,           only: Cleanup_State_Chm
+    use State_Diag_Mod,          only: Cleanup_State_Diag
+    use State_Grid_Mod,          only: Cleanup_State_Grid
+    use State_Met_Mod,           only: Cleanup_State_Met
+    use GCHP_HistoryExports_Mod, only: Destroy_HistoryConfig
+
     type(ESMF_GridComp)  :: gc     ! composite gridded component
     type(ESMF_State)     :: import ! import state
     type(ESMF_State)     :: export ! export state
     type(ESMF_Clock)     :: clock  ! the clock
     integer, intent(out) :: rc     ! Error code, 0 all is well
 
-    integer :: status
+    integer :: N, status
+    logical :: am_I_Root
     class(logger_t), pointer :: logger
 
     call MAPL_GridCompGet(gc, logger=logger, _RC)
     call logger%debug("GEOSChem_GridCompMod.F90::Finalize starting...")
+    am_I_Root = MAPL_Am_I_Root()
 
+    ! Nullify species concentration pointers before cleaning up State_Chm.
+    ! They point into the MAPL internal state (set in Run), and
+    ! Cleanup_State_Chm would otherwise deallocate MAPL-owned memory.
+    if (associated(State_Chm%Species)) then
+       do N = 1, State_Chm%nSpecies
+          State_Chm%Species(N)%Conc => null()
+       end do
+    end if
+
+    ! Finalize HEMCO
+    call HCOI_GC_Final(.false., status)
+    _ASSERT(status == GC_SUCCESS, 'Error calling HCOI_GC_Final')
+
+    ! Deallocate GEOS-Chem state objects
+    call Cleanup_State_Chm(State_Chm, status)
+    _ASSERT(status == GC_SUCCESS, 'Error calling Cleanup_State_Chm')
+    call Cleanup_State_Diag(State_Diag, status)
+    _ASSERT(status == GC_SUCCESS, 'Error calling Cleanup_State_Diag')
+    call Cleanup_State_Grid(State_Grid, status)
+    _ASSERT(status == GC_SUCCESS, 'Error calling Cleanup_State_Grid')
+    call Cleanup_State_Met(State_Met, status)
+    _ASSERT(status == GC_SUCCESS, 'Error calling Cleanup_State_Met')
+    call Cleanup_Input_Opt(Input_Opt, status)
+    _ASSERT(status == GC_SUCCESS, 'Error calling Cleanup_Input_Opt')
+
+    ! Deallocate the history interface between GEOS-Chem states and exports
+    if (associated(HistoryConfig)) then
+       call Destroy_HistoryConfig(am_I_Root, HistoryConfig, status)
+       _ASSERT(status == GC_SUCCESS, 'Error calling Destroy_HistoryConfig')
+    end if
+
+    if (am_I_Root) call logger%info("GEOS-Chem finalize complete")
     call logger%debug("GEOSChem_GridCompMod.F90::Finalize done")
 
-    _RETURN(ESMF_SUCCESS)
+    _RETURN(_SUCCESS)
 
   end subroutine Finalize
 
@@ -767,10 +810,6 @@ subroutine GEOSChem_SetServices(gc, rc)
    integer, intent(out) :: rc
    call mySetServices(gc, rc=rc)
 end subroutine GEOSChem_SetServices
-
-
-
-
 
 #else
 ! The rest is MAPL2, and is guiding the port above.
