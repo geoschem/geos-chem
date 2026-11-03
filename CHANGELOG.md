@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Changed
 - Activated `WetLossConv` and `WetLossLS` collections in fullchem benchmark simulations
+- Moved GC-Classic RRTMG FDH code from `main.F90` into new routine `Do_RRTMG_All_Outputs` in `rrtmg_rad_transfer_mod.F90`
 
 ## [14.8.0] - 2026-09-11
 ### Added
