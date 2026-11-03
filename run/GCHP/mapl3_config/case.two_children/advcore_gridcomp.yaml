@@ -1,4 +1,6 @@
 ---
+SCALE_TRACERS_BY_RESTART_DELP_DRY: false    # default: false
+
 # Can this come from gchp.yaml?
 RUN_DT: 600                         # default: 0
 

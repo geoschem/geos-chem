@@ -47,6 +47,11 @@ mapl:
       dst_name: CY
       dst_comp: AdvCore
 
+    - src_name: DELP_DRY
+      src_comp: GEOSChem
+      dst_name: DELPDRY
+      dst_comp: AdvCore
+
 # Not yet added to AdvCore (GCHP-specific)
 #    - src_name: DryPLE0
 #      src_comp: GCHPctmEnv
