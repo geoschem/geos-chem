@@ -5,8 +5,12 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - TBD
+### Added
+- Added the option to use stratospheric-adjusted radiative forcing with RRTMG in GC-Classic
+
 ### Changed
 - Activated `WetLossConv` and `WetLossLS` collections in fullchem benchmark simulations
+- Moved GC-Classic RRTMG FDH code from `main.F90` into new routine `Do_RRTMG_All_Outputs` in `rrtmg_rad_transfer_mod.F90`
 
 ## [14.8.0] - 2026-09-11
 ### Added
