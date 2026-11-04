@@ -1078,7 +1078,7 @@ MODULE gckpp_Monitor
      '        NO2 + SO2 --> PSO4MP + LOx + PSO4 + SO4                                                     ', & ! index 887
      '       CH2O + SO2 --> PHMSMP + HMS                                                                  ', & ! index 888
      '              HMS --> LHMSMP + CH2O + SO2                                                           ', & ! index 889
-     '   HMS + OH + SO2 --> 2 PSO4MP + 2 PSO4 + 2 SO4 + CH2O                                              ', & ! index 890
+     '        HMS + SO2 --> 2 PSO4MP + 2 PSO4 + 2 SO4 + CH2O                                              ', & ! index 890
      '               O3 --> O + O2                                                                        ', & ! index 891
      '               O3 --> O1D + O2                                                                      ', & ! index 892
      '               O2 --> 2 POx + 2 O                                                                   ', & ! index 893

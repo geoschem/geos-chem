@@ -727,8 +727,13 @@ CONTAINS
     ! Use precomputed 298.15/TK - 1 term for efficiency
     KHMS2         = 2.65e+8_fp * EXP( -5.03_fp * T298_over_TK_m1 ) ! L/mol/s
 
-    dOH           = hydroxide / RHO_num
-    H%KaqHMS2     = KHMS2 * dOH                              ! [cm3/molec/s]
+    ! 6.3e-15: use a constant OH radical concentration from literature
+    ! (see https://doi.org/10.5194/acp-23-8805-2023)
+    ! Spc(id_SO2): compensate SO2 as done in cloud chem
+    ! Use safe division to prevent numerical instability
+    H%KaqHMS2     = SafeDiv( KHMS2 * 6.3e-15_fp,                             &
+                             Spc(id_SO2)%Conc(I,J,L),                        &
+                             0.0_dp                   )    ! [cm3/molec/s]
 
     !------------------------------------------------------------------------
     ! Update gamma values if RH is above the threshold

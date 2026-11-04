@@ -1184,14 +1184,14 @@ CONTAINS
   !
   FUNCTION HMSOxidation( H ) RESULT(k)
     !
-    ! Computes the reaction rate [1/s] for HMS oxidation
+    ! Computes the reaction rate [cm3/molec/s] for HMS oxidation
     !
     TYPE(HetState), INTENT(IN) :: H                 ! HetChem State
     REAL(dp)                   :: k
     !
     k = H%KaqHMS2
   END FUNCTION HMSOxidation
-  
+  !
   FUNCTION SO2uptkbyTMIO2( H ) RESULT( k )
     !
     ! Computes the reaction rate [1/s] for 1st order uptake
