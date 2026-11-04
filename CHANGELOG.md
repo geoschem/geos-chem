@@ -26,6 +26,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added GitHub language-detection overrides to `.gitattributes` to avoid spurious CodeQL GitHub Action errors
 - Separated `CH4/CO2/CO/OCS_DATA` switches in `HEMCO_Config.rc.carbon` for GCHP to note they are not editable
 - Updated `keyValueUpdate` in `run/shared/singleCarbonSpecies.sh` to be tolerant of TABs and variable spacing; Added an error check as well.
+- Moved `FSOL` array from `GeosCore/convection_mod.F90` to `State_Chm%FSOL`, now dimensioned with `State_Chm%nWetDep`
+ - Updated the Intel VTune scripts (for Harvard Cannon) to move profiling output to its own folder and to generate reports automatically
 - Updated MAPL3 code for compatibility with latest MAPL develop branch without breaking changes for MAPL2
 
 ### Fixed
@@ -42,6 +44,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Removed confusing comments from `KPP/fullchem/fullchem_HetStateFuncs.F90`
 - Took out (((METEOROLOGY brackets in HEMCO_Config.rc.carbon, as GCHP uses ExtData instead. 
 - Removed TAB characters in `HEMCO_Config.rc.carbon` templates for GC-Classic and GCHP
+- Removed redundant zeroing of the `FSOL` array, which was a significant computational bottleneck
 
 ## [14.8.0] - 2026-09-11
 ### Added
