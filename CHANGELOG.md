@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased] - TBD
 ### Changed
 - Activated `WetLossConv` and `WetLossLS` collections in fullchem benchmark simulations
+- Replaced product PH2SO4 by PSO4AQ in HOBr + SO2 and HOCl + SO2 reactions (`KPP/fullchem/fullchem.eqn`, `KPP/custom/custom.eqn`)
 
 ## [14.8.0] - 2026-09-11
 ### Added

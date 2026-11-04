@@ -3,6 +3,11 @@ This file documents all notable changes to the GEOS-Chem `fullchem` chemistry me
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 # Mechanism history
+
+## [Unreleased] - TBD
+### Changed
+- Replaced product PH2SO4 by PSO4AQ in HOBr + SO2 and HOCl + SO2 reactions
+
 ## [14.8.0] - 2026-09-10
 ### Added
 - Added PSO4MP and LSO4MP to track multi-phase production of SO4 in aerosol per Travis et al., 2025
