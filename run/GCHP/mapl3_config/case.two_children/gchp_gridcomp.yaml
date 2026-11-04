@@ -1,0 +1,64 @@
+RUN_DT: 600
+
+mapl:
+
+  geometry:
+    kind: from_child
+    provider: AdvCore
+
+  setServices:
+    sharedObj: libGCHP_GridComp
+    userRoutine: gchp_setservices_
+
+  children:
+    GCHPctmEnv:
+      config_file: gchpctmenv_gridcomp.yaml
+    AdvCore:
+      config_file: advcore_gridcomp.yaml
+
+  connections:
+    - src_name: PLE0
+      src_comp: GCHPctmEnv
+      dst_name: PLE0
+      dst_comp: AdvCore
+
+    - src_name: PLE1
+      src_comp: GCHPctmEnv
+      dst_name: PLE1
+      dst_comp: AdvCore
+
+    - src_name: MFX
+      src_comp: GCHPctmEnv
+      dst_name: MFX
+      dst_comp: AdvCore
+
+    - src_name: MFY
+      src_comp: GCHPctmEnv
+      dst_name: MFY
+      dst_comp: AdvCore
+
+    - src_name: CX
+      src_comp: GCHPctmEnv
+      dst_name: CX
+      dst_comp: AdvCore
+
+    - src_name: CY
+      src_comp: GCHPctmEnv
+      dst_name: CY
+      dst_comp: AdvCore
+
+# Not yet added to AdvCore (GCHP-specific)
+#    - src_name: DryPLE0
+#      src_comp: GCHPctmEnv
+#      dst_name: DryPLE0
+#      dst_comp: AdvCore
+#
+#    - src_name: DryPLE1
+#      src_comp: GCHPctmEnv
+#      dst_name: DryPLE1
+#      dst_comp: AdvCore
+#
+#    - src_name: SPHU0
+#      src_comp: GCHPctmEnv
+#      dst_name: SPHU0
+#      dst_comp: AdvCore

@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added AI disclosure section to `.github/PULL_REQUEST_TEMPLATE.md`
 - Added `.github/dependabot.yml` to open monthly version-update PRs for GitHub Actions against `main`
 - Added GCHP operational example environment file and run script for the Imperial College London (ICL) HX2 cluster in `run/GCHP/runScriptSamples/operational_examples/icl_hx2`
+- Added developer-only GCHP MAPL3 run directory option to `run/GCHP/createRunDir.sh`, offered only if `GCHP_MAPL3_DEV=y`
 
 ### Changed
 - Updated the Hg0 soil emissions parameterization to improve the response of emissions to light availability
@@ -27,6 +28,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated `keyValueUpdate` in `run/shared/singleCarbonSpecies.sh` to be tolerant of TABs and variable spacing; Added an error check as well.
 - Moved `FSOL` array from `GeosCore/convection_mod.F90` to `State_Chm%FSOL`, now dimensioned with `State_Chm%nWetDep`
  - Updated the Intel VTune scripts (for Harvard Cannon) to move profiling output to its own folder and to generate reports automatically
+- Updated MAPL3 code for compatibility with latest MAPL develop branch without breaking changes for MAPL2
 
 ### Fixed
 - Fixed parallelization errors in `GeosCore/apm_driv_mod.F90`

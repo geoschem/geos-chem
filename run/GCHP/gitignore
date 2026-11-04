@@ -18,5 +18,6 @@ gchp
 setEnvironment
 *.out
 RunScriptSamples
+unused_config_for_reference
 README
 build
