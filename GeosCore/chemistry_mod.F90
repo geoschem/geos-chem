@@ -481,10 +481,11 @@ CONTAINS
 #ifdef APM
           ! Obtain SO4 production after chemistry
           N = APMIDS%id_SO4
-          !$OMP PARALLEL DO         &
-          !$OMP DEFAULT( SHARED   ) &
-          !$OMP PRIVATE( I, J, L  ) &
-          !$OMP SCHEDULE( DYNAMIC )
+          !$OMP PARALLEL DO                                                  &
+          !$OMP DEFAULT( SHARED                                             )&
+          !$OMP PRIVATE( I, J, L                                            )&
+          !$OMP COLLAPSE( 3                                                 )&
+          !$OMP SCHEDULE( STATIC                                            )
           DO L = 1, State_Grid%NZ
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX

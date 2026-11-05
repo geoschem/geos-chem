@@ -26,16 +26,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Separated `CH4/CO2/CO/OCS_DATA` switches in `HEMCO_Config.rc.carbon` for GCHP to note they are not editable
 - Updated `keyValueUpdate` in `run/shared/singleCarbonSpecies.sh` to be tolerant of TABs and variable spacing; Added an error check as well.
 - Moved `FSOL` array from `GeosCore/convection_mod.F90` to `State_Chm%FSOL`, now dimensioned with `State_Chm%nWetDep`
- - Updated the Intel VTune scripts (for Harvard Cannon) to move profiling output to its own folder and to generate reports automatically
+- Updated the Intel VTune scripts (for Harvard Cannon) to move profiling output to its own folder and to generate reports automatically
+- Updated `SET_SO2` in `KPP/fullchem/fullchem_SulfurChemFuncs.F90` to ensure `RC` and `size_res` are defined before exiting
+- Changed scheduling from `DYNAMIC` to `STATIC` in parallel loops with uniform work per grid box (`aerosol_mod`, `sulfate_mod`, `ucx_mod`, `diagnostics_mod`, `wetscav_mod`)
+- Changed scheduling to `SCHEDULE( STATIC, State_Grid%NX  )`, in parallel loops where most of the work is done near the top of the atmosphere
 
 ### Fixed
 - Fixed parallelization errors in `GeosCore/apm_driv_mod.F90`
+- Fixed several more parallelization issues in `GeosCore/*.F90` modules
 - Fixed date range in `HEMCO_Config.rc.gmao_metfields_0125`
 - Fixed minor issues with longer intervals in GC-Classic History diagnostics
 - Fixed vertical coordinate variables in `History/history_netcdf_mod.F90` for collections whose `levels` do not start at 1
 - Fixed `Set_Boundary_Conditions` so that the CH4 BC perturbation (carbon nested-grid simulations) is applied only once per BC update and is thread-safe
 - Fixed CodeQL security alert `py/incomplete-url-substring-sanitization` by using the `urlparse` in `run/shared/download_data.py`
 - Fixed bug preventing GC-Classic instantaneous diagnostics with frequency, duration, and heartbeat all equal
+- Fixed thread-unsafe error handling in the KPP parallel loops of `GeosCore/fullchem_mod.F90`, `GeosCore/mercury_mod.F90`, and `GeosCore/carbon_gases_mod.F90`
+- Fixed thread-unsafe error handling in several routines
+- Fixed race condition on longitude & latitude in routine `Ocean_Mercury_Flux` (in `GeosCore/ocean_mercury_mod.F90`)
 
 ### Removed
 - Removed invalid OpenMP directives from the `MPI_LOAD_BALANCE` block of `GeosCore/fullchem_mod.F90`, which caused GCHP compilation to fail with `-DOMP=ON`
@@ -43,6 +50,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Took out (((METEOROLOGY brackets in HEMCO_Config.rc.carbon, as GCHP uses ExtData instead. 
 - Removed TAB characters in `HEMCO_Config.rc.carbon` templates for GC-Classic and GCHP
 - Removed redundant zeroing of the `FSOL` array, which was a significant computational bottleneck
+- Removed unused variables `ISTATUS`, `RCNTRL`, and `RSTATE` from `GeosCore/carbon_gases_mod.F90`
+- Removed nested parallel loops in `GeosCore/vdiff_mod.F90` and `GeosCore/tpcore_fvdas_mod.F90`; they just add overhead
+- Removed `USE` statement importing `OCEAN_MERCURY_FLUX` from routine `EMISSMERCURY`; it not called and is thus dead code
 
 ## [14.8.0] - 2026-09-11
 ### Added

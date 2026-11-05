@@ -188,13 +188,22 @@ CONTAINS
     ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
     Spc => State_Chm%Species
 
+    ! Pull HNO3 molwt out of the parallel loop
+    IF ( id_HNO3 > 0 ) THEN
+       HNO3_MW_g = State_Chm%SpcData(id_HNO3)%Info%MW_g
+    ELSE
+       HNO3_MW_g = 63.01_fp
+    ENDIF
+
     !=================================================================
     ! Get equilibrium values of water, ammonium  and nitrate content
     !=================================================================
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I,    J,    L,    ATEMP, ARH,  AVOL,  SO4  ) &
-    !$OMP PRIVATE( ANH4, ANO3, GNH3, GNO3,  ASO4, AHSO4, AH2O )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I,    J,    L,    ATEMP, ARH,  AVOL,  SO4                )&
+    !$OMP PRIVATE( ANH4, ANO3, GNH3, GNO3,  ASO4, AHSO4, AH2O, HNO3_UGM3    )&
+    !$OMP COLLAPSE( 3                                                       )&
+    !$OMP SCHEDULE( DYNAMIC, 8                                              )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
@@ -225,7 +234,6 @@ CONTAINS
           ! Otherwise just return the concentration in HNO3_sav
           IF ( MOD( GET_ELAPSED_SEC(), 10800 ) == 0 ) THEN
              ! HNO3 is in v/v (from HEMCO), convert to ug/m3
-             HNO3_MW_g = State_Chm%SpcData(id_HNO3)%Info%MW_g
              HNO3_UGM3 = HCO_HNO3(I,J,L) * State_Met%AIRDEN(I,J,L) &
                          * 1.e+9_fp / ( AIRMW / HNO3_MW_g )
           ELSE

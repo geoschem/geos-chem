@@ -1089,7 +1089,7 @@ CONTAINS
     !$OMP PRIVATE( SNOW_Hg2aq,       SPM,             TC                    )&
     !$OMP PRIVATE( TK,               TOTDEP,          TOTDEPall             )&
     !$OMP PRIVATE( Usq,              UVI_RATIO,       vi                    )&
-    !$OMP PRIVATE( Ze                                                       )&
+    !$OMP PRIVATE( X,                Y,               Ze                    )&
     !$OMP COLLAPSE( 2                                                       )&
     !$OMP SCHEDULE( DYNAMIC, 24                                             )
     DO J = 1, State_Grid%NY

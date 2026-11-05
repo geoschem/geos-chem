@@ -98,9 +98,10 @@ CONTAINS
     INTEGER            :: N,       NW,        EC, ISOL, S
     INTEGER            :: I,       J,         L,  NN,   TS_DYN
     REAL(fp)           :: AREA_M2, DT
+    LOGICAL            :: error
     LOGICAL            :: DO_ND14, DoConvFlux
     LOGICAL            :: DO_ND38, DoWetLoss
-    INTEGER            :: TS_Conv
+    INTEGER            :: TS_Conv, errorStatus
     REAL(f8)           :: DT_Conv
 
     ! Strings
@@ -121,10 +122,12 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Initialize
     !------------------------------------------------------------------------
-    RC      = GC_SUCCESS
-    F       => NULL()
-    ErrMsg  = ''
-    ThisLoc = ' -> at Do_Convection (in module GeosCore/convection_mod.F)'
+    RC          =  GC_SUCCESS
+    error       =  .FALSE.
+    errorStatus =  0
+    F           => NULL()
+    ErrMsg      = ''
+    ThisLoc     = ' -> at Do_Convection (in module GeosCore/convection_mod.F)'
 
     !------------------------------------------------------------------------
     ! Convection budget diagnostics - Part 1 of 2
@@ -177,8 +180,15 @@ CONTAINS
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
     !$OMP PRIVATE( NW, N, EC, ISOL, S                                       )&
+    !$OMP REDUCTION( .OR. : error                                           )&
     !$OMP SCHEDULE( DYNAMIC, 1                                              )
     DO NW = 1, State_Chm%nWetDep
+
+
+       ! Skip to the end of the loop if any of the threads returned
+       ! with error.  Then exit this routine with failure status
+       ! outside of the parallel loop, as this is thread-safe.
+       IF ( error ) CYCLE
 
        ! Get the modelId from the wetdep ID
        N = State_Chm%Map_WetDep(NW)
@@ -190,7 +200,8 @@ CONTAINS
 
        ! Trap potential errors (we can't exit an OpenMP loop)
        IF ( EC /= GC_SUCCESS ) THEN
-          RC = EC
+          error = .TRUE.
+          CYCLE
        ENDIF
 
        !--------------------------------------------------------------------
@@ -209,7 +220,7 @@ CONTAINS
     !$OMP END PARALLEL DO
 
     ! Return if COMPUTE_F returned an error
-    IF ( RC /= GC_SUCCESS ) THEN
+    IF ( error ) THEN
        ErrMsg = 'Error encountered in "Compute_F"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
@@ -225,10 +236,17 @@ CONTAINS
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
     !$OMP PRIVATE( J, I, EC, AREA_M2, F, DIAG14, DIAG38, S, N, L, NW        )&
+    !$OMP COLLAPSE( 2                                                       )&
     !$OMP SCHEDULE( GUIDED, 8                                               )&
-    !$OMP COLLAPSE( 2                                                       )
+    !$OMP REDUCTION( .OR. : error                                           )&
+    !$OMP REDUCTION( MAX  : errorStatus                                     )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
+
+       ! Skip to the end of the loop if any of the threads returned
+       ! with error.  Then exit this routine with failure status
+       ! outside of the parallel loop, as this is thread-safe.
+       IF ( error ) CYCLE
 
        ! PRIVATE error trapping variable
        EC = GC_SUCCESS
@@ -266,6 +284,12 @@ CONTAINS
                                         USE_DIAG38 = DoWetLoss,              &
                                         DIAG38     = DIAG38,                 &
                                         RC         = EC                     )
+          IF ( EC /= GC_SUCCESS ) THEN
+             error       = .TRUE.
+             errorStatus = 1
+             CYCLE
+          ENDIF
+
        ELSE
           CALL DO_GF_CLOUD_CONVECTION( Input_Opt  = Input_Opt,               &
                                        State_Chm  = State_Chm,               &
@@ -282,11 +306,12 @@ CONTAINS
                                        USE_DIAG38 = DoWetLoss,               &
                                        DIAG38     = DIAG38,                  &
                                        RC         = EC                      )
-       ENDIF
+          IF ( EC /= GC_SUCCESS ) THEN
+             error       = .TRUE.
+             errorStatus = 2
+             CYCLE
+          ENDIF
 
-       ! Trap potential errors (we can't exit an OpenMP loop)
-       IF ( EC /= GC_SUCCESS ) THEN
-          RC = EC
        ENDIF
 
        !--------------------------------------------------------------------
@@ -341,9 +366,15 @@ CONTAINS
     ENDDO
     !$OMP END PARALLEL DO
 
-    ! Return if Do_Cloud_Convection returned an error
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "Do_Cloud_Convection"!'
+    ! Exit this routine with failure status if any thread in the loop
+    ! above exited with an error.  This is the thread-safe implementation.
+    IF ( error ) THEN
+       SELECT CASE( errorSTatus )
+          CASE( 1 )
+             ErrMsg = 'Error encountered in "Do_Ras_Cloud_Convection"!'
+          CASE( 2 )
+             ErrMsg = 'Error encountered in "Do_GF_Cloud_Convection"!'
+       END SELECT
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF

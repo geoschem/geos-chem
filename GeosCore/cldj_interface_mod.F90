@@ -220,7 +220,8 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
-    INTEGER            :: A, I, J, L, K, N, S, MaxLev, RH_ind
+    INTEGER            :: A, I, J, L, K, N, S, MaxLev, RH_ind, EC
+    LOGICAL            :: error
     INTEGER            :: SO4_ind, BC_ind, OC_ind, SALA_ind, SALC_ind
     INTEGER            :: S_rh0, S_rhx, K_rh0, K_rhx, ind_1000
     REAL(8)            :: MW_g, BoxHt, Delta_P, IWC, LWC
@@ -417,6 +418,13 @@ CONTAINS
     ENDDO
     ENDDO
 
+    ! Index for Cloud-J debug prints (only used if CloudJ_Verbose=T)
+    I_PRT = 20
+    J_PRT = 20
+
+    ! Flag for thread-safe exit upon error
+    error = .FALSE.
+
     !=================================================================
     ! For each column compute Cloud-J inputs and call Cloud_JX to compute J-values
     !=================================================================
@@ -432,18 +440,23 @@ CONTAINS
     !$OMP PRIVATE( AERSP, RFL, RRR, LPRTJ, IRAN, CLDCOR, HHH, CCC              ) &
     !$OMP PRIVATE( LDARK, NICA, JCOUNT, SWMSQ, OD18, WTQCA, SKPERD, VALJXX     ) &
     !$OMP PRIVATE( DiffSfcFlux, DirSfcFlux, DepFlux, DiffTopFlux               ) &
-    !$OMP PRIVATE( FDIRECT, FDIFFUSE, UVX_CONST                                ) &
-    !$OMP SCHEDULE( DYNAMIC )
+    !$OMP PRIVATE( FDIRECT, FDIFFUSE, UVX_CONST, MaxLev, EC                    ) &
+    !$OMP COLLAPSE( 2                                                          ) &
+    !$OMP SCHEDULE( DYNAMIC, 8                                                 ) &
+    !$OMP REDUCTION( .OR. : error                                              )
 
     ! Loop over all latitudes and all longitudes
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
+       ! If any of the threads return an error, then skip to the end
+       ! of the loop.  Then exit this routine with failure status
+       ! outside fof the loop. This is the thread-safe implementation.
+       IF ( error ) CYCLE
+
        ! Debug prints in Cloud-J. Limit to one grid cell so not excessive.
        ! Use this for debugging purposes only.
        LPRTJ = .false.
-       I_PRT = 20
-       J_PRT = 20
        IF ( Input_Opt%CloudJ_Verbose ) THEN
           IF ( I == I_PRT .and. J == J_PRT ) THEN
              print*, &
@@ -950,9 +963,16 @@ CONTAINS
                       REFFL,    REFFI,    CLDF,     CLDCOR,   CLDIW,       &
                       AERSP,    NDXAER,   L1_,      AN_,      JVN_,        &
                       VALJXX,   SKPERD,   SWMSQ,    OD18,     IRAN,        &
-                      NICA,     JCOUNT,   LDARK,    WTQCA,    RC,          &
+                      NICA,     JCOUNT,   LDARK,    WTQCA,    EC,          &
                       DirSfcFlux=DirSfcFlux, DiffSfcFlux=DiffSfcFlux,      &
                       DepFlux=DepFlux,       DiffTopFlux=DiffTopFlux      )
+
+       ! Skip to the end of the loop if Cloud_JX failed
+       ! (NOTE: CLDJ_SUCCESS and GC_SUCCESS are both 0)
+       IF ( EC /= GC_SUCCESS ) THEN
+          error = .TRUE.
+          CYCLE
+       ENDIF
 
        !-----------------------------------------------------------------
        ! Fill GEOS-Chem array ZPJ with J-values
@@ -1049,8 +1069,10 @@ CONTAINS
     ENDDO
     !$OMP END PARALLEL DO
 
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in subroutine Cloud_JX within Cloud-J photolysis'
+    ! Exit with error if Cloud_JX failed in any column
+    ! (we cannot do this from within the parallel loop)
+    IF ( error ) THEN
+       ErrMsg = 'Error encountered in call to "Cloud_JX"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
