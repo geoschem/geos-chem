@@ -3506,8 +3506,11 @@ CONTAINS
 !
     USE Cmn_Size_Mod,       ONLY : nAer, nDust
     USE ErrCode_Mod
+    USE GcKpp_Global,       ONLY : ATOL
+    USE GcKpp_Initialize,   ONLY : Initialize
     USE GcKpp_Monitor,      ONLY : Eqn_Names, Fam_Names
     USE GcKpp_Parameters,   ONLY : nFam, nReact
+    USE GcKpp_Precision,    ONLY : dp
     USE Input_Opt_Mod,      ONLY : OptInput
     USE Photolysis_Mod,     ONLY : Init_Photolysis
     USE Species_Mod,        ONLY : Species
@@ -3845,6 +3848,13 @@ CONTAINS
     WHERE( State_Chm%KPP_RelTol == MISSING_DBLE )
        State_Chm%KPP_RelTol = 1.0e-2_f8
     ENDWHERE
+
+    !========================================================================
+    ! Call the KPP Initialize routine to zero concentration arrays
+    ! and to denote dummy species as those having ATOL > 1e25.
+    !========================================================================
+    ATOL = State_Chm%KPP_AbsTol
+    CALL Initialize( PassiveSpc_ATOL_Threshold = 1.0e+25_dp )
 
     !========================================================================
     ! Various Settings (not sure how many of these still work)

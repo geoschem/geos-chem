@@ -3643,7 +3643,7 @@ CONTAINS
     ! Use the formulation of Slinn and Slinn (1980) for the impaction over
     ! water surfaces (jaegle 5/11/11)
     IF (LUC == 14) THEN
-#ifdef MODEL_GCHPCTM
+#ifdef MODEL_GCHP
        ! Include check that winds are non-zero to avoid div by 0 error
        IF ( IS_SAFE_DIV(1.e+0_f8, W10) ) THEN
           RS = 1.e+0_f8 / (USTAR**2.e+0_f8/ (W10*VON_KARMAN) * &

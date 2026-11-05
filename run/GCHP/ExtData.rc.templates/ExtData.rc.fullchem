@@ -52,10 +52,11 @@ CONV_DEPTH 1 Y Y F1980-%m2-01T00:00:00 none none CTH   ./HcoDir/OFFLINE_LIGHTNIN
 #==============================================================================
 # --- Fields for RRTMG ---
 # Dynamical heating data is only read in when RRTMG FDH/SEFDH is used and
-# must be generated in a reference (companion) run. The time after P at
+# IMPORT_DYN_HEATING setting set to 1 in GCHP.rc
+# DynHeating data must be generated in a reference (companion) run. The time after P at
 # the end should be the RRTMG time step (3 hours by default)
 #==============================================================================
-DynHeating 1 N N F%y4-%m2-%d2T%h2:00:00 none none DynHeating ./DynHeating/GEOSChem.DynHeating.%y4%m2%d2_%h2%n2z.nc4 2000-01-01T00:00:00P03:00
+DynHeating Kday-1 N N F%y4-%m2-%d2T%h2:00:00 none none DynHeating ./DynHeating/GEOSChem.DynHeating.%y4%m2%d2_%h2%n2z.nc4 2000-01-01T00:00:00P03:00
 #
 ###############################################################################
 ###
@@ -1600,39 +1601,6 @@ EOH_PLANTDECAY  kgC/m2/s Y Y F1985-%m2-01T00:00:00 none none HET_RESP ./HcoDir/A
 #==============================================================================
 #
 #==============================================================================
-# --- GFAS biomass burning (GFAS) ---
-# GFAS is off by default in HEMCO_Config.rc; fill in this section if turning on
-#==============================================================================
-#GFAS_CO    kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none cofire        ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
-#GFAS_SOAP  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none cofire        ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
-#GFAS_CH3OH kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none ch3ohfire     ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
-#GFAS_NO    kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none noxfire       ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
-#GFAS_BCPI  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none bcfire        ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
-#GFAS_BCPO  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none bcfire        ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
-#GFAS_OCPI  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none ocfire        ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
-#GFAS_OCPO  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none ocfire        ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
-#GFAS_CO2   kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none co2fire       ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
-#GFAS_CH4   kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none ch4fire       ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
-#GFAS_SO2   kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none so2fire       ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
-#GFAS_pFe   kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none so2fire       ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
-#GFAS_NH3   kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none nh3fire       ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
-#GFAS_ACET  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none c3h6ofire     ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
-#GFAS_ALD2  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none c2h4ofire     ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
-#GFAS_ALK4  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none hialkanesfire ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
-#GFAS_PRPE1 kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none hialkenesfire ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
-#GFAS_PRPE2 kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none c3h6fire      ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
-#GFAS_C2H6  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none c2h6fire      ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
-#GFAS_C3H8  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none c3h8fire      ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
-#GFAS_CH2O  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none ch2ofire      ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
-#GFAS_C2H4  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none c2h4fire      ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
-#GFAS_ISOP  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none c5h8fire      ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
-#GFAS_DMS   kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none c2h6sfire     ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
-#GFAS_TOLU  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none c7h8fire      ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
-#GFAS_BENZ  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none c6h6fire      ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
-#GFAS_XYLE  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none c8h10fire     ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
-#GFAS_EMITL m       N Y F%y4-%m2-%d2T00:00:00 none none mami          ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
-#
-#==============================================================================
 # --- GFED4 climatology ---
 # GFED4_CLIMATOLOGY is off by default in HEMCO_Config.rc; fill in this section if turning on
 #==============================================================================
@@ -1832,6 +1800,36 @@ GFED_FRAC_DAY 1 N Y %y4-%m2-%d2T00:00:00 none none GFED_FRACDAY ./HcoDir/GFED4/v
 #
 # --- GFED_3hourly ---
 GFED_FRAC_3HOUR 1 N Y %y4-%m2-01T%h2:00:00 none none GFED_FRAC3HR ./HcoDir/GFED4/v2023-03/%y4/GFED4_3hrfrac_gen.025x025.%y4%m2.nc
+#
+#==============================================================================
+# --- GFAS biomass burning (Extension 112) ---
+#==============================================================================
+GFAS_CO_3D    kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none cofire_3d     ./HcoDir/GFAS/v2026-06/%y4/%m2/GFAS-smoke-%y4%m2%d2.nc
+GFAS_CO_2D    kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none cofire        ./HcoDir/GFAS/v2026-06/%y4/%m2/GFAS-smoke-%y4%m2%d2.nc
+GFAS_ACET_2D  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none c3h6ofire     ./HcoDir/GFAS/v2026-06/%y4/%m2/GFAS-smoke-%y4%m2%d2.nc
+GFAS_ALD2_2D  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none c2h4ofire     ./HcoDir/GFAS/v2026-06/%y4/%m2/GFAS-smoke-%y4%m2%d2.nc
+GFAS_ALK4_2D  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none hialkanesfire ./HcoDir/GFAS/v2026-06/%y4/%m2/GFAS-smoke-%y4%m2%d2.nc
+GFAS_BCPI_2D  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none bcfire        ./HcoDir/GFAS/v2026-06/%y4/%m2/GFAS-smoke-%y4%m2%d2.nc
+GFAS_BCPO_2D  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none bcfire        ./HcoDir/GFAS/v2026-06/%y4/%m2/GFAS-smoke-%y4%m2%d2.nc
+GFAS_BENZ_2D  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none c6h6fire      ./HcoDir/GFAS/v2026-06/%y4/%m2/GFAS-smoke-%y4%m2%d2.nc
+GFAS_C2H4_2D  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none c2h4fire      ./HcoDir/GFAS/v2026-06/%y4/%m2/GFAS-smoke-%y4%m2%d2.nc
+GFAS_C2H6_2D  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none c2h6fire      ./HcoDir/GFAS/v2026-06/%y4/%m2/GFAS-smoke-%y4%m2%d2.nc
+GFAS_C3H8_2D  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none c3h8fire      ./HcoDir/GFAS/v2026-06/%y4/%m2/GFAS-smoke-%y4%m2%d2.nc
+GFAS_CH2O_2D  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none ch2ofire      ./HcoDir/GFAS/v2026-06/%y4/%m2/GFAS-smoke-%y4%m2%d2.nc
+GFAS_MOH_2D   kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none ch3ohfire     ./HcoDir/GFAS/v2026-06/%y4/%m2/GFAS-smoke-%y4%m2%d2.nc
+GFAS_CH4_2D   kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none ch4fire       ./HcoDir/GFAS/v2026-06/%y4/%m2/GFAS-smoke-%y4%m2%d2.nc
+GFAS_DMS_2D   kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none c2h6sfire     ./HcoDir/GFAS/v2026-06/%y4/%m2/GFAS-smoke-%y4%m2%d2.nc
+GFAS_ISOP_2D  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none c5h8fire      ./HcoDir/GFAS/v2026-06/%y4/%m2/GFAS-smoke-%y4%m2%d2.nc
+GFAS_NH3_2D   kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none nh3fire       ./HcoDir/GFAS/v2026-06/%y4/%m2/GFAS-smoke-%y4%m2%d2.nc
+GFAS_NO_2D    kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none noxfire       ./HcoDir/GFAS/v2026-06/%y4/%m2/GFAS-smoke-%y4%m2%d2.nc
+GFAS_OCPI_2D  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none ocfire        ./HcoDir/GFAS/v2026-06/%y4/%m2/GFAS-smoke-%y4%m2%d2.nc
+GFAS_OCPO_2D  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none ocfire        ./HcoDir/GFAS/v2026-06/%y4/%m2/GFAS-smoke-%y4%m2%d2.nc
+GFAS_pFe_2D   kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none so2fire       ./HcoDir/GFAS/v2026-06/%y4/%m2/GFAS-smoke-%y4%m2%d2.nc
+GFAS_PRPE1_2D kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none hialkenesfire ./HcoDir/GFAS/v2026-06/%y4/%m2/GFAS-smoke-%y4%m2%d2.nc
+GFAS_PRPE2_2D kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none c3h6fire      ./HcoDir/GFAS/v2026-06/%y4/%m2/GFAS-smoke-%y4%m2%d2.nc
+GFAS_SO2_2D   kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none so2fire       ./HcoDir/GFAS/v2026-06/%y4/%m2/GFAS-smoke-%y4%m2%d2.nc
+GFAS_TOLU_2D  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none c7h8fire      ./HcoDir/GFAS/v2026-06/%y4/%m2/GFAS-smoke-%y4%m2%d2.nc
+GFAS_XYLE_2D  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none c8h10fire     ./HcoDir/GFAS/v2026-06/%y4/%m2/GFAS-smoke-%y4%m2%d2.nc
 #
 #==============================================================================
 # --- FINN v2.5 biomass burning emissions (Extension 114)
@@ -2182,9 +2180,6 @@ TES_CLIM_CFC12 ppbv N Y - none none CFC12 ./HcoDir/RRTMG/v2018-11/species_clim_p
 TES_CLIM_CFC22 ppbv N Y - none none CFC22 ./HcoDir/RRTMG/v2018-11/species_clim_profiles.2x25.nc
 TES_CLIM_CH4   ppbv N Y - none none CH4   ./HcoDir/RRTMG/v2018-11/species_clim_profiles.2x25.nc
 TES_CLIM_N2O   ppbv N Y - none none N2O   ./HcoDir/RRTMG/v2018-11/species_clim_profiles.2x25.nc
-#
-# Dynamical heating rates from a previous reference (baseline) simulation
-DynHeating Kday-1 N N F%y4-%m2-%d2T%h2:00:00 none none DynHeating ./Heating_Baseline/GEOSChem.DynHeating.%y4%m2%d2_%h2%n2z.nc4 2000-01-01T00:00:00P03:00
 #
 #==============================================================================
 # --- Surface VMR (SfcVMR) ---

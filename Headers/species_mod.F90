@@ -15,7 +15,7 @@ MODULE Species_Mod
 !
 ! USES:
 !
-#if defined( MODEL_GCHPCTM)
+#if defined( MODEL_GCHP)
   USE ESMF
 #endif
   USE Precision_Mod
@@ -66,7 +66,7 @@ MODULE Species_Mod
   ! Type for single species concentrations
   !=========================================================================
   TYPE, PUBLIC :: SpcConc
-#if defined( MODEL_GCHPCTM )
+#if defined( MODEL_GCHP )
      REAL(ESMF_KIND_R8), POINTER :: Conc(:,:,:) ! Concentration array
 #else
      REAL(fp), POINTER :: Conc(:,:,:)           ! Concentration array

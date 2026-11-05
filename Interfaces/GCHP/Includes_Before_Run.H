@@ -72,8 +72,13 @@
 
   ! Get UV albedo for photolysis
   Ptr2d => NULL()
+#ifdef MAPL3
+  CALL MAPL_StateGetPointer ( IMPORT, Ptr2D, 'UV_ALBEDO', &
+                              notFoundOK=.TRUE., __RC__ )
+#else
   CALL MAPL_GetPointer ( IMPORT, Ptr2D, 'UV_ALBEDO', &
                          notFoundOK=.TRUE., __RC__ )
+#endif
   If ( ASSOCIATED(Ptr2D) ) Then
      State_Met%UVALBEDO(:,:) = Ptr2D(:,:)
      Ptr2D => NULL()
@@ -100,14 +105,15 @@
     State_Met%PFLLSAN(:,:,:)   = State_Met%PFLLSAN(:,:,z_ub:z_lb:-1)
   end if
 
-  ! NOTE: PLE (imported from advection) is reversed in the vertical!
-  ! Note that this will end up affecting DELP and therefore
-  ! State_Met%PEDGE_DRY, but that the major dry pressure variables are
-  ! derived from PS1_DRY and PS2_DRY.
-  ! These will, in turn, be determined from PS1_WET and PS2_WET, which
-  ! are set in the block above.
-
-  ! Convert Pa -> hPa
+  ! Set edge pressures, convert Pa -> hPa, and vertically flip
+  !
+  ! NOTE: PLE is post-advection pressure edges computed in the
+  ! GCHPctmEnv gridded component, passed to FV3, and then passed
+  ! (unchanged) to GEOS-Chem. Note that it is reversed in the vertical
+  ! because it was prepared for and used in FV3. It was constructed from
+  ! the instantaneous meteorology surface pressures PS1 and PS2 through
+  ! time-interpolation to time after advection. This means PEDGE in
+  ! GEOS-Chem represents post-advection pressure.
   State_Met%PEDGE  (:,:,1:State_Grid%NZ+1) = PLE(:,:,State_Grid%NZ:0:-1) / 1d2
 
   ! These will be set based on PS1_WET and PS2_WET in gchp_chunk_mod.F90
@@ -193,8 +199,10 @@
     endif
   endif
 
-  State_Met%SPHU                =(State_Met%SPHU1+State_Met%SPHU2)*0.5d0
-  State_Met%T                   =(State_Met%TMPU1+State_Met%TMPU2)*0.5d0
+  ! Set specific humidity and temperature to post-advection values
+  ! for consistency with pressure PEDGE (see note above)
+  State_Met%SPHU                = State_Met%SPHU2
+  State_Met%T                   = State_Met%TMPU2
 
   ! Create total optical depth field                         ! 1
   State_Met%OPTD                = State_Met%TAUCLI + State_Met%TAUCLW

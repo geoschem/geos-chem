@@ -313,7 +313,7 @@ CONTAINS
        CALL Expand_Date_Time( DateStr    = FileName,                         &
                               yyyymmdd   = Container%ReferenceYmd,           &
                               hhmmss     = Container%ReferenceHms,           &
-                              MAPL_Style = .TRUE.                           )
+                              MAPL2_Style = .TRUE.                           )
 
 !------------------------------------------------------------------------------
 ! TEMPORARY FIX (bmy, 9/20/17)
@@ -1085,7 +1085,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Expand_Date_Time( DateStr, yyyymmdd, hhmmss, MAPL_Style )
+  SUBROUTINE Expand_Date_Time( DateStr, yyyymmdd, hhmmss, MAPL2_Style )
 !
 ! !USES:
 !
@@ -1096,7 +1096,7 @@ CONTAINS
 !
     INTEGER,          INTENT(IN)    :: yyyymmdd    ! Date in YYYYMMDD format
     INTEGER,          INTENT(IN)    :: hhmmss      ! Time in hhmmss format
-    LOGICAL,          OPTIONAL      :: MAPL_Style  ! Use MAPL-style tokens
+    LOGICAL,          OPTIONAL      :: MAPL2_Style  ! Use MAPL2-style tokens
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1115,7 +1115,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL          :: Is_Mapl_Style
+    LOGICAL          :: Is_Mapl2_Style
     INTEGER          :: Year,          Month,      Day
     INTEGER          :: Hour,          Minute,     Second
 
@@ -1127,10 +1127,10 @@ CONTAINS
     !========================================================================
     ! Initialize
     !========================================================================
-    IF ( PRESENT( MAPL_Style ) ) THEN
-       Is_Mapl_Style = MAPL_Style
+    IF ( PRESENT( MAPL2_Style ) ) THEN
+       Is_Mapl2_Style = MAPL2_Style
     ELSE
-       Is_Mapl_Style = .FALSE.
+       Is_Mapl2_Style = .FALSE.
     ENDIF
 
     !========================================================================
@@ -1153,9 +1153,9 @@ CONTAINS
     ! Replace the date and time tokens in the string
     !========================================================================
 
-    IF ( Is_Mapl_Style ) THEN
+    IF ( Is_Mapl2_Style ) THEN
 
-       ! Use MAPL-style tokens
+       ! Use MAPL2-style tokens
        CALL StrRepl( DateStr, '%y4',  YearStr   )
        CALL StrRepl( DateStr, '%m2',  MonthStr  )
        CALL StrRepl( DateStr, '%d2',  DayStr    )

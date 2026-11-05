@@ -99,6 +99,7 @@ endif()
 
 # Define dependencies for libGeosCore.a
 target_link_libraries(GeosCore PUBLIC
+  GeosUtil
   ObsPack 
   History
   KPP

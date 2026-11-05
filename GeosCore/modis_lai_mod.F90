@@ -22,7 +22,9 @@ MODULE Modis_Lai_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
+#ifndef MAPL_ESMF
   PUBLIC :: Get_XlaiNative_from_Hemco
+#endif
   PUBLIC :: Compute_Xlai
 !
 ! !REMARKS:
@@ -45,6 +47,7 @@ MODULE Modis_Lai_Mod
 !BOC
 CONTAINS
 !EOC
+#ifndef MAPL_ESMF
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -130,6 +133,7 @@ CONTAINS
 
   END SUBROUTINE Get_XlaiNative_from_HEMCO
 !EOC
+#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -169,8 +173,7 @@ CONTAINS
     INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
-!  State_Met%XLAI_NATIVE is the LAI data as it comes in from either HEMCO
-!  or the MAPL import state via ExtData.
+!  State_Met%XLAI_NATIVE is the LAI input data read from file.
 !                                                                             .
 !  State_Met%XLAI is used for inputs into the GEOS-Chem dry deposition code.
 !  It is the LAI binned into the 11 dry-deposition land types.

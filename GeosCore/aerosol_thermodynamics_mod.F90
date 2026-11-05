@@ -213,7 +213,7 @@ CONTAINS
     REAL(f8)                 :: HETP_HCl,   HETP_Na,   HETP_Ca,    HETP_K
     REAL(f8)                 :: HETP_Mg,    HETP_H,    HETP_OH,    HETP_LWC
     REAL(f8)                 :: HETP_frNa,  HETP_frCa, HETP_frK,   HETP_frMg
-    REAL(f8)                 :: HETP_frSO4, HETP_num
+    REAL(f8)                 :: HETP_frSO4, HETP_num, HETP_IONIC
 
     ! Strings
     CHARACTER(LEN=15)        :: SCASI
@@ -268,14 +268,15 @@ CONTAINS
 
     ! Zero State_Chm arrays to avoid leftover values from hanging
     ! around between calls -- especially up near the tropopause
-    State_Chm%IsorropAeropH    = 0.0_fp
-    State_Chm%IsorropHplus     = 0.0_fp
-    State_Chm%IsorropAeroH2O   = 0.0_fp
-    State_Chm%IsorropSulfate   = 0.0_fp
-    State_Chm%IsorropNitrate   = 0.0_fp
-    State_Chm%IsorropBisulfate = 0.0_fp
-    State_Chm%IsorropChloride  = 0.0_fp
-
+    State_Chm%AteAeropH    = 0.0_fp
+    State_Chm%AteHplus     = 0.0_fp
+    State_Chm%AteAeroH2O   = 0.0_fp
+    State_Chm%AteSulfate   = 0.0_fp
+    State_Chm%AteNitrate   = 0.0_fp
+    State_Chm%AteBisulfate = 0.0_fp
+    State_Chm%AteChloride  = 0.0_fp
+    State_Chm%AteIONIC     = 0.0_fp
+    State_Chm%AteOH        = 0.0_fp
     ! First-time initialization
     IF ( FIRST ) THEN
 
@@ -492,7 +493,7 @@ CONTAINS
     !$OMP PRIVATE( HETP_HCl,   HETP_Na,   HETP_Ca,    HETP_K               ) &
     !$OMP PRIVATE( HETP_Mg,    HETP_H,    HETP_OH,    HETP_LWC             ) &
     !$OMP PRIVATE( HETP_frNa,  HETP_frCa, HETP_frK,   HETP_frMg            ) &
-    !$OMP PRIVATE( HETP_frSO4, HETP_num                                    ) &
+    !$OMP PRIVATE( HETP_frSO4, HETP_num,  HETP_IONIC                       ) &
     !$OMP COLLAPSE( 3                                                      ) &
     !$OMP SCHEDULE( DYNAMIC, 8                                             )
     DO L = 1, State_Grid%NZ
@@ -818,6 +819,7 @@ CONTAINS
              ! For safety
              GAS = 0.0d0
              AERLIQ = 0.0d0
+             OTHER  = 0.0d0
              Call MACH_HETP_Main_15Cases( WI(2), WI(3), WI(4), WI(1), WI(5),            &
                                           WI(6), WI(7), WI(8), TEMPI, RHI,              &
                                           HETP_SO4,   HETP_HSO4, HETP_CaSO4, HETP_NH4,  &
@@ -825,7 +827,7 @@ CONTAINS
                                           HETP_HCl,   HETP_Na,   HETP_Ca,    HETP_K,    &
                                           HETP_Mg,    HETP_H,    HETP_OH,    HETP_LWC,  &
                                           HETP_frNa,  HETP_frCa, HETP_frK,   HETP_frMg, &
-                                          HETP_frSO4, HETP_num                          )
+                                          HETP_frSO4, HETP_IONIC, HETP_num              )
              ! Spoof ISORROPIA outputs which are still used
              GAS(1) = HETP_NH3
              GAS(2) = HETP_HNO3
@@ -838,7 +840,8 @@ CONTAINS
              AERLIQ( 5) = HETP_SO4
              AERLIQ( 6) = HETP_HSO4
              AERLIQ( 7) = HETP_NO3
-             AERLIQ( 8) = HETP_LWC
+             AERLIQ( 8) = HETP_LWC 
+             OTHER( 5)  = HETP_IONIC
              ! WT is used below but is identical to WI for a forward case
              WT(:) = WI(:)
 
@@ -954,15 +957,15 @@ CONTAINS
           IF ( AERLIQ(8) < 1e-18_fp ) THEN
              ! Aerosol is dry so HPLUSTEMP and PH_SAV are undefined
              ! We force HPLUSTEMP to 1d20 (hotp, ccc, 12/18/09)
-             ! Force IsorropAeropH to 20e0 (X. Wang, 6/27/19)
+             ! Force AteAeropH to 20e0 (X. Wang, 6/27/19)
              !HPLUSTEMP       = 1e+20_fp
              HPLUSTEMP       = 1.0e-30_fp
              SULFTEMP        = 1.0e-30_fp
              BISULTEMP       = 1.0e-30_fp
              NITRTEMP        = 1.0e-30_fp
              CLTEMP          = 1.0e-30_fp
-             !State_Chm%IsorropAeropH(I,J,L,N) = -999e+0_fp
-             State_Chm%IsorropAeropH(I,J,L,N) = 20.0_fp
+             !State_Chm%AteAeropH(I,J,L,N) = -999e+0_fp
+             State_Chm%AteAeropH(I,J,L,N) = 20.0_fp
           ELSE
              HPLUSTEMP    = AERLIQ(1) / AERLIQ(8) * 1.0e+3_fp / 18.0_fp
              SULFTEMP     = AERLIQ(5) / AERLIQ(8) * 1.0e+3_fp / 18.0_fp
@@ -971,19 +974,21 @@ CONTAINS
              CLTEMP       = AERLIQ(4) / AERLIQ(8) * 1.0e+3_fp / 18.0_fp
 
              ! Use SAFELOG10 to prevent NAN
-             State_Chm%IsorropAeropH(I,J,L,N)=-1.0_fp*SAFELOG10(HPLUSTEMP)
+             State_Chm%AteAeropH(I,J,L,N)=-1.0_fp*SAFELOG10(HPLUSTEMP)
           ENDIF
 
           ! Additional Info
-          State_Chm%IsorropHplus(I,J,L,N)   = MAX(HPLUSTEMP, 1e-30_fp)
-          State_Chm%IsorropAeroH2O(I,J,L,N) = MAX((AERLIQ(8)*18e+6_fp),1e-30_fp) ! mol/m3 -> ug/m3
-          State_Chm%IsorropNitrate(I,J,L,N) = MAX(NITRTEMP, 1e-30_fp)
-          State_Chm%IsorropChloride(I,J,L,N)= MAX(CLTEMP, 1e-30_fp)
+          State_Chm%AteHplus(I,J,L,N)   = MAX(HPLUSTEMP, 1e-30_fp)
+          State_Chm%AteAeroH2O(I,J,L,N) = MAX((AERLIQ(8)*18e+6_fp),1e-30_fp) ! mol/m3 -> ug/m3
+          State_Chm%AteNitrate(I,J,L,N) = MAX(NITRTEMP, 1e-30_fp)
+          State_Chm%AteChloride(I,J,L,N)= MAX(CLTEMP, 1e-30_fp)
           IF (N==1) THEN
-             State_Chm%IsorropSulfate(I,J,L)  = MAX(SULFTEMP, 1e-30_fp)
-             State_Chm%IsorropBisulfate(I,J,L)= MAX(BISULTEMP, 1e-30_fp)
+             State_Chm%AteSulfate(I,J,L)  = MAX(SULFTEMP, 1e-30_fp)
+             State_Chm%AteBisulfate(I,J,L)= MAX(BISULTEMP, 1e-30_fp)
              State_Chm%AeroH2O(I,J,L,1+NDUST) = AERLIQ(8) * 18e+0_fp ! mol/m3 -> g/m3
-
+             State_Chm%AteIONIC(I,J,L)    = max(OTHER(5), 1e-30_fp) ! mol/m3
+             State_Chm%AteOH(I,J,L)       = max(OTHER(4), 1E-30_fp) ! mol/m3
+         
              NUM_SAV = ( Spc(id_NH3 )%Conc(I,J,L)  / 17.0_fp                 &
                      +   Spc(id_NH4 )%Conc(I,J,L)  / 18.0_fp                 &
                      +   Spc(id_SALA)%Conc(I,J,L) * 0.3061_fp / 23.0_fp     )

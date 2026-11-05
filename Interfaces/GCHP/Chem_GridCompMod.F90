@@ -1,5 +1,8 @@
+#ifdef MAPL3
+#include "MAPL.h"
+#else
 #include "MAPL_Generic.h"
-
+#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
@@ -1727,7 +1730,7 @@ CONTAINS
     ENDIF
 #endif
 
-#ifdef MODEL_GCHPCTM
+#ifdef MODEL_GCHP
     ! Set delta pressure export to interal state variable DELP_DRY.
     ! This is used in the first timestep in FV3, before advection, to
     ! adjust species v/v for conservation of restart file mass, if
@@ -2480,8 +2483,8 @@ CONTAINS
        !CALL GetHcoState( HcoState )
        _ASSERT(ASSOCIATED(HcoState),'HcoState is not associated')
        HcoState%GRIDCOMP => GC
-       HcoState%IMPORT   => IMPORT
-       HcoState%EXPORT   => EXPORT
+       HcoState%importState   => IMPORT
+       HcoState%exportState   => EXPORT
        !HcoState => NULL()
 
 #endif
@@ -2494,8 +2497,8 @@ CONTAINS
    ! Link HEMCO state to gridcomp objects
    ASSERT_(ASSOCIATED(HcoState))
    HcoState%GRIDCOMP => GC
-   HcoState%IMPORT   => IMPORT
-   HcoState%EXPORT   => EXPORT
+   HcoState%importState   => IMPORT
+   HcoState%exportState   => EXPORT
 #endif
 #ifdef ADJOINT
        call MAPL_GetPointer( IMPORT, CostFuncMask, &
@@ -2662,7 +2665,7 @@ CONTAINS
 #include "Includes_Before_Run.H"
        CALL MAPL_TimerOff(STATE, "CP_BFRE")
 
-#if defined( MODEL_GCHPCTM )
+#if defined( MODEL_GCHP )
        !=======================================================================
        ! Point GEOS-Chem species concentration arrays to internal state
        !=======================================================================
@@ -2700,12 +2703,31 @@ CONTAINS
           ! Get Internal state
           CALL MAPL_Get ( STATE, INTERNAL_ESMF_STATE=INTERNAL, __RC__ )
 
+
+#ifdef JACOBIAN
+          ! Set Jacobian local variables
+          primarySpcName = ''
+          primarySpcId = -1
+          DO N = 1, State_Chm%nSpecies
+             ThisSpc => State_Chm%SpcData(N)%Info
+             IF ( ThisSpc%Is_JacobianTracer .AND. primarySpcID == -1 ) THEN
+                ThisSpc => State_Chm%SpcData(N)%Info
+                primarySpcName = ThisSpc%Name(1:LEN(trim(ThisSpc%Name))-8)
+                primarySpcId = IND_(trim(primarySpcName))
+                EXIT
+             ENDIF
+          ENDDO
+#endif
+
           ! Loop over all species and get info from spc db
           DO N = 1, State_Chm%nSpecies
              ThisSpc => State_Chm%SpcData(N)%Info
              IF ( TRIM(ThisSpc%Name) == '' ) CYCLE
              IND = IND_( TRIM(ThisSpc%Name ) )
              IF ( IND < 0 ) CYCLE
+#ifdef JACOBIAN
+             IF ( ThisSpc%Is_JacobianTracer ) CYCLE
+#endif
 
              ! Determine if species in restart file
              CALL ESMF_StateGet( INTERNAL, TRIM(SPFX) // TRIM(ThisSpc%Name),  &
@@ -2714,13 +2736,20 @@ CONTAINS
                   VALUE=RST, RC=STATUS )
 
              ! Set spc conc to background value if rst skipped or var not there
-             IF ( ( RC  /= ESMF_SUCCESS           .OR.     &
-                    RST == MAPL_RestartBootstrap  .OR.     &
-                    RST == MAPL_RestartSkipInitial  )      &
+             IF ( RC  /= ESMF_SUCCESS           .OR.     &
+                  RST == MAPL_RestartBootstrap  .OR.     &
+                  RST == MAPL_RestartSkipInitial  ) THEN
+
 #ifdef JACOBIAN
-                    .AND. .NOT. ThisSpc%Is_JacobianTracer  &
+                ! Exit with error if the primary species is not found in restart
+                IF ( primarySpcId == IND ) THEN
+                   WRITE(*,*) '   ERROR: Cannot find primary species used to initialize ' &
+                        'Jacobian tracers in restart file: ' // trim(primarySpcName)
+                   STATUS = GC_FAILURE
+                   _VERIFY(STATUS)
+                ENDIF
 #endif
-                    ) THEN
+
                 DO L = 1, State_Grid%NZ
                 DO J = 1, State_Grid%NY
                 DO I = 1, State_Grid%NX
@@ -2742,11 +2771,22 @@ CONTAINS
                 ENDIF
              ENDIF
 
+             ThisSpc => NULL()
+          ENDDO
+
 #ifdef JACOBIAN
-             ! Do special handling if this is a Jacobian tracer             
-             IF ( ThisSpc%Is_JacobianTracer ) THEN
-                primarySpcName = ThisSpc%Name(1:LEN(trim(ThisSpc%Name))-8)
-                primarySpcId = IND_(trim(primarySpcName))
+          ! Set Jacobian species to primary species values if the Jacobian
+          ! species is missing in the restart file
+          DO N = 1, State_Chm%nSpecies
+             ThisSpc => State_Chm%SpcData(N)%Info
+             IF ( .NOT. ThisSpc%Is_JacobianTracer ) CYCLE
+
+             CALL ESMF_StateGet( INTERNAL, TRIM(SPFX) // TRIM(ThisSpc%Name),  &
+                  trcFIELD, RC=RC )
+             CALL ESMF_AttributeGet( trcFIELD, NAME="RESTART", VALUE=RST, RC=STATUS )
+             IF ( RC  /= ESMF_SUCCESS           .OR.     &
+                  RST == MAPL_RestartBootstrap  .OR.     &
+                  RST == MAPL_RestartSkipInitial  ) THEN
                 State_Chm%Species(IND)%Conc = State_Chm%Species(primarySpcId)%Conc
                 IF ( MAPL_am_I_Root()) THEN
                    WRITE(*,*) '   INFO: using the initial concentration of ' &
@@ -2754,10 +2794,11 @@ CONTAINS
                         // trim(ThisSpc%Name)
                 ENDIF
              ENDIF
-#endif
 
              ThisSpc => NULL()
           ENDDO
+#endif
+
        ENDIF
 
        !=======================================================================
@@ -3081,7 +3122,7 @@ CONTAINS
        ! be seen by other components (moist, turbulence, ...)
        !=======================================================================
 
-#if defined( MODEL_GCHPCTM )
+#if defined( MODEL_GCHP )
        CALL MAPL_TimerOn(STATE, "CP_AFTR")
 #endif
 
@@ -3138,7 +3179,7 @@ CONTAINS
        phms = nhms
 #endif
 
-#if defined( MODEL_GCHPCTM )
+#if defined( MODEL_GCHP )
 #ifdef ADJOINT
        IF (Input_Opt%Is_Adjoint) THEN
           State_Chm%SpeciesAdj = State_Chm%SpeciesAdj(:,:,State_Grid%NZ:1:-1,:)
@@ -3304,7 +3345,7 @@ CONTAINS
     CALL CopyGCStates2Exports( am_I_Root, Input_Opt, HistoryConfig, STATUS )
     _VERIFY(STATUS)
 
-#if defined( MODEL_GCHPCTM )
+#if defined( MODEL_GCHP )
     !=======================================================================
     ! Nullify GEOS-Chem species concentration pointers
     !=======================================================================
@@ -3343,8 +3384,8 @@ CONTAINS
 #if defined( MODEL_GEOS )
     ! Unlink HEMCO state from gridcomp objects
     HcoState%GRIDCOMP => NULL()
-    HcoState%IMPORT   => NULL()
-    HcoState%EXPORT   => NULL()
+    HcoState%importState   => NULL()
+    HcoState%exportState   => NULL()
 #endif
 
     ! Successful return
@@ -3525,8 +3566,8 @@ CONTAINS
     ! Link HEMCO state to gridcomp objects
     _ASSERT(ASSOCIATED(HcoState),'HcoState is not associated')
     HcoState%GRIDCOMP => GC
-    HcoState%IMPORT   => IMPORT
-    HcoState%EXPORT   => EXPORT
+    HcoState%importState   => IMPORT
+    HcoState%exportState   => EXPORT
 #endif
 
 #ifdef ADJOINT

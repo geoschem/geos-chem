@@ -240,6 +240,8 @@ operations:
       - HCFC22
       - HCl
       - HCOOH
+      - HFC23
+      - HFO1234zeE
       - HI
       - HMHP
       - HMML
@@ -312,6 +314,7 @@ operations:
       - MCRHNB
       - MCRHP
       - MCT
+      - MDL
       - MEK
       - MEKPN
       - MENO3
@@ -395,6 +398,7 @@ operations:
       - SOAP
       - SOAS
       - STYR
+      - TFALD
       - TLFUONE
       - TMB
       - TOLU

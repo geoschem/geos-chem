@@ -20,10 +20,25 @@ NUM_CORES_PER_NODE=${RUNDIR_CORES_PER_NODE}
 #------------------------------------------------
 # Even integer representing number of grid cells per cubed-sphere face side
 #
-# NOTE: If using mass flux inputs then grid resolution must be evenly divisible
-# by input mass flux resolution, or vice versa. Acceptable resolutions for GEOS-IT
-# when using mass fluxes are therefore in set [10,30,90,180,360,540,720,etc]
-
+# IMPORTANT NOTES:
+#
+# (1) Users are encouraged to think carefully about their run's needs and 
+# available resources when choosing a grid resolution. Higher-resolution 
+# simulations provide a more faithful representation of transport. While most 
+# users should find C90 sufficient for their research needs, current 
+# GCHP applications commonly span within C48 to C360.
+# See https://gchp.readthedocs.io/en/latest/supplement/horizontal-grids.html
+# for more information about available grids.
+#
+# (2) Higher resolution results in increased computation cost and longer run times.
+# Think carefully about your specific requirements before submitting new jobs. If doing
+# your first GCHP run on a new system, we recommend using c24 with few cores.
+#
+# (3) If using mass flux inputs then grid resolution must be evenly divisible by input 
+# mass flux resolution, or vice versa. Acceptable resolutions for GEOS-IT when using 
+# mass fluxes are therefore in set [10,30,90,180,360,540,720,etc]
+#
+#
 CS_RES=${RUNDIR_CS_RES}
 
 #------------------------------------------------

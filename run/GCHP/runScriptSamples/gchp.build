@@ -1,0 +1,31 @@
+#!/bin/bash
+
+# Uncomment or adapt as needed. Build will be local if commented out.
+##SBATCH -n 24
+##SBATCH -N 1
+##SBATCH -c 1
+##SBATCH -t 0-1:00
+##SBATCH -p ____
+##SBATCH --mem=60000
+##SBATCH --job-name=build.carbon
+##SBATCH --output=slurm.%x.%j.log
+
+source gchp.env
+cd build
+
+#####################################################
+# Choose mechanism and other flags. Adapt as needed
+
+# Carbon mechanism
+#cmake ../CodeDir -DRUNDIR=.. -DMECH=carbon
+
+# Fullchem mechanism
+make ../CodeDir -DRUNDIR=..
+
+#####################################################
+
+make -j
+make install
+cd ..
+
+exit 0

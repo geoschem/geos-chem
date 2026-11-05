@@ -435,7 +435,7 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Grid%YSIN = 0.0_f8
 
-#if !defined( MODEL_GCHPCTM ) && !defined( MODEL_GEOS )
+#if !defined( MODEL_GCHP ) && !defined( MODEL_GEOS )
     !========================================================================
     ! Allocate coordinate variables for GC-Classic History diagnostics
     !========================================================================
@@ -605,7 +605,7 @@ CONTAINS
     CALL GC_CheckVar( 'State_Grid%Area_M2', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-#if !defined( MODEL_GCHPCTM ) && !defined( MODEL_GEOS )
+#if !defined( MODEL_GCHP ) && !defined( MODEL_GEOS )
     !---------------------------
     ! State_Grid%GlobalXEdge
     !---------------------------
@@ -805,7 +805,7 @@ CONTAINS
     CALL GC_CheckVar( 'State_Grid%YSIN', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-#if !defined( MODEL_GCHPCTM ) && !defined( MODEL_GEOS )
+#if !defined( MODEL_GCHP ) && !defined( MODEL_GEOS )
     !========================================================================
     ! Register coordinate variables for GC-Classic History diagnostics
     ! (these may also be needed for WRF-GC)
@@ -1247,7 +1247,7 @@ CONTAINS
        State_Grid%Area_M2 => NULL()
     ENDIF
 
-#if !defined( MODEL_GCHPCTM ) && !defined( MODEL_GEOS )
+#if !defined( MODEL_GCHP ) && !defined( MODEL_GEOS )
     !========================================================================
     ! Deallocate coordinate variables for GC-Classic History diagnostics
     ! (These fields may also be needed for WRF-GC)

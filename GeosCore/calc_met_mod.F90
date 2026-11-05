@@ -30,7 +30,7 @@ MODULE CALC_MET_MOD
   PUBLIC  :: INTERP
   PUBLIC  :: SET_DRY_SURFACE_PRESSURE
   PUBLIC  :: Set_Clock_Tracer
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID )
+#if defined( EXTERNAL_GRID )
   PUBLIC  :: GCHP_Cap_Tropopause_Prs
 #endif
 !
@@ -845,7 +845,7 @@ CONTAINS
 
   END SUBROUTINE INTERP
 !EOC
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID )
+#if defined( EXTERNAL_GRID )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -855,9 +855,7 @@ CONTAINS
 !
 ! !DESCRIPTION: Subroutine GCHP\_CAP\_TROPOPAUSE\_PRS caps the tropopause
 !  pressure in polar latitudes to 200 hPa, so that we don't end up doing
-!  troposheric chemistry too high over the poles.  This is done in the
-!  standalone GEOS-Chem, and we also need to apply this when running
-!  GEOS-Chem within the GEOS-5 GCM.
+!  tropospheric chemistry too high over the poles.
 !\\
 !\\
 ! !INTERFACE:
