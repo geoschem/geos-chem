@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased] - TBD
 ### Changed
 - Changed HMS + OH + SO2 rxn to HMS + SO2; The rxn rate now assumes constant OH
+- Replaced product PH2SO4 by PSO4AQ in HOBr + SO2 and HOCl + SO2 reactions
 
 ## [14.8.0] - 2026-09-10
 ### Added

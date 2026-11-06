@@ -7,7 +7,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased] - TBD
 ### Changed
 - Activated `WetLossConv` and `WetLossLS` collections in fullchem benchmark simulations
-- Updated the multiphase SO4 formation via HMS: Use literature values of aerosol-phase OH, remove OH from the LHS of the equation in KPP, and compensate SO2 concentration in KaqHMS2 calculation.
+- Updated the multiphase SO4 formation via HMS: Use literature values of aerosol-phase OH, remove OH from the LHS of the equation in KPP, and compensate SO2 concentration in KaqHMS2 calculation
+- Replaced product PH2SO4 by PSO4AQ in HOBr + SO2 and HOCl + SO2 reactions (`KPP/fullchem/fullchem.eqn`, `KPP/custom/custom.eqn`)
 
 ## [14.8.0] - 2026-09-11
 ### Added
