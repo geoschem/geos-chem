@@ -690,7 +690,7 @@ CONTAINS
 #endif
     USE Species_Mod,   ONLY : Species
 #ifndef MAPL3
-    USE MAPL_MemUtilsMod ! ewl: have not yet looked for MAPL3 equivalent
+    USE MAPL_MemUtilsMod
 #endif
 !
 ! !INPUT PARAMETERS:

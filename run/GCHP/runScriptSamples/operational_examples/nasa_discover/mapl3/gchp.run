@@ -6,7 +6,7 @@
 #SBATCH --mem=60G
 #SBATCH --job-name=gchp.run
 #SBATCH --constraint=mil
-#SBATCH --account=s1873
+#SBATCH --account=s____
 #SBATCH --qos=debug
 ##SBATCH -o gchp.%j.log
 ##SBATCH -e gchp.%j.log
