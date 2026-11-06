@@ -1,5 +1,15 @@
 RUN_DT: 600
 
+# Meteorology settings shared by the GCHP children (GCHPctmEnv, GEOSChem),
+# as in MAPL2 GCHP.rc. Children inherit these unless they redefine them.
+IMPORT_MASS_FLUX_FROM_EXTDATA: false
+MET_WIND_IS_TOP_DOWN: false        # only used if IMPORT_MASS_FLUX_FROM_EXTDATA: false
+MET_MASS_FLUX_IS_TOP_DOWN: true    # only used if IMPORT_MASS_FLUX_FROM_EXTDATA: true
+MET_HUMIDITY_IS_TOP_DOWN: false
+MET_NONADVECTION_IS_TOP_DOWN: false
+USE_TOTAL_AIR_PRESSURE_IN_ADVECTION: false
+CORRECT_MASS_FLUX_FOR_HUMIDITY: true
+
 mapl:
 
   geometry:

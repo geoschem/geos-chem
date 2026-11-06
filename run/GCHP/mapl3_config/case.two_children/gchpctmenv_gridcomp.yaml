@@ -1,4 +1,4 @@
-RUN_DT: 600
+RUN_WITH_ADVCORE: true
 
 mapl:
   setServices:
