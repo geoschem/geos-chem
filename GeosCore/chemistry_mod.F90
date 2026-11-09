@@ -578,7 +578,7 @@ CONTAINS
                               State_Diag = State_Diag,                       &
                               State_Grid = State_Grid,                       &
                               State_Met  = State_Met,                        &
-                              RC         = RC                               )
+                              RCC        = RC                               )
 
              ! Trap potential errors
              IF ( RC /= GC_SUCCESS ) THEN
@@ -806,7 +806,7 @@ CONTAINS
                               State_Diag = State_Diag,                       &
                               State_Grid = State_Grid,                       &
                               State_Met  = State_Met,                        &
-                              RC         = RC                               )
+                              RCC        = RC                               )
 
              ! Trap potential errors
              IF ( RC /= GC_SUCCESS ) THEN

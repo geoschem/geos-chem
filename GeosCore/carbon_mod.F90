@@ -319,7 +319,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE CHEMCARBON( Input_Opt,  State_Chm, State_Diag, &
-                         State_Grid, State_Met, RC )
+                         State_Grid, State_Met, RCC )
 !
 ! !USES:
 !
@@ -362,7 +362,7 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+    INTEGER,        INTENT(OUT)   :: RCC         ! Success or failure?
 !
 ! !REMARKS:
 !
@@ -414,7 +414,7 @@ CONTAINS
     !=================================================================
 
     ! Assume success
-    RC                   = GC_SUCCESS
+    RCC                  = GC_SUCCESS
 
     ! Copy fields from INPUT_OPT to local variables for use below
     LSOA                 = Input_Opt%LSOA
@@ -488,26 +488,26 @@ CONTAINS
     IF ( IT_IS_AN_AEROSOL_SIM .AND. LSOA ) THEN
 
        ! Evaluate offline oxidant fields from HEMCO: global OH
-       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_OH', OFFLINE_OH, RC )
-       IF ( RC /= GC_SUCCESS ) THEN
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_OH', OFFLINE_OH, RCC )
+       IF ( RCC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not find offline GLOBAL_OH in HEMCO data list!'
-          CALL GC_Error( ErrMsg, RC, LOC )
+          CALL GC_Error( ErrMsg, RCC, LOC )
           RETURN
        ENDIF
 
        ! Evaluate offline oxidant fields from HEMCO: global O3
-       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_O3', OFFLINE_O3, RC )
-       IF ( RC /= GC_SUCCESS ) THEN
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_O3', OFFLINE_O3, RCC )
+       IF ( RCC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not find offline GLOBAL_O3 in HEMCO data list!'
-          CALL GC_Error( ErrMsg, RC, LOC )
+          CALL GC_Error( ErrMsg, RCC, LOC )
           RETURN
        ENDIF
 
        ! Evaluate offline oxidant fields from HEMCO: global NO3
-       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_NO3', OFFLINE_NO3, RC )
-       IF ( RC /= GC_SUCCESS ) THEN
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GLOBAL_NO3', OFFLINE_NO3, RCC )
+       IF ( RCC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not find offline GLOBAL_NO3 in HEMCO data list!'
-          CALL GC_Error( ErrMsg, RC, LOC )
+          CALL GC_Error( ErrMsg, RCC, LOC )
           RETURN
        ENDIF
 
@@ -524,7 +524,7 @@ CONTAINS
                        State_Diag = State_Diag,                              &
                        State_Grid = State_Grid,                              &
                        spcId      = id_BCPO,                                 &
-                       RC         = RC                                      )
+                       RCC        = RCC                                      )
        IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BCPO' )
        ENDIF
@@ -537,7 +537,7 @@ CONTAINS
                        State_Diag = State_Diag,                              &
                        State_Grid = State_Grid,                              &
                        spcId      = id_BCPI,                                 &
-                       RC         = RC                                      )
+                       RC         = RCC                                      )
        IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BCPI' )
        ENDIF
@@ -550,7 +550,7 @@ CONTAINS
                        State_Diag = State_Diag,                              &
                        State_Grid = State_Grid,                              &
                        spcId      = id_OCPO,                                 &
-                       RC         = RC                                      )
+                       RC         = RCC                                      )
        IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPO' )
        ENDIF
@@ -563,7 +563,7 @@ CONTAINS
                        State_Diag = State_Diag,                              &
                        State_Grid = State_Grid,                              &
                        spcId      = id_OCPI,                                 &
-                       RCC        = RC                                      )
+                       RCC        = RCC                                      )
        IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPI' )
        ENDIF
@@ -574,17 +574,17 @@ CONTAINS
     ! APM Microphysics
     !=====================================================================
     CALL BCDRY_SETTLINGBIN( Input_Opt,  State_Chm, State_Diag, &
-                            State_Grid, State_Met, RC )
+                            State_Grid, State_Met, RCC )
 
     CALL OCDRY_SETTLINGBIN( Input_Opt,  State_Chm, State_Diag, &
-                            State_Grid, State_Met, RC )
+                            State_Grid, State_Met, RCC )
 
     IF ( ( id_BCPO+id_BCPI ) > 2 )THEN
 
        ! Get biomass BCPO diagnostics from HEMCO
        DiagnCnt => NULL()
        CALL Diagn_Get( HcoState, .FALSE., DiagnCnt, &
-                       FLAG,  RC, cName='BIOMASS_BCPO',        &
+                       FLAG,  RCC, cName='BIOMASS_BCPO',        &
                        AutoFill=1,                             &
                        COL=HcoState%Diagn%HcoDiagnIDManual )
 
@@ -601,7 +601,7 @@ CONTAINS
        ! Get anthropogenic BCPO diagnostics from HEMCO
        DiagnCnt => NULL()
        CALL Diagn_Get( HcoState, .FALSE., DiagnCnt, &
-                       FLAG,  RC, cName='ANTHROPOGENIC_BCPO',  &
+                       FLAG,  RCC, cName='ANTHROPOGENIC_BCPO',  &
                        AutoFill=1,                             &
                        COL=HcoState%Diagn%HcoDiagnIDManual )
 
@@ -698,7 +698,7 @@ CONTAINS
        ! Get diagnostics from HEMCO
        DiagnCnt => NULL()
        CALL Diagn_Get( HcoState, .FALSE., DiagnCnt, &
-                       FLAG,  RC, cName='BIOMASS_OCPO',        &
+                       FLAG,  RCC, cName='BIOMASS_OCPO',        &
                        AutoFill=1,                             &
                        COL=HcoState%Diagn%HcoDiagnIDManual )
 
@@ -714,7 +714,7 @@ CONTAINS
 
        DiagnCnt => NULL()
        CALL Diagn_Get( HcoState, .FALSE., DiagnCnt, &
-                       FLAG,  RC, cName='ANTHROPOGENIC_OCPO',  &
+                       FLAG,  RCC, cName='ANTHROPOGENIC_OCPO',  &
                        AutoFill=1,                             &
                        COL=HcoState%Diagn%HcoDiagnIDManual )
 
@@ -837,7 +837,7 @@ CONTAINS
 
 #ifdef TOMAS
    CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid, &
-                 State_Met, State_Diag,'CHECKMN from chemcarbon', RC)
+                 State_Met, State_Diag,'CHECKMN from chemcarbon', RCC)
    ! Chemistry (aging) for size-resolved EC and OC (win, 1/25/10)
    IF ( id_ECIL01 > 0 .and. id_ECOB01 > 0 ) THEN
       CALL AGING_CARB( id_ECIL01, id_ECOB01, State_Grid, State_Chm )
@@ -858,7 +858,7 @@ CONTAINS
 
 #ifdef TOMAS
       CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid, &
-                 State_Met, State_Diag,'CHECKMN from chemcarbon', RC)
+                 State_Met, State_Diag,'CHECKMN from chemcarbon', RCC)
 
       !$OMP PARALLEL DO       &
       !$OMP DEFAULT( SHARED ) &
@@ -883,7 +883,7 @@ CONTAINS
             !sfarina16: SOAP -> size Resolved TOMAS SOA
             ORG_NUC(I,J,L) =  NEWSOA/DTCHEM ! SamO [kg/box/second]
             CALL SOACOND( NEWSOA, I, J, L, BOXVOL, TEMPTMS, PRES, BOXMASS, &
-                          State_Chm, State_Grid, State_Diag, RC, RHTOMAS)
+                          State_Chm, State_Grid, State_Diag, RCC, RHTOMAS)
          ENDIF
          Spc(id_SOAS)%Conc(I,J,L) = Spc(id_SOAS)%Conc(I,J,L) + NEWSOA
          Spc(id_SOAP)%Conc(I,J,L) = Spc(id_SOAP)%Conc(I,J,L) - NEWSOA
@@ -939,7 +939,7 @@ CONTAINS
       ! NOTE: This is SOA production from the reversible mechanism only
       ! (tmf, 12/07/07)
       CALL SOA_CHEMISTRY( Input_Opt,  State_Chm, State_Diag, &
-                          State_Grid, State_Met, RC )
+                          State_Grid, State_Met, RCC )
 
       IF ( Input_Opt%Verbose ) THEN
          CALL DEBUG_MSG( '### CHEMCARBON: a SOA_CHEM' )
@@ -963,7 +963,7 @@ CONTAINS
 ! !INTERFACE:
 !
  SUBROUTINE CHEM_BCPO( Input_Opt,  State_Chm, State_Diag,                    &
-                       State_Grid, spcId,     RC                            )
+                       State_Grid, spcId,     RCC                            )
 !
 ! !USES:
 !
@@ -988,7 +988,7 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
-   INTEGER,        INTENT(OUT)   :: RC           ! Success or failure?
+   INTEGER,        INTENT(OUT)   :: RCC           ! Success or failure?
 !
 ! !REMARKS:
 !  Drydep is now applied in mixing_mod.F90.
@@ -1018,7 +1018,7 @@ CONTAINS
    !=================================================================
 
    ! Assume success
-   RC        =  GC_SUCCESS
+   RCC        =  GC_SUCCESS
 
    ! Initialize
    KBC       =  1.e+0_fp / ( 86400e+0_fp * BC_LIFE )
@@ -6938,7 +6938,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
    ! Scalars
-   INTEGER              :: I, J, L, NOX, JHC, JSV, IPR
+   INTEGER              :: II, J, L, NOX, JHC, JSV, IPR
    REAL(fp)             :: TEMPDELTA(MNOX,MPROD)
    REAL(fp)             :: TEMPSOAG
    REAL(fp)             :: MBDIFF
@@ -6959,12 +6959,12 @@ CONTAINS
    !$OMP DEFAULT( SHARED ) &
    !$OMP PRIVATE( NOX,         JHC,        JSV,    IPR ) &
    !$OMP PRIVATE( TEMPDELTA,   TEMPSOAG,   MBDIFF      ) &
-   !$OMP PRIVATE( I, J, L                              )
+   !$OMP PRIVATE( II, J, L                              )
    DO L = 1, State_Met%MaxChemLev
    DO J = 1, State_Grid%NY
-   DO I = 1, State_Grid%NX
+   DO II = 1, State_Grid%NX
 
-      IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
+      IF ( .not. State_Met%InChemGrid(II,J,L) ) CYCLE
 
       !----------------------------------------------------
       ! Semivolatile 1: terpene SOA+SOG in kg
@@ -6976,62 +6976,62 @@ CONTAINS
       DO IPR = 1, NPROD(JSV)
       DO NOX = 1, NNOX(JSV)
          TEMPDELTA(NOX,IPR) = &
-            DELTASOGSAVE(I,J,L,NOX,PARENTMTPA)*ALPHA(NOX,IPR,PARENTMTPA) &
-          + DELTASOGSAVE(I,J,L,NOX,PARENTLIMO)*ALPHA(NOX,IPR,PARENTLIMO) &
-          + DELTASOGSAVE(I,J,L,NOX,PARENTMTPO)*ALPHA(NOX,IPR,PARENTMTPO) &
-          + DELTASOGSAVE(I,J,L,NOX,PARENTSESQ)*ALPHA(NOX,IPR,PARENTSESQ)
+            DELTASOGSAVE(II,J,L,NOX,PARENTMTPA)*ALPHA(NOX,IPR,PARENTMTPA) &
+          + DELTASOGSAVE(II,J,L,NOX,PARENTLIMO)*ALPHA(NOX,IPR,PARENTLIMO) &
+          + DELTASOGSAVE(II,J,L,NOX,PARENTMTPO)*ALPHA(NOX,IPR,PARENTMTPO) &
+          + DELTASOGSAVE(II,J,L,NOX,PARENTSESQ)*ALPHA(NOX,IPR,PARENTSESQ)
       ENDDO
       ENDDO
 
       ! Product 1, C* = 1 ug/m3
       IPR      = 1
-      TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
-      MBDIFF   = ABS( TEMPSOAG - ( Spc(id_TSOA1)%Conc(I,J,L) + Spc(id_TSOG1)%Conc(I,J,L) ))
+      TEMPSOAG = OAGINITSAVE(II,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
+      MBDIFF   = ABS( TEMPSOAG - ( Spc(id_TSOA1)%Conc(II,J,L) + Spc(id_TSOG1)%Conc(II,J,L) ))
       MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
       IF ( Input_Opt%Verbose .and. MBDIFF > ACCEPTERROR ) THEN
          WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV, &
-                    'in box ', I, J, L
+                    'in box ', II, J, L
          print*,'CK_MB ',NOX,IPR,JSV, &
-                TEMPSOAG,MBDIFF,OAGINITSAVE(I,J,L,IPR,JSV), &
+                TEMPSOAG,MBDIFF,OAGINITSAVE(II,J,L,IPR,JSV), &
                 TEMPDELTA(:,IPR)
       ENDIF
 
       ! Product 2, C* = 10 ug/m3
       IPR      = 2
-      TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
-      MBDIFF   = ABS( TEMPSOAG - ( Spc(id_TSOA2)%Conc(I,J,L) +  Spc(id_TSOG2)%Conc(I,J,L) ))
+      TEMPSOAG = OAGINITSAVE(II,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
+      MBDIFF   = ABS( TEMPSOAG - ( Spc(id_TSOA2)%Conc(II,J,L) +  Spc(id_TSOG2)%Conc(II,J,L) ))
       MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
       IF ( Input_Opt%Verbose .and. MBDIFF > ACCEPTERROR ) THEN
          WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV, &
-                    'in box ', I, J, L
+                    'in box ', II, J, L
          print*,'CK_MB ',NOX,IPR,JSV, &
-                TEMPSOAG,MBDIFF,OAGINITSAVE(I,J,L,IPR,JSV), &
+                TEMPSOAG,MBDIFF,OAGINITSAVE(II,J,L,IPR,JSV), &
                 TEMPDELTA(:,IPR)
       ENDIF
 
       ! Product 3, C* = 100 ug/m3
       IPR      = 3
-      TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
-      MBDIFF   = ABS( TEMPSOAG - ( Spc(id_TSOA3)%Conc(I,J,L) + Spc(id_TSOG3)%Conc(I,J,L) ))
+      TEMPSOAG = OAGINITSAVE(II,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
+      MBDIFF   = ABS( TEMPSOAG - ( Spc(id_TSOA3)%Conc(II,J,L) + Spc(id_TSOG3)%Conc(II,J,L) ))
       MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
       IF ( Input_Opt%Verbose .and. MBDIFF > ACCEPTERROR ) THEN
          WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV, &
-                    'in box ', I, J, L
+                    'in box ', II, J, L
          print*,'CK_MB ',NOX,IPR,JSV, &
-                TEMPSOAG,MBDIFF,OAGINITSAVE(I,J,L,IPR,JSV), &
+                TEMPSOAG,MBDIFF,OAGINITSAVE(II,J,L,IPR,JSV), &
                 TEMPDELTA(:,IPR)
       ENDIF
 
       ! Product 4, C* = 0.1 ug/m3
       IPR      = 4
-      TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
-      MBDIFF   = ABS( TEMPSOAG - ( Spc(id_TSOA0)%Conc(I,J,L) + Spc(id_TSOG0)%Conc(I,J,L) ))
+      TEMPSOAG = OAGINITSAVE(II,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
+      MBDIFF   = ABS( TEMPSOAG - ( Spc(id_TSOA0)%Conc(II,J,L) + Spc(id_TSOG0)%Conc(II,J,L) ))
       MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
       IF ( Input_Opt%Verbose .and. MBDIFF > ACCEPTERROR ) THEN
          WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV, &
-                    'in box ', I, J, L
+                    'in box ', II, J, L
          print*,'CK_MB ',NOX,IPR,JSV, &
-                TEMPSOAG,MBDIFF,OAGINITSAVE(I,J,L,IPR,JSV), &
+                TEMPSOAG,MBDIFF,OAGINITSAVE(II,J,L,IPR,JSV), &
                 TEMPDELTA(:,IPR)
       ENDIF
 
@@ -7047,66 +7047,66 @@ CONTAINS
       !DO IPR = 1, NPROD(JSV)
       !DO NOX = 1, NNOX(JSV)
       !   TEMPDELTA(NOX,IPR) =
-      !   DELTASOGSAVE(I,J,L,NOX,PARENTISOP)*ALPHA(NOX,IPR,PARENTISOP)
+      !   DELTASOGSAVE(II,J,L,NOX,PARENTISOP)*ALPHA(NOX,IPR,PARENTISOP)
       !ENDDO
       !ENDDO
       !
       !! Product 1, C* = 1 ug/m3
       !IPR      = 1
-      !TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
-      !MBDIFF   = ABS( TEMPSOAG - ( Spc(id_ISOA1)%Conc(I,J,L) + Spc(id_ISOG1)%Conc(I,J,L) ))
+      !TEMPSOAG = OAGINITSAVE(II,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
+      !MBDIFF   = ABS( TEMPSOAG - ( Spc(id_ISOA1)%Conc(II,J,L) + Spc(id_ISOG1)%Conc(II,J,L) ))
       !MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
       !IF ( Input_Opt%Verbose .and. MBDIFF > ACCEPTERROR ) THEN
       !   WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV, &
-      !              'in box ', I, J, L
+      !              'in box ', II, J, L
       !   print*,'CK_MB ',NOX,IPR,JSV, &
-      !          TEMPSOAG,MBDIFF,OAGINITSAVE(I,J,L,IPR,JSV), &
+      !          TEMPSOAG,MBDIFF,OAGINITSAVE(II,J,L,IPR,JSV), &
       !          TEMPDELTA(:,IPR)
-      !   print*,'DELSOGSAVE NOx=1',DELTASOGSAVE(I,J,L,1,5)
-      !   print*,'DELSOGSAVE NOx=2',DELTASOGSAVE(I,J,L,2,5)
-      !   print*,'DELSOGSAVE NOx=3',DELTASOGSAVE(I,J,L,3,5)
-      !   print*,'Spc',Spc(id_ISOA1)%Conc(I,J,L),Spc(id_ISOG1)%Conc(I,J,L)
+      !   print*,'DELSOGSAVE NOx=1',DELTASOGSAVE(II,J,L,1,5)
+      !   print*,'DELSOGSAVE NOx=2',DELTASOGSAVE(II,J,L,2,5)
+      !   print*,'DELSOGSAVE NOx=3',DELTASOGSAVE(II,J,L,3,5)
+      !   print*,'Spc',Spc(id_ISOA1)%Conc(II,J,L),Spc(id_ISOG1)%Conc(II,J,L)
       !   print*,'NNOX',NNOX(JSV)
-      !   print*,'strat?',State_Met%InStratosphere(I,J,L)
+      !   print*,'strat?',State_Met%InStratosphere(II,J,L)
       !ENDIF
       !
       !! Product 2, C* = 10 ug/m3
       !IPR      = 2
-      !TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
-      !MBDIFF   = ABS( TEMPSOAG - ( Spc(id_ISOA2)%Conc(I,J,L) + Spc(id_ISOG2)%Conc(I,J,L) ))
+      !TEMPSOAG = OAGINITSAVE(II,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
+      !MBDIFF   = ABS( TEMPSOAG - ( Spc(id_ISOA2)%Conc(II,J,L) + Spc(id_ISOG2)%Conc(II,J,L) ))
       !MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
       !IF ( Input_Opt%Verbose .and. MBDIFF > ACCEPTERROR ) THEN
       !   WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV, &
-      !              'in box ', I, J, L
+      !              'in box ', II, J, L
       !   print*,'CK_MB ',NOX,IPR,JSV, &
-      !          TEMPSOAG,MBDIFF,OAGINITSAVE(I,J,L,IPR,JSV), &
+      !          TEMPSOAG,MBDIFF,OAGINITSAVE(II,J,L,IPR,JSV), &
       !          TEMPDELTA(:,IPR)
-      !   print*,'DELSOGSAVE NOx=1',DELTASOGSAVE(I,J,L,1,5)
-      !   print*,'DELSOGSAVE NOx=2',DELTASOGSAVE(I,J,L,2,5)
-      !   print*,'DELSOGSAVE NOx=3',DELTASOGSAVE(I,J,L,3,5)
-      !   print*,'Spc',Spc(id_ISOA2)%Conc(I,J,L),Spc(id_ISOG2)%Conc(I,J,L)
+      !   print*,'DELSOGSAVE NOx=1',DELTASOGSAVE(II,J,L,1,5)
+      !   print*,'DELSOGSAVE NOx=2',DELTASOGSAVE(II,J,L,2,5)
+      !   print*,'DELSOGSAVE NOx=3',DELTASOGSAVE(II,J,L,3,5)
+      !   print*,'Spc',Spc(id_ISOA2)%Conc(II,J,L),Spc(id_ISOG2)%Conc(II,J,L)
       !   print*,'NNOX',NNOX(JSV)
-      !   print*,'strat?',State_Met%InStratosphere(I,J,L)
+      !   print*,'strat?',State_Met%InStratosphere(II,J,L)
       !
       !ENDIF
       !
       !! Product 3, C* = 100 ug/m3
       !IPR      = 3
-      !TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
-      !MBDIFF   = ABS( TEMPSOAG - ( Spc(id_ISOA3)%Conc(I,J,L) + Spc(id_ISOG3)%Conc(I,J,L) ))
+      !TEMPSOAG = OAGINITSAVE(II,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
+      !MBDIFF   = ABS( TEMPSOAG - ( Spc(id_ISOA3)%Conc(II,J,L) + Spc(id_ISOG3)%Conc(II,J,L) ))
       !MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
       !IF ( Input_Opt%Verbose .and. MBDIFF > ACCEPTERROR ) THEN
       !   WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV, &
-      !              'in box ', I, J, L
+      !              'in box ', II, J, L
       !   print*,'CK_MB ',NOX,IPR,JSV, &
-      !          TEMPSOAG,MBDIFF,OAGINITSAVE(I,J,L,IPR,JSV), &
+      !          TEMPSOAG,MBDIFF,OAGINITSAVE(II,J,L,IPR,JSV), &
       !          TEMPDELTA(:,IPR)
-      !   print*,'DELSOGSAVE NOx=1',DELTASOGSAVE(I,J,L,1,5)
-      !   print*,'DELSOGSAVE NOx=2',DELTASOGSAVE(I,J,L,2,5)
-      !   print*,'DELSOGSAVE NOx=3',DELTASOGSAVE(I,J,L,3,5)
-      !   print*,'Spc',Spc(id_ISOA3)%Conc(I,J,L),Spc(id_ISOG3)%Conc(I,J,L)
+      !   print*,'DELSOGSAVE NOx=1',DELTASOGSAVE(II,J,L,1,5)
+      !   print*,'DELSOGSAVE NOx=2',DELTASOGSAVE(II,J,L,2,5)
+      !   print*,'DELSOGSAVE NOx=3',DELTASOGSAVE(II,J,L,3,5)
+      !   print*,'Spc',Spc(id_ISOA3)%Conc(II,J,L),Spc(id_ISOG3)%Conc(II,J,L)
       !   print*,'NNOX',NNOX(JSV)
-      !   print*,'strat?',State_Met%InStratosphere(I,J,L)
+      !   print*,'strat?',State_Met%InStratosphere(II,J,L)
       !ENDIF
       !------------------------------------------------------------------------
 
@@ -7119,80 +7119,80 @@ CONTAINS
       DO IPR = 1, NPROD(JSV)
       DO NOX = 1, NNOX(JSV)
          TEMPDELTA(NOX,IPR) = &
-           DELTASOGSAVE(I,J,L,NOX,PARENTBENZ)*ALPHA(NOX,IPR,PARENTBENZ) &
-         + DELTASOGSAVE(I,J,L,NOX,PARENTTOLU)*ALPHA(NOX,IPR,PARENTTOLU) &
-         + DELTASOGSAVE(I,J,L,NOX,PARENTXYLE)*ALPHA(NOX,IPR,PARENTXYLE) &
-         + DELTASOGSAVE(I,J,L,NOX,PARENTNAP )*ALPHA(NOX,IPR,PARENTNAP )
+           DELTASOGSAVE(II,J,L,NOX,PARENTBENZ)*ALPHA(NOX,IPR,PARENTBENZ) &
+         + DELTASOGSAVE(II,J,L,NOX,PARENTTOLU)*ALPHA(NOX,IPR,PARENTTOLU) &
+         + DELTASOGSAVE(II,J,L,NOX,PARENTXYLE)*ALPHA(NOX,IPR,PARENTXYLE) &
+         + DELTASOGSAVE(II,J,L,NOX,PARENTNAP )*ALPHA(NOX,IPR,PARENTNAP )
       ENDDO
       ENDDO
 
       ! Low NOx
       NOX      = NLOWNOX
       IPR      = 4
-      TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
-      MBDIFF   = ABS( TEMPSOAG - Spc(id_ASOAN)%Conc(I,J,L) )
+      TEMPSOAG = OAGINITSAVE(II,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
+      MBDIFF   = ABS( TEMPSOAG - Spc(id_ASOAN)%Conc(II,J,L) )
       MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
       IF ( Input_Opt%Verbose .and. MBDIFF > ACCEPTERROR ) THEN
          WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV, &
-                    'in box ', I, J, L
+                    'in box ', II, J, L
          print*,'CK_MB ',NOX,IPR,JSV, &
-                TEMPSOAG,MBDIFF,OAGINITSAVE(I,J,L,IPR,JSV), &
+                TEMPSOAG,MBDIFF,OAGINITSAVE(II,J,L,IPR,JSV), &
                 TEMPDELTA(:,IPR)
-         !print*,'DELSOGSAVE NOx=2',DELTASOGSAVE(I,J,L,2,6:8)
-         !print*,'DELSOGSAVE NOx=2',DELTASOGSAVE(I,J,L,2,11)
-         !print*,'Spc',Spc(id_ASOAN)%Conc(I,J,L)
+         !print*,'DELSOGSAVE NOx=2',DELTASOGSAVE(II,J,L,2,6:8)
+         !print*,'DELSOGSAVE NOx=2',DELTASOGSAVE(II,J,L,2,11)
+         !print*,'Spc',Spc(id_ASOAN)%Conc(II,J,L)
          !print*,'NNOX',NNOX(JSV)
-         !print*,'strat?',State_Met%InStratosphere(I,J,L)
+         !print*,'strat?',State_Met%InStratosphere(II,J,L)
       ENDIF
 
       ! Debug print to screen
       !IF ( Input_Opt%Verbose ) THEN
       !   IF ( I == 37 .AND. J == 25 .AND. L == 4 ) THEN
       !      print*,'CK_MB ',NOX,IPR,JSV, &
-      !             TEMPSOAG,MBDIFF,OAGINITSAVE(I,J,L,NOX,IPR,JSV)
-      !       print*,'strat?',State_Met%InStratosphere(I,J,L)
+      !             TEMPSOAG,MBDIFF,OAGINITSAVE(II,J,L,NOX,IPR,JSV)
+      !       print*,'strat?',State_Met%InStratosphere(II,J,L)
       !   ENDIF
       !ENDIF
 
       ! HIGH NOx, Product 1
       NOX      = NHIGHNOX
       IPR      = 1
-      TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
-      MBDIFF   = ABS( TEMPSOAG - ( Spc(id_ASOA1)%Conc(I,J,L) + Spc(id_ASOG1)%Conc(I,J,L) ))
+      TEMPSOAG = OAGINITSAVE(II,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
+      MBDIFF   = ABS( TEMPSOAG - ( Spc(id_ASOA1)%Conc(II,J,L) + Spc(id_ASOG1)%Conc(II,J,L) ))
       MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
       IF ( Input_Opt%Verbose .and. MBDIFF > ACCEPTERROR ) THEN
          WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV, &
-                    'in box ', I, J, L
+                    'in box ', II, J, L
          print*,'CK_MB ',NOX,IPR,JSV, &
-                TEMPSOAG,MBDIFF,OAGINITSAVE(I,J,L,IPR,JSV), &
+                TEMPSOAG,MBDIFF,OAGINITSAVE(II,J,L,IPR,JSV), &
                 TEMPDELTA(:,IPR)
       ENDIF
 
       ! HIGH NOx, Product 2
       NOX      = NHIGHNOX
       IPR      = 2
-      TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
-      MBDIFF   = ABS( TEMPSOAG - ( Spc(id_ASOA2)%Conc(I,J,L) + Spc(id_ASOG2)%Conc(I,J,L) ))
+      TEMPSOAG = OAGINITSAVE(II,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
+      MBDIFF   = ABS( TEMPSOAG - ( Spc(id_ASOA2)%Conc(II,J,L) + Spc(id_ASOG2)%Conc(II,J,L) ))
       MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
       IF ( Input_Opt%Verbose .and. MBDIFF > ACCEPTERROR ) THEN
          WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV, &
-                    'in box ', I, J, L
+                    'in box ', II, J, L
          print*,'CK_MB ',NOX,IPR,JSV, &
-                TEMPSOAG,MBDIFF,OAGINITSAVE(I,J,L,IPR,JSV), &
+                TEMPSOAG,MBDIFF,OAGINITSAVE(II,J,L,IPR,JSV), &
                 TEMPDELTA(:,IPR)
       ENDIF
 
       ! HIGH NOx, Product 3
       NOX      = NHIGHNOX
       IPR      = 3
-      TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
-      MBDIFF   = ABS( TEMPSOAG - ( Spc(id_ASOA3)%Conc(I,J,L) + Spc(id_ASOG3)%Conc(I,J,L) ))
+      TEMPSOAG = OAGINITSAVE(II,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
+      MBDIFF   = ABS( TEMPSOAG - ( Spc(id_ASOA3)%Conc(II,J,L) + Spc(id_ASOG3)%Conc(II,J,L) ))
       MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
       IF ( Input_Opt%Verbose .and. MBDIFF > ACCEPTERROR ) THEN
          WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV, &
-                    'in box ', I, J, L
+                    'in box ', II, J, L
          print*,'CK_MB ',NOX,IPR,JSV, &
-                TEMPSOAG,MBDIFF,OAGINITSAVE(I,J,L,IPR,JSV), &
+                TEMPSOAG,MBDIFF,OAGINITSAVE(II,J,L,IPR,JSV), &
                 TEMPDELTA(:,IPR)
       ENDIF
 
@@ -7207,35 +7207,35 @@ CONTAINS
          JSV = IDSV(JHC)
          NOX = NONLYNOX
          DO IPR = 1, NPROD(JSV)
-            TEMPDELTA(NOX,IPR) = DELTASOGSAVE(I,J,L,IPR,PARENTPOA ) * &
+            TEMPDELTA(NOX,IPR) = DELTASOGSAVE(II,J,L,IPR,PARENTPOA ) * &
                                  ALPHA(NOX,IPR,PARENTPOA ) - &
-                                 DELTASOGSAVE(I,J,L,IPR,PARENTOPOA) * &
+                                 DELTASOGSAVE(II,J,L,IPR,PARENTOPOA) * &
                                  ALPHA(NOX,IPR,PARENTOPOA)
          ENDDO
 
          ! Only NOx, Product 1
          IPR      = 1
-         TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
-         MBDIFF   = ABS( TEMPSOAG - ( Spc(id_POA1)%Conc(I,J,L) + Spc(id_POG1)%Conc(I,J,L) ))
+         TEMPSOAG = OAGINITSAVE(II,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
+         MBDIFF   = ABS( TEMPSOAG - ( Spc(id_POA1)%Conc(II,J,L) + Spc(id_POG1)%Conc(II,J,L) ))
          MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
          IF ( Input_Opt%Verbose .and. MBDIFF > ACCEPTERROR ) THEN
             WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, &
-                       JSV, 'in box ', I, J, L
+                       JSV, 'in box ', II, J, L
             print*,'CK_MB ',NOX,IPR,JSV, &
-                   TEMPSOAG,MBDIFF,OAGINITSAVE(I,J,L,IPR,JSV), &
+                   TEMPSOAG,MBDIFF,OAGINITSAVE(II,J,L,IPR,JSV), &
                    TEMPDELTA(:,IPR)
          ENDIF
 
          ! Only NOx, Product 2
          IPR      = 2
-         TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
-         MBDIFF   = ABS( TEMPSOAG - ( Spc(id_POA2)%Conc(I,J,L) + Spc(id_POG2)%Conc(I,J,L) ))
+         TEMPSOAG = OAGINITSAVE(II,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
+         MBDIFF   = ABS( TEMPSOAG - ( Spc(id_POA2)%Conc(II,J,L) + Spc(id_POG2)%Conc(II,J,L) ))
          MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
          IF ( Input_Opt%Verbose .and. MBDIFF > ACCEPTERROR ) THEN
             WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, &
-                       JSV, 'in box ', I, J, L
+                       JSV, 'in box ', II, J, L
             print*,'CK_MB ',NOX,IPR,JSV, &
-                   TEMPSOAG,MBDIFF,OAGINITSAVE(I,J,L,IPR,JSV), &
+                   TEMPSOAG,MBDIFF,OAGINITSAVE(II,J,L,IPR,JSV), &
                    TEMPDELTA(:,IPR)
          ENDIF
       ENDIF ! POA1
@@ -7249,33 +7249,33 @@ CONTAINS
          JSV = IDSV(JHC)
          NOX = NONLYNOX
          DO IPR = 1, NPROD(JSV)
-            TEMPDELTA(NOX,IPR) = DELTASOGSAVE(I,J,L,IPR,PARENTOPOA) * &
+            TEMPDELTA(NOX,IPR) = DELTASOGSAVE(II,J,L,IPR,PARENTOPOA) * &
                                  ALPHA(NOX,IPR,PARENTOPOA)
          ENDDO
 
          ! Only NOx, Product 1
          IPR      = 1
-         TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
-         MBDIFF   = ABS( TEMPSOAG - ( Spc(id_OPOA1)%Conc(I,J,L) + Spc(id_OPOG1)%Conc(I,J,L) ))
+         TEMPSOAG = OAGINITSAVE(II,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
+         MBDIFF   = ABS( TEMPSOAG - ( Spc(id_OPOA1)%Conc(II,J,L) + Spc(id_OPOG1)%Conc(II,J,L) ))
          MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
          IF ( Input_Opt%Verbose .and. MBDIFF > ACCEPTERROR ) THEN
             WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, &
-                       JSV, 'in box ', I, J, L
+                       JSV, 'in box ', II, J, L
             print*,'CK_MB ',NOX,IPR,JSV, &
-                   TEMPSOAG,MBDIFF,OAGINITSAVE(I,J,L,IPR,JSV), &
+                   TEMPSOAG,MBDIFF,OAGINITSAVE(II,J,L,IPR,JSV), &
                    TEMPDELTA(:,IPR)
          ENDIF
 
          ! Only NOx, Product 2
          IPR      = 2
-         TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
-         MBDIFF   = ABS( TEMPSOAG - ( Spc(id_OPOA2)%Conc(I,J,L) + Spc(id_OPOG2)%Conc(I,J,L) ))
+         TEMPSOAG = OAGINITSAVE(II,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
+         MBDIFF   = ABS( TEMPSOAG - ( Spc(id_OPOA2)%Conc(II,J,L) + Spc(id_OPOG2)%Conc(II,J,L) ))
          MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
          IF ( Input_Opt%Verbose .and. MBDIFF > ACCEPTERROR ) THEN
             WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, &
-                       JSV, 'in box ', I, J, L
+                       JSV, 'in box ', II, J, L
             print*,'CK_MB ',NOX,IPR,JSV, &
-                   TEMPSOAG,MBDIFF,OAGINITSAVE(I,J,L,IPR,JSV), &
+                   TEMPSOAG,MBDIFF,OAGINITSAVE(II,J,L,IPR,JSV), &
                    TEMPDELTA(:,IPR)
          ENDIF
       ENDIF ! OPOA1
