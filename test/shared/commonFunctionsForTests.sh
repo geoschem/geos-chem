@@ -777,46 +777,55 @@ function get_default_gchp_env_file() {
 
 function print_submodule_head_commits() {
     #========================================================================
-    # Print the head commits for each Git submodule #####
+    # Print the head commits for each Git submodule
     #
-    # 1st argument: Number of pad characters before commit line starts
+    # 1st argument: Minimum width of the name column (the column widens
+    #               to fit the longest name, e.g. a long root folder name)
     # 2nd argument: Path to top-level code directory
-    # 3rd argument: Log file where output will be written
+    # 3rd argument: Log file where output will be written (or "" for stdout)
     #========================================================================
     export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
-    n_pad=${1}
-    baseDir=$(basename "${2}")
-    pad="                       "
+    local width="${1}"
+    local codeDir="${2}"
+    local logFile="${3}"
+    local baseDir submod name i output
+    local -a submods=() names=() heads=()
+    baseDir=$(basename "${codeDir}")
 
-    # Get submodule names from .gitmodules in the superproject folder
-    submods=(.)
-    submods+=$(grep path "${2}/.gitmodules")
-    submods=${submods//path = /}
+    # Get submodule paths from .gitmodules in the superproject folder,
+    # with the superproject itself (".") listed first
+    mapfile -t submods < <(git config -f "${codeDir}/.gitmodules" \
+                               --get-regexp '\.path$' | awk '{print $2}')
+    submods=(. "${submods[@]}")
 
-    # Loop over submodules
-    # Skip blank entries and geos-chem-shared-docs
-    for submod in ${submods[@]}; do
-	if [[ "X${submod}" != "X" ]]; then
-	    if [[ ! "${submod}" =~ "geos-chem-shared-docs" ]]; then
-
-		# Get the head commit for each submodule and create a
-		# display string to print either to log file or to stdout.
-		# For clarity, remove _GridComp from FVdycoreCubed_GridComp.
-		if [[ -d "${2}/$submod" ]]; then
-		    head=$(git -C "${2}/$submod" log --oneline -1)
-		    y=$(basename $submod)
-		    y=${y/_GridComp/}
-		    y=${y/\./${baseDir}}
-		    if [[ "X${3}" == "X" ]]; then
-			echo "${y:0:n_pad}${pad:0:$((n_pad - ${#y}))}: $head"
-		    else
-			echo "${y:0:n_pad}${pad:0:$((n_pad - ${#y}))}: $head" >> "${3}"
-		    fi
-
-		fi
-	    fi
-	fi
+    # Collect the display name and head commit for each submodule.
+    # Skip geos-chem-shared-docs and paths that are not checked out.
+    # For clarity, remove _GridComp from FVdycoreCubed_GridComp.
+    for submod in "${submods[@]}"; do
+        [[ -z "${submod}" ]] && continue
+        [[ "${submod}" =~ "geos-chem-shared-docs" ]] && continue
+        [[ -d "${codeDir}/${submod}" ]] || continue
+        if [[ "${submod}" == "." ]]; then
+            name="${baseDir}"
+        else
+            name=$(basename "${submod}")
+            name="${name/_GridComp/}"
+        fi
+        names+=("${name}")
+        heads+=("$(git -C "${codeDir}/${submod}" log --oneline -1)")
+        (( ${#name} > width )) && width=${#name}
     done
+
+    # Print with the name column padded to a common width so that
+    # the colons line up, either to the log file or to stdout
+    output=$(for i in "${!names[@]}"; do
+        printf "%-*s: %s\n" "${width}" "${names[i]}" "${heads[i]}"
+    done)
+    if [[ -z "${logFile}" ]]; then
+        echo "${output}"
+    else
+        echo "${output}" >> "${logFile}"
+    fi
 }
 
 
