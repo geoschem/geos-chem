@@ -288,6 +288,28 @@ CEDS_CO_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_slv ./HcoDir/CEDS/v20
 CEDS_CO_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_wst ./HcoDir/CEDS/v2024-06/%y4/CEDS_CO_0.1x0.1_%y4.nc
 CEDS_CO_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_shp ./HcoDir/CEDS/v2024-06/%y4/CEDS_CO_0.1x0.1_%y4.nc
 
+# --- CO: EPA NEI2022 USA monthly mean (NEI2022_MONMEAN) ---
+# NEI2022_MONMEAN is off by default in HEMCO_Config.rc
+#EPA22_CO_TRA     kg/m2/s Y Y F2022-%m2-01T00:00:00  none none CO         ./HcoDir/NEI2022/v2026-09/EPA22data/2022_merged_TRA_0pt1degree_2D_monMean_month_%m2.nc
+#EPA22_CO_AGR     kg/m2/s Y Y F2022-%m2-01T00:00:00  none none CO         ./HcoDir/NEI2022/v2026-09/EPA22data/2022_merged_AGR_0pt1degree_2D_monMean_month_%m2.nc
+#EPA22_CO_IND     kg/m2/s Y Y F2022-%m2-01T00:00:00  none none CO         ./HcoDir/NEI2022/v2026-09/EPA22data/2022_merged_IND_0pt1degree_monMean_month_%m2.nc
+#EPA22_CO_RES     kg/m2/s Y Y F2022-%m2-01T00:00:00  none none CO         ./HcoDir/NEI2022/v2026-09/EPA22data/2022_merged_RES_0pt1degree_2D_monMean_month_%m2.nc
+#EPA22_CO_OTH_ANTH      kg/m2/s Y Y F2022-%m2-01T00:00:00  none none CO         ./HcoDir/NEI2022/v2026-09/EPA22data/2022_merged_OTH_ANTH_0pt1degree_2D_monMean_month_%m2.nc
+#EPA22_CO_ENE     kg/m2/s Y Y F2022-%m2-01T00:00:00  none none CO         ./HcoDir/NEI2022/v2026-09/EPA22data/2022_merged_ENE_0pt1degree_monMean_month_%m2.nc
+#EPA22_CO_WST     kg/m2/s Y Y F2022-%m2-01T00:00:00  none none CO         ./HcoDir/NEI2022/v2026-09/EPA22data/2022_merged_WST_0pt1degree_2D_monMean_month_%m2.nc
+#
+# NEI2022 state-level annual CO scale factors (2002-2024)
+#NEI2022_CO_agr    1 N Y F%y4-01-01T00:00:00  none none CO_agr       ./HcoDir/NEI2022/v2026-09/Emiscaling_22_new_adjusted_Apr4.nc4
+#NEI2022_CO_ene    1 N Y F%y4-01-01T00:00:00  none none CO_ene       ./HcoDir/NEI2022/v2026-09/Emiscaling_22_new_adjusted_Apr4.nc4
+#NEI2022_CO_ind    1 N Y F%y4-01-01T00:00:00  none none CO_ind       ./HcoDir/NEI2022/v2026-09/Emiscaling_22_new_adjusted_Apr4.nc4
+#NEI2022_CO_oth    1 N Y F%y4-01-01T00:00:00  none none CO_oth       ./HcoDir/NEI2022/v2026-09/Emiscaling_22_new_adjusted_Apr4.nc4
+#NEI2022_CO_res    1 N Y F%y4-01-01T00:00:00  none none CO_res       ./HcoDir/NEI2022/v2026-09/Emiscaling_22_new_adjusted_Apr4.nc4
+#NEI2022_CO_tra    1 N Y F%y4-01-01T00:00:00  none none CO_tra       ./HcoDir/NEI2022/v2026-09/Emiscaling_22_new_adjusted_Apr4.nc4
+#
+# NEI99 day-of-week factor and CONUS mask used by NEI2022_MONMEAN
+#NEI99_DOW_CO   1 D N F1999-%m2-01T00:00:00 none none CO   ./HcoDir/NEI2005/v2023-02/NEI99.dow.geos.1x1.corrected.012023.nc
+#NEI_CONUS_MASK  1 N Y - none none MASK ./HcoDir/MASKS/v2018-09/CONUS_Mask.01x01.nc
+
 #==============================================================================
 # --- CO2 emissions ---
 #==============================================================================
