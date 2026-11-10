@@ -15,6 +15,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Replaced product PH2SO4 by PSO4AQ in HOBr + SO2 and HOCl + SO2 reactions (`KPP/fullchem/fullchem.eqn`, `KPP/custom/custom.eqn`)
 - Moved GC-Classic RRTMG FDH code from `main.F90` into new routine `Do_RRTMG_All_Outputs` in `rrtmg_rad_transfer_mod.F90`
 - Updated `run/shared/singleCarbonSpecies.sh` to remove `EPA22_CO_*` instead of `EPA16_CO_*` entries
+- Changed `LuoWd` integration tests to `oldwd`, with `-DLUO_WETDEP=n`, since Luo and Yu 2023 wetdep is now the default option
+- Changed `LUO_WETDEP` CMake cache variable from `OFF` to `ON` in `CMakeLists.txt`, for consistency
 
 ### Removed
 - Removed the EPA NEI2016 (`NEI2016_MONMEAN`) option from the run directory template files; superseded by `NEI2022_MONMEAN`

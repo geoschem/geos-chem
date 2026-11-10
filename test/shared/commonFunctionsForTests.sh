@@ -46,7 +46,7 @@ EXE_PASS_STR='Execute Simulation....PASS'
 EXE_FAIL_STR='Execute Simulation....FAIL'
 EXE_TBD_STR='Execute Simulation....TBD'
 EXE_GCC_BUILD_LIST=("default" "apm"   "carbon"  "hg"       \
-                    "luowd"   "rrtmg" "tomas15" )
+                    "oldwd"   "rrtmg" "tomas15" )
 EXE_GCHP_BUILD_LIST=("default" "carbon" "rrtmg" "tomas15")
 END_hhmm_1h="0100z.nc4"
 END_hhmm_20m="0020z.nc4"
@@ -434,8 +434,8 @@ function config_options() {
         options="${baseOptions} -DMECH=carbon -DEXE_FILE_NAME=${exeFileName}"
     elif [[ ${dir} =~ "hg" ]]; then
         options="${baseOptions} -DMECH=Hg -DFASTJX=y -DEXE_FILE_NAME=${exeFileName}"
-    elif [[ ${dir} =~ "luowd" ]]; then
-        options="${baseOptions} -DLUO_WETDEP=y -DEXE_FILE_NAME=${exeFileName}"
+    elif [[ ${dir} =~ "oldwd" ]]; then
+        options="${baseOptions} -DLUO_WETDEP=n -DEXE_FILE_NAME=${exeFileName}"
     elif [[ ${dir} =~ "rrtmg" ]]; then
         options="${baseOptions} -DRRTMG=y -DEXE_FILE_NAME=${exeFileName}"
     elif [[ ${dir} =~ "tomas15" ]]; then
@@ -474,8 +474,8 @@ function compiletest_name() {
         result="${displayName} with APM"
     elif [[ "${buildDir}" =~ "carbon" ]]; then
         result="${displayName} w/ carbon gases (as a KPP mechanism)"
-    elif [[ "${buildDir}" =~ "luowd" ]]; then
-        result="${displayName} with Luo et al wetdep"
+    elif [[ "${buildDir}" =~ "oldwd" ]]; then
+        result="${displayName} with Jacob et al. 2000 wetdep"
     elif [[ "${buildDir}" =~ "hg" ]]; then
         result="${displayName} with Hg (as a KPP mechanism)"
     elif [[ "${buildDir}" =~ "rrtmg" ]]; then
