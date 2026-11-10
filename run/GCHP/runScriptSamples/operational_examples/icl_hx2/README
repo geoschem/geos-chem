@@ -1,0 +1,69 @@
+For use with the Slurm system on HX2, Imperial College London's HPC cluster.
+
+Tested with GCHP 14.7.1 (fullchem; C24 and C90; 1 to 8 nodes) in October
+2026, using the modules in gchp.env (GCC 13.3.0, Open MPI 5.0.3, ESMF 8.7.0)
+and also foss-2025b (GCC 14.3.0, Open MPI 5.0.8, ESMF 8.9.0).
+
+Setup:
+
+Build GCHP with gchp.env loaded. In your run directory, point gchp.env to
+this file and copy gchp.run:
+
+./setEnvironmentLink.sh /path/to/icl_hx2/gchp.env
+cp /path/to/icl_hx2/gchp.run .
+
+To submit a job, type:
+
+sbatch gchp.run
+
+Instructions are given to modify node/core/memory requirements in gchp.run.
+Set TOTAL_CORES, NUM_NODES and NUM_CORES_PER_NODE in setCommonRunSettings.sh
+to match --nodes and --ntasks-per-node.
+
+Open MPI 5 setting:
+
+gchp.run sets OMPI_MCA_coll=^han. Without it, GCHP crashes at the first
+time step on 3 or more nodes, and results depend on how the cores are
+spread over nodes. Please keep this line, also for 1- and 2-node runs.
+It was needed with Open MPI 5.0.3 and 5.0.8 on HX2. The crash also
+depends on the memory allocator (it did not occur with jemalloc
+preloaded), but turning HAN off needs no extra library.
+See https://github.com/geoschem/GCHP/issues/578
+
+Choosing nodes and cores:
+
+- HX2 nodes have 144 cores; a job can use up to 142 per node. A job can use
+  at most 8 nodes, and one user can use at most 1040 cores at a time. The
+  longest wall time is 3 days. (Limits in October 2026.)
+- Single-node jobs are the most efficient per core, and fewer processes
+  per node are faster per core. If you run many simulations, many small
+  single-node jobs (for example C24 with 30 to 60 cores) give the most
+  model years per day within the per-user core limit.
+- More nodes are worth it only when one simulation must finish quickly.
+  At C90, use 1 or 2 nodes. On 4 or more nodes the speed varied a lot
+  between jobs, and 8 nodes were slower than 2 nodes because of
+  communication between nodes (cause not known).
+- Measured speed (fullchem, model days per wall-clock day, one 1-day run
+  each, shared nodes, about +/-15%):
+    C24: 1 x 30 cores: 202    1 x 60: 357    1 x 96: 492    2 x 60: 626
+    C90: 1 x 96 cores: 38     2 x 96: 71     2 x 120: 77    4 x 120: 134
+         8 x 120: about 50
+- Memory: peak use was at most 1.8 GB per process at C24 and 2.8 GB per
+  process at C90. Requests that worked: 150 GB per node for up to 60
+  processes at C24, and 400 GB per node for up to 120 processes at C90.
+- With OMPI_MCA_coll=^han, runs with the same total number of cores give
+  bit-for-bit identical results, whatever the number of nodes. Changing
+  the total number of cores changes results at round-off level, so use the
+  same core count for simulations you want to compare.
+
+Known issue:
+
+GCHP 14.7.1 aborts at exit on HX2 (SIGABRT, "malloc_consolidate(): invalid
+chunk size"), on 1 node too, after all output and restart files are
+written. It does not affect results: gchp.run checks cap_restart, renames
+the new restart file, and the job ends as COMPLETED. The GCHP developers
+confirmed that it is harmless, and it is fixed for GCHP 14.8.1
+(https://github.com/geoschem/GCHP/issues/576).
+
+Contact:
+Min Shan, Imperial College London (GitHub: @Minshan6)

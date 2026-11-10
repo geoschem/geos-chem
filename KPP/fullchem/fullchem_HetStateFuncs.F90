@@ -355,11 +355,6 @@ CONTAINS
     Fe_tot          = Fe_ant + Fe_nat
     
     ! Convert Mn and Fe [ng m-3] to [mole l-1]
-    ! Below I guess we are making the assumption that we won't have
-    ! LWC and ALWC at the same time in one grid box?
-    ! Are the aerosols scavenged before this occurs?  Are we double counting?
-    !krt, for aerosols
-    
     Mn_d_a          = 0.0_dp
     IF ( ALWC > 0.0_dp ) THEN
        ! Units: ng/m3 * (g/ng) / (g/mol) / (m3 H2O / m3 air) * (m3/L)
@@ -389,8 +384,6 @@ CONTAINS
                     / ALWC                                                   &
                     * 1.0e-3_fp
 
-       ! currently not sure how to account for different
-       ! solubility between anthropogenic and natural
        ! Max possible solubility
        FeIII_Max    = ( Fe_d_ant_a * 0.1_fp ) + ( Fe_d_nat_a * 0.1_fp )
 

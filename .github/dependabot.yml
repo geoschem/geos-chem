@@ -1,0 +1,23 @@
+---
+#
+# Dependabot version updates for GEOS-Chem
+# See: https://docs.github.com/en/code-security/dependabot/working-with-dependabot/dependabot-options-reference
+#
+# This file will tell Dependabot to check monthly if there are any
+# newer versions of GitHub Actions (e.g. "checkout").  If so, a PR
+# will be opened against the main branch with the suggested updates.
+#
+# NOTE:Dependabot cannot edit the Python packages in the file
+# "docs/read_the_docs_environment.yml", so you must manually
+# keep these synced to the same version sin "docs/requirements.txt".
+#
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    groups:
+      github-actions:
+        patterns:
+          - "*"

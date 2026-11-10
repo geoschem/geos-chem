@@ -4,6 +4,46 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - TBD
+### Added
+- Added `Is_DryAlt` flag for SO4, NIT, NH4, SOAS in `run/shared/species_database.yml` to enable the `SpeciesConcALT1` diagnostic for these species
+- Added `.gitattributes`, `CITATION.cff`, `GOVERNANCE.md`, `SECURITY.md` for GitHub
+- Added `CLAUDE.md`, which gives guidance to Claude Code AI
+- Added `.release/changeVersionNumbers.sh` to change version numbers in relevant files in this repository
+- Added AI disclosure section to `.github/PULL_REQUEST_TEMPLATE.md`
+- Added `.github/dependabot.yml` to open monthly version-update PRs for GitHub Actions against `main`
+- Added GCHP operational example environment file and run script for the Imperial College London (ICL) HX2 cluster in `run/GCHP/runScriptSamples/operational_examples/icl_hx2`
+
+### Changed
+- Updated the Hg0 soil emissions parameterization to improve the response of emissions to light availability
+- Disallowed the GC-Classic `SatDiagn` and `SatDiagnEdge` collections from being subset, or from being specified without `hrrange`
+- Improved error checks in GC-Classic History modules to mitigate side-effects caused by bad or missing input in `HISTORY.rc`
+- Standardized the format of error messages in GC-Classic History modules
+- Converted `GTMM/CMakeLists.txt` line endings from CRLF to LF, per `.gitattributes`
+- Changed `#MINVERSION` to 3.5.0 in `KPP/custom/custom.kpp`, to match the `fullchem`, `carbon`, and `Hg` mechanisms
+- Retitled `test/README.md` so it no longer names the GCClassic-only path `src/GEOS-Chem/test`
+- Added GitHub language-detection overrides to `.gitattributes` to avoid spurious CodeQL GitHub Action errors
+- Separated `CH4/CO2/CO/OCS_DATA` switches in `HEMCO_Config.rc.carbon` for GCHP to note they are not editable
+- Updated `keyValueUpdate` in `run/shared/singleCarbonSpecies.sh` to be tolerant of TABs and variable spacing; Added an error check as well.
+- Optimized parallel loops in `GeosUtil`, `History`, and `ObsPack` source code modules
+- Updated `GeosCore/timers_mod.F90` to use `OMP_GET_MAX_THREADS` instead of `OMP_GET_NUM_THREADS`
+
+### Fixed
+- Fixed parallelization errors in `GeosCore/apm_driv_mod.F90`
+- Fixed date range in `HEMCO_Config.rc.gmao_metfields_0125`
+- Fixed minor issues with longer intervals in GC-Classic History diagnostics
+- Fixed vertical coordinate variables in `History/history_netcdf_mod.F90` for collections whose `levels` do not start at 1
+- Fixed `Set_Boundary_Conditions` so that the CH4 BC perturbation (carbon nested-grid simulations) is applied only once per BC update and is thread-safe
+- Fixed CodeQL security alert `py/incomplete-url-substring-sanitization` by using the `urlparse` in `run/shared/download_data.py`
+- Fixed bug preventing GC-Classic instantaneous diagnostics with frequency, duration, and heartbeat all equal
+
+### Removed
+- Removed invalid OpenMP directives from the `MPI_LOAD_BALANCE` block of `GeosCore/fullchem_mod.F90`, which caused GCHP compilation to fail with `-DOMP=ON`
+- Removed confusing comments from `KPP/fullchem/fullchem_HetStateFuncs.F90`
+- Took out (((METEOROLOGY brackets in HEMCO_Config.rc.carbon, as GCHP uses ExtData instead. 
+- Removed TAB characters in `HEMCO_Config.rc.carbon` templates for GC-Classic and GCHP
+- Removed nested `!$OMP PARALLEL` clauses from `ConvertBox*` routines in `GeosUtil/unitconv_mod.F90`
+
 ## [14.8.0] - 2026-09-11
 ### Added
 - Added PSO4AQ and PH2SO4 as a product to certain reactions; see `KPP/fullchem/CHANGELOG_fullchem.md`

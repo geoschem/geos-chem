@@ -1,4 +1,4 @@
-# README: The `src/GEOS-Chem/test` directory
+# README: The GEOS-Chem `test` directory
 
 ## Contents
 

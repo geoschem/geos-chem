@@ -220,9 +220,11 @@ CONTAINS
     !! END DEBUGGING
 
     ! Set PFLT_DRY equal to input value PS
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I, J, ERR_LOC, ERR_VAR, ERR_MSG )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I, J, ERR_LOC, ERR_VAR, ERR_MSG                          )&
+    !$OMP COLLAPSE( 2                                                       )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -1213,16 +1215,15 @@ CONTAINS
 
     ! Set EXTERNAL_PEDGE to the pressure edges [hPa] carried in the
     ! State_Met object, which were obtained from the external GCM
-
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I, J, L ) 
-    DO I = 1, State_Grid%NX
-    DO J = 1, State_Grid%NY
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I, J, L                                                  )&
+    !$OMP COLLAPSE( 3                                                       )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO L = 1, State_Grid%NZ+1
-
+    DO J = 1, State_Grid%NY
+    DO I = 1, State_Grid%NX
        EXTERNAL_PEDGE(I,J,L) = State_Met%PEDGE(I,J,L)
-
     ENDDO
     ENDDO
     ENDDO

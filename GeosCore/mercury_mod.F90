@@ -347,7 +347,8 @@ CONTAINS
     CALL SOILEMIS( EHg0_dist  = EHg0_dist,                                   &
                    State_Grid = State_Grid,                                  &
                    State_Met  = State_Met,                                   &
-                   EHg0_so    = EHg0_so                                     )
+                   EHg0_so    = EHg0_so,                                     & 
+                   Input_Opt  = Input_Opt                                    )
     IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### EMISSMERCURY: a SOILEMIS' )
     ENDIF

@@ -3508,6 +3508,7 @@ NH4:
   Formula: NH4
   FullName: Ammonium
   Is_Aerosol: true
+  Is_DryAlt: true
   Is_DryDep: true
   Is_WetDep: true
   MW_g: 18.05
@@ -3536,6 +3537,7 @@ NIT:
   DD_Hstar: 0.0
   FullName: Inorganic nitrates
   Is_Aerosol: true
+  Is_DryAlt: true
   Is_DryDep: true
   Is_Photolysis: true
   Is_WetDep: true
@@ -4803,6 +4805,7 @@ SO4:
   Formula: SO4
   FullName: Sulfate
   Is_Aerosol: true
+  Is_DryAlt: true
   Is_DryDep: true
   Is_HygroGrowth: true
   Is_Photolysis: true
@@ -4931,6 +4934,7 @@ SOAS:
   DD_Hstar: 0.0
   FullName: SOA Simple - simplified non-volatile SOA parameterization
   Is_Aerosol: true
+  Is_DryAlt: true
   Is_DryDep: true
   Is_WetDep: true
   MW_g: 150.0
