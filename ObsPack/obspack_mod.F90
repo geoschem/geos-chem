@@ -968,9 +968,10 @@ CONTAINS
     !=======================================================================
     ! Compute averages
     !=======================================================================
-    !$OMP PARALLEL DO               &
-    !$OMP DEFAULT( SHARED         ) &
-    !$OMP PRIVATE( N, S, nSamples )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( N, S, nSamples                                           )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO N = 1, nObs
 
        ! Number of GEOS-Chem samples for each observation
