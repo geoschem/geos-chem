@@ -17,7 +17,7 @@ MODULE RRTMG_RAD_TRANSFER_MOD
 ! !USES:
 !
   USE CMN_SIZE_MOD, ONLY : NDUST, NAER
-#if defined( MODEL_CLASSIC )
+#ifdef MODEL_CLASSIC
   USE OMP_LIB
 #endif
   USE PARRRTM,      ONLY : NBNDLW
@@ -27,15 +27,17 @@ MODULE RRTMG_RAD_TRANSFER_MOD
 !
 ! !PUBLIC MEMBER FUNCTIONS
 !
+  PUBLIC  :: Cleanup_RRTMG_Rad_Transfer
+  PUBLIC  :: Do_RRTMG_All_Outputs
   PUBLIC  :: Do_RRTMG_Rad_Transfer
   PUBLIC  :: Init_RRTMG_Rad_Transfer
-  PUBLIC  :: Cleanup_RRTMG_Rad_Transfer
 !
 ! !PRIVATE:
 !
+  PRIVATE :: AttachPointersFromHemco
+  PRIVATE :: Init_FDH_Arrays
   PRIVATE :: Init_MCICA_Clouds
   PRIVATE :: Init_Surface_Rad
-  PRIVATE :: AttachPointersFromHemco
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -93,19 +95,22 @@ MODULE RRTMG_RAD_TRANSFER_MOD
 !
 ! !LOCAL VARIABLES:
 !
-  REAL*8,  ALLOCATABLE  :: LW_UFLUX (:,:,:)
-  REAL*8,  ALLOCATABLE  :: LW_DFLUX (:,:,:)
-  REAL*8,  ALLOCATABLE  :: SW_UFLUX (:,:,:)
-  REAL*8,  ALLOCATABLE  :: SW_DFLUX (:,:,:)
+  REAL*8,  ALLOCATABLE  :: LW_UFLUX(:,:,:)
+  REAL*8,  ALLOCATABLE  :: LW_DFLUX(:,:,:)
+  REAL*8,  ALLOCATABLE  :: SW_UFLUX(:,:,:)
+  REAL*8,  ALLOCATABLE  :: SW_DFLUX(:,:,:)
   REAL*8,  ALLOCATABLE  :: LW_UFLUXC(:,:,:)
   REAL*8,  ALLOCATABLE  :: LW_DFLUXC(:,:,:)
   REAL*8,  ALLOCATABLE  :: SW_UFLUXC(:,:,:)
   REAL*8,  ALLOCATABLE  :: SW_DFLUXC(:,:,:)
+  REAL*8,  ALLOCATABLE  :: FDH_DT(:,:,:)         ! Temperature adjustment [K]
+  REAL*8,  ALLOCATABLE  :: FDH_DT_Update(:,:,:)  ! End-of-step adj (SEFDH) [K]
+  REAL*8,  ALLOCATABLE  :: FDH_HR(:,:,:)         ! Dyn. heating rate [K/day]
 
-  REAL*8  :: RRTMG_LMB(NBNDLW+NBNDSW)
+  REAL*8                :: RRTMG_LMB(NBNDLW+NBNDSW)
 
-  INTEGER :: ID_AER_LMB0 (NBNDLW+NBNDSW)
-  INTEGER :: ID_AER_LMB1 (NBNDLW+NBNDSW)
+  INTEGER               :: ID_AER_LMB0(NBNDLW+NBNDSW)
+  INTEGER               :: ID_AER_LMB1(NBNDLW+NBNDSW)
 
 CONTAINS
 !EOC
@@ -2151,8 +2156,221 @@ CONTAINS
     RTSSAER     => NULL()
     RTASYMAER   => NULL()
 
-
   END SUBROUTINE DO_RRTMG_RAD_TRANSFER
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: do_rrtmg_all_outputs
+!
+! !DESCRIPTION: Calls Do_RRTMG_Rad_Transfer for the BASE output and
+!  for each RRTMG output requested in HISTORY.rc, and updates the fixed
+!  dynamical heating (FDH/SEFDH) temperature adjustment arrays.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Do_RRTMG_All_Outputs( thisDay,   thisMonth,  Input_Opt,         &
+                                   State_Chm, State_Diag, State_Grid,        &
+                                   State_Met, RC                            )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Chm_Mod,  ONLY : ChmState
+    USE State_Diag_Mod, ONLY : DgnState
+    USE State_Grid_Mod, ONLY : GrdState
+    USE State_Met_Mod,  ONLY : MetState
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,        INTENT(IN)    :: thisDay
+    INTEGER,        INTENT(IN)    :: thisMonth
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt
+    TYPE(GrdState), INTENT(IN)    :: State_Grid
+    TYPE(MetState), INTENT(IN)    :: State_Met
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC
+!
+! !REVISION HISTORY:
+!  03 Nov 2026 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER            :: N
+
+    ! Strings
+    CHARACTER(LEN=255) :: errMsg, thisLoc
+
+    !========================================================================
+    ! Do_RRTMG_All_Outputs begins here!
+    !========================================================================
+
+    ! Initialize
+    RC      = GC_SUCCESS
+    errMsg  = ''
+    thisLoc = &
+     ' -> at Do_RRTMG_All_Outputs (in GeosCore/rrtmg_rad_transfer_mod.F90)'
+
+    !========================================================================
+    ! Prepare FDH arrays (allocated in Init_FDH_Arrays)
+    !========================================================================
+    IF ( Input_Opt%RRTMG_FDH ) THEN
+
+       IF ( Input_Opt%RRTMG_SEFDH ) THEN
+          ! Adjustment as previously projected to this time
+          FDH_DT        = State_Chm%TStrat_Adj
+          ! Will hold the end-of-step value
+          FDH_DT_Update = 0.0d0
+       ELSE
+          FDH_DT        = 0.0d0
+       ENDIF
+
+       IF ( Input_Opt%Read_Dyn_Heating ) THEN
+          FDH_HR = State_Met%DynHeating
+       ELSE
+          FDH_HR = 0.0d0
+       ENDIF
+    ENDIF
+
+    State_Chm%RRTMG_iSeed = State_Chm%RRTMG_iSeed + 15
+
+    !========================================================================
+    ! Determine if we are doing clear-sky or all-sky.  Clear-sky is
+    ! output with all-sky, so we just need to run once regardless of
+    ! whether both are required or just one.
+    !========================================================================
+    IF ( Input_Opt%LSKYRAD(2) ) THEN
+       State_Chm%RRTMG_iCld = 1         ! clouds are off
+    ELSE
+       State_Chm%RRTMG_iCld = 0         ! clouds are on
+    ENDIF
+
+    !========================================================================
+    ! Calculation for each of the potential output types
+    ! See: "Radiative transfer with RRTMG" at geos-chem.readthedocs.io
+    !
+    !   0=BASE and then...
+    !   1=O3   2=O3T  3=ME   4=H2O  5=CO2  6=CFC  7=N2O  8=SU
+    !   9=NI  10=AM  11=BC  12=OA  13=SS  14=DU  15=PM  16=ST
+    !
+    ! State_Diag%RadOutInd(1) will ALWAYS correspond to BASE due to how
+    ! it is populated from HISTORY.rc (diaglist_mod.F90).  BASE is always
+    ! calculated first since its flux is used to calculate other RRTMG
+    ! flux diagnostics.
+    !========================================================================
+
+    !------------------------------------------------------------------------
+    ! Calculate BASE first
+    !------------------------------------------------------------------------
+    N = 1
+
+    IF ( Input_Opt%amIRoot ) THEN
+       WRITE( 6, 520 ) State_Diag%RadOutName(N), State_Diag%RadOutInd(N)
+    ENDIF
+
+    ! Generate mask for species in RT
+    CALL Set_SpecMask( State_Diag%RadOutInd(N), State_Chm )
+
+    ! If FDH is used, this call computes the temperature adjustment
+    ! (FDH_DT) and, unless read from file, the heating rate (FDH_HR)
+    CALL Do_RRTMG_Rad_Transfer( thisDay    = thisDay,                        &
+                                thisMonth  = thisMonth,                      &
+                                iCld       = State_Chm%RRTMG_iCld,           &
+                                iSpecMenu  = State_Diag%RadOutInd(N),        &
+                                iNcDiag    = N,                              &
+                                iSeed      = State_Chm%RRTMG_iSeed,          &
+                                Input_Opt  = Input_Opt,                      &
+                                State_Chm  = State_Chm,                      &
+                                State_Diag = State_Diag,                     &
+                                State_Grid = State_Grid,                     &
+                                State_Met  = State_Met,                      &
+                                DT_3D      = FDH_DT,                         &
+                                HR_3D      = FDH_HR,                         &
+                                RC         = RC                             )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error encountered in "Do_RRTMG_Rad_Transfer", '          // &
+                'for RRTMG output = ' // TRIM( State_Diag%RadOutName(N) )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    ! SEFDH: store the end-of-step adjustment computed by the BASE call,
+    ! then reset to the start-of-step value for the remaining outputs.
+    ! (This step was missing in GC-Classic; it is present in GCHP.)
+    IF ( Input_Opt%RRTMG_SEFDH ) THEN
+       FDH_DT_Update = FDH_DT
+       FDH_DT        = State_Chm%TStrat_Adj
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Calculate for rest of outputs, if any.
+    ! These calls read FDH_DT but do not overwrite it.
+    !------------------------------------------------------------------------
+    DO N = 2, State_Diag%nRadOut
+
+       IF ( Input_Opt%amIRoot ) THEN
+          WRITE( 6, 520 ) State_Diag%RadOutName(N), State_Diag%RadOutInd(N)
+       ENDIF
+
+       CALL Set_SpecMask( State_Diag%RadOutInd(N), State_Chm )
+
+       CALL Do_RRTMG_Rad_Transfer( thisDay    = thisDay,                     &
+                                   thisMonth  = thisMonth,                   &
+                                   iCld       = State_Chm%RRTMG_iCld,        &
+                                   iSpecMenu  = State_Diag%RadOutInd(N),     &
+                                   iNcDiag    = N,                           &
+                                   iSeed      = State_Chm%RRTMG_iSeed,       &
+                                   Input_Opt  = Input_Opt,                   &
+                                   State_Chm  = State_Chm,                   &
+                                   State_Diag = State_Diag,                  &
+                                   State_Grid = State_Grid,                  &
+                                   State_Met  = State_Met,                   &
+                                   DT_3D      = FDH_DT,                      &
+                                   HR_3D      = FDH_HR,                      &
+                                   RC         = RC                          )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = 'Error encountered in "Do_RRTMG_Rad_Transfer", '       // &
+                   'for RRTMG output = ' // TRIM( State_Diag%RadOutName(N) )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+    ENDDO
+
+520 FORMAT( 5x, '- Calling RRTMG to compute fluxes and optics: ',            &
+            a4, ' (Index = ', i4.4, ')' )
+
+    !========================================================================
+    ! Archive FDH results
+    ! NB: FDH_DT is the temperature adjustment either after equilibration
+    ! (pure FDH) or at the start of the NEXT radiation time step (SEFDH)
+    !========================================================================
+    IF ( Input_Opt%RRTMG_SEFDH ) THEN
+       FDH_DT = FDH_DT_Update
+    ENDIF
+
+    IF ( Input_Opt%RRTMG_FDH ) THEN
+       IF ( State_Diag%Archive_DynHeating ) State_Diag%DynHeating = FDH_HR
+       IF ( State_Diag%Archive_DTRad      ) State_Diag%DTRad      = FDH_DT
+       IF ( Input_Opt%RRTMG_SEFDH         ) State_Chm%TStrat_Adj  = FDH_DT
+    ENDIF
+
+  END SUBROUTINE Do_RRTMG_All_Outputs
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2442,6 +2660,16 @@ CONTAINS
     !=================================================================
     CALL Init_Surface_Rad ( State_Grid )
     CALL Init_MCICA_Clouds( State_Grid )
+
+#ifdef MODEL_CLASSIC
+    ! GCHP keeps its own FDH arrays locally in gchp_chunk_mod.F90
+    CALL Init_FDH_Arrays( Input_Opt, State_Grid, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in "Init_FDH_Arrays"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+#endif
 
   END SUBROUTINE Init_RRTMG_Rad_Transfer
 !EOC
@@ -2974,6 +3202,97 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: Init_FDH_Arrays
+!
+! !DESCRIPTION: Allocates arrays needed for the stratosphere-adjusted
+!  radiative forcing option with RRTMG
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Init_FDH_Arrays( Input_Opt, State_Grid, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput), INTENT(IN)  :: Input_Opt    ! Input Options object
+    TYPE(GrdState), INTENT(IN)  :: State_Grid   ! Grid State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT) :: RC           ! Success or failure?
+!
+! !REVISION HISTORY:
+!  20 Feb 2026 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER            :: NX, NY, NZ
+
+    ! Strings
+    CHARACTER(LEN=255) :: errMsg, thisLoc
+
+    !========================================================================
+    ! Init_FDH_Arrays begins here!
+    !========================================================================
+
+    ! Initialize
+    RC      = GC_SUCCESS
+    NX      = State_Grid%NX
+    NY      = State_Grid%NY
+    NZ      = State_Grid%NZ
+    errMsg  = ''
+    thisLoc = &
+     ' -> at Init_FDH_Arrays (in GeosCore/rrtmg_rad_transfer_mod.F90)'
+
+    ! Exit if the fixed dynamic heating (FDH) option isn't used
+    IF ( .not. Input_Opt%RRTMG_FDH ) RETURN
+
+    ! Allocate FDH arrays
+    ALLOCATE( FDH_DT( NX, NY, NZ ), STAT=RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error allocating FDH_DT!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    FDH_DT = 0.0d0
+
+    ALLOCATE( FDH_HR( NX, NY, NZ ), STAT=RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error allocating FDH_HR!'
+       CALL GC_Error( errMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+    FDH_HR = 0.0d0
+
+    ! Allocate SEFDH arrays
+    IF ( Input_Opt%RRTMG_SEFDH ) THEN
+       ALLOCATE( FDH_DT_UPDATE( NX, NY, NZ ), STAT=RC)
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = 'Error allocating FDH_DT_UPDATE'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+       FDH_DT_UPDATE = 0.0d0
+    ENDIF
+
+  END SUBROUTINE Init_FDH_Arrays
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: cleanup_rrtmg_rad_transfer
 !
 ! !DESCRIPTION: Deallocates all RRTMG module variables.
@@ -3064,6 +3383,13 @@ CONTAINS
     IF ( ALLOCATED( FSFCMCL        ) ) DEALLOCATE( FSFCMCL          )
     IF ( ALLOCATED( REICMCL        ) ) DEALLOCATE( REICMCL          )
     IF ( ALLOCATED( RELQMCL        ) ) DEALLOCATE( RELQMCL          )
+
+    !=================================================================
+    ! Deallocate FDH/SEFDH arrays
+    !=================================================================
+    IF ( ALLOCATED( FDH_DT          ) ) DEALLOCATE( FDH_DT          )
+    IF ( ALLOCATED( FDH_DT_UPDATE   ) ) DEALLOCATE( FDH_DT_UPDATE   )
+    IF ( ALLOCATED( FDH_HR          ) ) DEALLOCATE( FDH_HR          )
 
   END SUBROUTINE Cleanup_RRTMG_Rad_Transfer
 !EOC

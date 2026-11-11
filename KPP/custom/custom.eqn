@@ -1736,14 +1736,14 @@ HOCl + HCl = Cl2 + H2O :       HOClUptkByHCl( State_Het );                      
 HOCl + HBr = BrCl + H2O :      HOClUptkByHBr( State_Het );                                                  {2014/02/03; Eastham2014; SDE}
 HOCl + SALACL = Cl2 + H2O :    HOClUptkBySALACL( State_Het );                                               {2018/01/22; XW}
 HOCl + SALCCL = Cl2 + H2O :    HOClUptkBySALCCL( State_Het );                                               {2018/01/22; XW}
-HOCl + SO2 = SO4 + HCl + PH2SO4 : HOClUptkByHSO3m( State_Het ) + HOClUptkBySO3mm( State_Het ) + SRHOCl;     {2025/10/14; PS added PH2SO4; 2023/01/30; Add SRHOCL, BA; 2018/11/08; XW; June 6, 2021, MSL}
+HOCl + SO2 = SO4 + HCl + PSO4AQ : HOClUptkByHSO3m( State_Het ) + HOClUptkBySO3mm( State_Het ) + SRHOCl;     {2026/11/04; FS+BMY changed to PSO4AQ; 2025/10/14; FS added PH2SO4; 2023/01/30; Add SRHOCL, BA; 2018/11/08; XW; June 6, 2021, MSL}
 HOBr + HBr = Br2 + H2O :       HOBrUptkByHBr( State_Het );                                                  {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 HOBr + HCl = BrCl + H2O :      HOBrUptkByHCl( State_Het );                                                  {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 HOBr + SALACL = BrCl + H2O :   HOBrUptkBySALACL( State_Het );                                               {2018/01/22; Sherwen2017;TS,JAS,SDE;XW}
 HOBr + SALCCL = BrCl + H2O :   HOBrUptkBySALCCL( State_Het );                                               {2018/01/22; Sherwen2017;TS,JAS,SDE,XW}
 HOBr + BrSALA = Br2 :          HOBrUptkByBrSALA( State_Het );                                               {2017/09/22; Sherwen2017;TS,JAS,SDE}
 HOBr + BrSALC = Br2 :          HOBrUptkByBrSALC( State_Het );                                               {2017/09/22; Sherwen2017;TS,JAS,SDE}
-HOBr + SO2 = SO4 + HBr + PH2SO4 : HOBrUptkByHSO3m( State_Het ) + HOBrUptkBySO3mm( State_Het ) + SRHOBr;     {2025/10/14; FS added PH2SO4; 2023/01/30; Add SRHOBrL, BA; 2017/11/15; Chen2017; QJC; June 6, 2021, MSL}
+HOBr + SO2 = SO4 + HBr + PSO4AQ : HOBrUptkByHSO3m( State_Het ) + HOBrUptkBySO3mm( State_Het ) + SRHOBr;     {2026/11/04; FS+BMY changed to PSO4AQ; 2025/10/14; FS added PH2SO4; 2023/01/30; Add SRHOBrL, BA; 2017/11/15; Chen2017; QJC; June 6, 2021, MSL}
 O3 + HBr = HOBr :              O3uptkByHBr( State_Het );                                                    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 O3 + BrSALA = HOBr :           O3uptkByBrSALA( State_Het );                                                 {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 O3 + BrSALC = HOBr :           O3uptkByBrSALC( State_Het );                                                 {2017/09/22; Sherwen2016b;TS,JAS,SDE}
@@ -1812,7 +1812,7 @@ SO2 {+O2}   = SO4 + PSO4MP :   SO2uptkbyTMIO2(State_Het);                       
 SO2 + NO2   = SO4 + PSO4MP :   SO2uptkbyNO2(State_Het);                                                     {2026/03/02; Travis2025; KRT}
 SO2 + CH2O  = HMS + PHMSMP :   SO2uptkbyCH2O(State_Het);                                                    {2026/03/02; Travis2025; KRT}
 HMS         = SO2 + CH2O + LHMSMP :    HMSDecomp(State_Het);                                                {2026/03/02; Travis2025; KRT}
-HMS + OH + SO2  = 2SO4 + CH2O + 2PSO4MP : HMSOxidation(State_Het);                                          {2026/03/02; Travis2025; KRT}       
+HMS + SO2  = 2SO4 + CH2O + 2PSO4MP : HMSOxidation(State_Het);                {2026/03/02; Travis2025; KRT; Removed OH in the LHS since K uses a constant OH concentration in aerosol phase: 10.5194/acp-23-8805-2023}
 //
 //
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

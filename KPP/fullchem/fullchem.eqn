@@ -125,6 +125,11 @@ Comment format is
 
 #DEFVAR
 
+{ HFO-1234ze(E) degradation species -- Killen et al. 2026 }
+HFO1234zeE = IGNORE; {HFO-1234ze(E); trans-1,3,3,3-tetrafluoropropene}
+HFC23      = IGNORE; {HFC-23; fluoroform (CHF3)}
+TFALD      = IGNORE; {CF3CHO; trifluoroacetaldehyde}
+CF3CHOHOO  = IGNORE; {CF3CH(OH)OO; hydroxyperoxy radical from TFALD + HO2}
 A3O2       = IGNORE; {CH3CH2CH2OO; Primary RO2 from C3H8}
 ACR        = IGNORE; {C3H4O, Acrolein}
 ACRO2      = IGNORE; {C3H5O4}
@@ -1736,14 +1741,14 @@ HOCl + HCl = Cl2 + H2O :       HOClUptkByHCl( State_Het );                      
 HOCl + HBr = BrCl + H2O :      HOClUptkByHBr( State_Het );                                                  {2014/02/03; Eastham2014; SDE}
 HOCl + SALACL = Cl2 + H2O :    HOClUptkBySALACL( State_Het );                                               {2018/01/22; XW}
 HOCl + SALCCL = Cl2 + H2O :    HOClUptkBySALCCL( State_Het );                                               {2018/01/22; XW}
-HOCl + SO2 = SO4 + HCl + PH2SO4 : HOClUptkByHSO3m( State_Het ) + HOClUptkBySO3mm( State_Het ) + SRHOCl;     {2025/10/14; PS added PH2SO4; 2023/01/30; Add SRHOCL, BA; 2018/11/08; XW; June 6, 2021, MSL}
+HOCl + SO2 = SO4 + HCl + PSO4AQ : HOClUptkByHSO3m( State_Het ) + HOClUptkBySO3mm( State_Het ) + SRHOCl;     {2026/11/04; FS+BMY changed to PSO4AQ; 2025/10/14; FS added PH2SO4; 2023/01/30; Add SRHOCL, BA; 2018/11/08; XW; June 6, 2021, MSL}
 HOBr + HBr = Br2 + H2O :       HOBrUptkByHBr( State_Het );                                                  {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 HOBr + HCl = BrCl + H2O :      HOBrUptkByHCl( State_Het );                                                  {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 HOBr + SALACL = BrCl + H2O :   HOBrUptkBySALACL( State_Het );                                               {2018/01/22; Sherwen2017;TS,JAS,SDE;XW}
 HOBr + SALCCL = BrCl + H2O :   HOBrUptkBySALCCL( State_Het );                                               {2018/01/22; Sherwen2017;TS,JAS,SDE,XW}
 HOBr + BrSALA = Br2 :          HOBrUptkByBrSALA( State_Het );                                               {2017/09/22; Sherwen2017;TS,JAS,SDE}
 HOBr + BrSALC = Br2 :          HOBrUptkByBrSALC( State_Het );                                               {2017/09/22; Sherwen2017;TS,JAS,SDE}
-HOBr + SO2 = SO4 + HBr + PH2SO4 : HOBrUptkByHSO3m( State_Het ) + HOBrUptkBySO3mm( State_Het ) + SRHOBr;     {2025/10/14; FS added PH2SO4; 2023/01/30; Add SRHOBrL, BA; 2017/11/15; Chen2017; QJC; June 6, 2021, MSL}
+HOBr + SO2 = SO4 + HBr + PSO4AQ : HOBrUptkByHSO3m( State_Het ) + HOBrUptkBySO3mm( State_Het ) + SRHOBr;     {2026/11/04; FS+BMY changed to PSO4AQ; 2025/10/14; FS added PH2SO4; 2023/01/30; Add SRHOBrL, BA; 2017/11/15; Chen2017; QJC; June 6, 2021, MSL}
 O3 + HBr = HOBr :              O3uptkByHBr( State_Het );                                                    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 O3 + BrSALA = HOBr :           O3uptkByBrSALA( State_Het );                                                 {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 O3 + BrSALC = HOBr :           O3uptkByBrSALC( State_Het );                                                 {2017/09/22; Sherwen2016b;TS,JAS,SDE}
@@ -1812,7 +1817,15 @@ SO2 {+O2}   = SO4 + PSO4MP :   SO2uptkbyTMIO2(State_Het);                       
 SO2 + NO2   = SO4 + PSO4MP :   SO2uptkbyNO2(State_Het);                                                     {2026/03/02; Travis2025; KRT}
 SO2 + CH2O  = HMS + PHMSMP :   SO2uptkbyCH2O(State_Het);                                                    {2026/03/02; Travis2025; KRT}
 HMS         = SO2 + CH2O + LHMSMP :    HMSDecomp(State_Het);                                                {2026/03/02; Travis2025; KRT}
-HMS + OH + SO2  = 2SO4 + CH2O + 2PSO4MP : HMSOxidation(State_Het);                                          {2026/03/02; Travis2025; KRT}       
+HMS + SO2  = 2SO4 + CH2O + 2PSO4MP : HMSOxidation(State_Het);                {2026/03/02; Travis2025; KRT; Removed OH in the LHS since K uses a constant OH concentration in aerosol phase: 10.5194/acp-23-8805-2023}
+{ HFO-1234ze(E) degradation -- Killen et al. 2026 }
+HFO1234zeE + OH = TFALD + CO       : GCARR_abc(6.99d-12, 2.44d0, -666.0d0); {2026/11/06; Antinolo2017; BK}
+TFALD + OH      = H2O + 2.000CO2   : GCARR_abc(3.8d-13, -2.0d0, 131.0d0);   {2026/11/06; Baumann2025; BK}
+HFO1234zeE + O3 = 0.079HFC23       : 2.44d-21;                              {2026/11/06; Garavagno2025; BK}
+HFC23 + OH      = H2O + CO2        : 3.1d-16;                               {2026/11/06; JPL 10-6; BK}
+TFALD + HO2     = CF3CHOHOO        : GCARR_ac(8.89d-16, 1723.0d0);          {2026/11/06; Long2022; BK}
+CF3CHOHOO       = TFALD + HO2      : GCARR_ac(2.29d+14, -7621.0d0);         {2026/11/06; Long2022; BK}
+CF3CHOHOO + NO  = NO2 + HO2        : 1.5d-11;                               {2026/11/06; Long2022; BK}
 //
 //
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2051,3 +2064,6 @@ LIMO2H + hv = OH + CO2 + MCO3 + RCHO +
 PIP + hv = OH + HO2 + 0.450MVK + 0.45ACET +
  0.100CH2O + 0.675MYRCO :                    PHOTOL(105);    {2024/08/20; Travis2024; KRT} 
 LIMAL + hv = CO + HO2 + 0.900LIMO3 :         PHOTOL(177);    {2024/08/20; Travis2024; KRT}  
+{ HFO-1234ze(E) photolysis -- Killen et al. 2026 }
+TFALD + hv = CO + HO2 + CO2 :                PHOTOL(178);    {2026/11/06; Killen2026; BK}
+TFALD + hv = HFC23 + CO :                    PHOTOL(179);    {2026/10/26; Killen2026; BK}
