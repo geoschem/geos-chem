@@ -1217,9 +1217,9 @@ IF (DO_FUN(30)) &
 IF (DO_FUN(31)) &
   Vdot(31) = A(860)+A(861)+A(862)+0.8*A(870)+A(875)
 IF (DO_FUN(32)) &
-  Vdot(32) = A(204)+A(370)+A(374)+A(814)+A(821)
+  Vdot(32) = A(204)+A(370)+A(374)
 IF (DO_FUN(33)) &
-  Vdot(33) = A(8)+A(9)+A(10)+2*A(13)
+  Vdot(33) = A(8)+A(9)+A(10)+2*A(13)+A(814)+A(821)
 IF (DO_FUN(34)) &
   Vdot(34) = A(884)+A(885)+A(886)+A(887)+2*A(890)
 IF (DO_FUN(35)) &
@@ -3385,9 +3385,9 @@ IF (DO_FUN(30)) &
 IF (DO_FUN(31)) &
   P_VAR(31) = A(860)+A(861)+A(862)+0.8*A(870)+A(875)
 IF (DO_FUN(32)) &
-  P_VAR(32) = A(204)+A(370)+A(374)+A(814)+A(821)
+  P_VAR(32) = A(204)+A(370)+A(374)
 IF (DO_FUN(33)) &
-  P_VAR(33) = A(8)+A(9)+A(10)+2*A(13)
+  P_VAR(33) = A(8)+A(9)+A(10)+2*A(13)+A(814)+A(821)
 IF (DO_FUN(34)) &
   P_VAR(34) = A(884)+A(885)+A(886)+A(887)+2*A(890)
 IF (DO_FUN(35)) &
@@ -6324,8 +6324,8 @@ SUBROUTINE Fun_SPLITF ( V, F, RCT, P_VAR, D_VAR, Aout )
   P_VAR(29) = A(4)
   P_VAR(30) = A(858)+1.5*A(859)+1.5*A(869)
   P_VAR(31) = A(860)+A(861)+A(862)+0.8*A(870)+A(875)
-  P_VAR(32) = A(204)+A(370)+A(374)+A(814)+A(821)
-  P_VAR(33) = A(8)+A(9)+A(10)+2*A(13)
+  P_VAR(32) = A(204)+A(370)+A(374)
+  P_VAR(33) = A(8)+A(9)+A(10)+2*A(13)+A(814)+A(821)
   P_VAR(34) = A(884)+A(885)+A(886)+A(887)+2*A(890)
   P_VAR(35) = A(11)
   P_VAR(36) = A(888)
@@ -7592,12 +7592,12 @@ SUBROUTINE CalcStoichNum ( StoichNum )
   StoichNum(32,204) = 1
   StoichNum(32,370) = 1
   StoichNum(32,374) = 1
-  StoichNum(32,814) = 1
-  StoichNum(32,821) = 1
   StoichNum(33,8) = 1
   StoichNum(33,9) = 1
   StoichNum(33,10) = 1
   StoichNum(33,13) = 2
+  StoichNum(33,814) = 1
+  StoichNum(33,821) = 1
   StoichNum(34,884) = 1
   StoichNum(34,885) = 1
   StoichNum(34,886) = 1

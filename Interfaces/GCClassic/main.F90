@@ -112,9 +112,8 @@ PROGRAM GEOS_Chem
   !--------------------------------------------------------------------------
   ! Radiation modules (RRTMG)
   !--------------------------------------------------------------------------
-  USE RRTMG_RAD_TRANSFER_MOD, ONLY : Do_RRTMG_Rad_Transfer
+  USE RRTMG_RAD_TRANSFER_MOD, ONLY : Do_RRTMG_All_Outputs
   USE RRTMG_RAD_TRANSFER_MOD, ONLY : Init_RRTMG_Rad_Transfer
-  USE RRTMG_RAD_TRANSFER_MOD, ONLY : Set_SpecMask
   USE RRTMG_LW_Init,          ONLY : RRTMG_LW_Ini
   USE RRTMG_SW_Init,          ONLY : RRTMG_SW_Ini
 #endif
@@ -209,7 +208,8 @@ PROGRAM GEOS_Chem
   CHARACTER(LEN=255)       :: Argv
 
 #ifdef RRTMG
-  LOGICAL, SAVE            :: FIRST_RT = .TRUE.
+  ! Variables for RRTMG radiative transfer
+  LOGICAL,  SAVE           :: FIRST_RT = .TRUE.
 #endif
 
   !-----------------------------
@@ -239,12 +239,6 @@ PROGRAM GEOS_Chem
   ! is not called when connecting G-C to an external GCM.
   ! (mlong, bmy, 7/30/12)
   LOGICAL, PARAMETER       :: am_I_Root = .TRUE.
-
-#ifdef RRTMG
-  ! For stratospheric adjustment
-  REAL(f8), ALLOCATABLE          :: DT_3D(:,:,:)
-  REAL(f8), ALLOCATABLE          :: HR_3D(:,:,:)
-#endif
 
   !==========================================================================
   ! GEOS-CHEM starts here!
@@ -1599,113 +1593,31 @@ PROGRAM GEOS_Chem
              WRITE( 6, '(a)' ) REPEAT( '#', 79 )
           ENDIF
 
-          State_Chm%RRTMG_iSeed = State_Chm%RRTMG_iSeed + 15
-
-          !------------------------------------------------------------------
-          ! Determine if we are doing clear-sky or all-sky.
-          ! Clear-sky is output with all-sky, so we just need
-          ! to run once regardless of whether both are required
-          ! or just one.
-          !------------------------------------------------------------------
-          IF ( Input_Opt%LSKYRAD(2) ) THEN
-             State_Chm%RRTMG_iCld = 1
-          ELSE
-             State_Chm%RRTMG_iCld = 0         !clouds are on
-          ENDIF
-
-          !------------------------------------------------------------------
-          ! Calculation for each of the potential output types
-          ! See: wiki.geos-chem.org/Coupling_GEOS-Chem_with_RRTMG
-          !
-          ! RRTMG outputs (scheduled in HISTORY.rc):
-          !  0-BA  1=O3  2=ME  3=SU   4=NI  5=AM
-          !  6=BC  7=OA  8=SS  9=DU  10=PM  11=ST
-          !
-          ! State_Diag%RadOutInd(1) will ALWAYS correspond to BASE due
-          ! to how it is populated from HISTORY.rc diaglist_mod.F90.
-          ! BASE is always calculated first since its flux is used to
-          ! calculate other RRTMG flux diagnostics.
-          !------------------------------------------------------------------
-
-          ! Calculate BASE first
-          N = 1
-
-          ! Echo info
-          WRITE( 6, 520 ) State_Diag%RadOutName(N), State_Diag%RadOutInd(N)
-
-          ! Generate mask for species in RT
-          CALL Set_SpecMask( State_Diag%RadOutInd(N), State_Chm )
-
-          ! Dummy values (FDH not available in GC-Classic)
-          Allocate(DT_3D(0,0,0),Stat=RC)
-          IF ( RC /= 0 ) Call Error_Stop( 'Error allocating DT_3D', ThisLoc )
-          Allocate(HR_3D(0,0,0),Stat=RC)
-          IF ( RC /= 0 ) Call Error_Stop( 'Error allocating HR_3D', ThisLoc )
-
-          ! Compute radiative transfer for the given output
-          CALL Do_RRTMG_Rad_Transfer( ThisDay    = Day,                    &
-                                      ThisMonth  = Month,                  &
-                                      iCld       = State_Chm%RRTMG_iCld,   &
-                                      iSpecMenu  = State_Diag%RadOutInd(N),&
-                                      iNcDiag    = N,                      &
-                                      iSeed      = State_Chm%RRTMG_iSeed,  &
-                                      Input_Opt  = Input_Opt,              &
-                                      State_Chm  = State_Chm,              &
-                                      State_Diag = State_Diag,             &
-                                      State_Grid = State_Grid,             &
-                                      State_Met  = State_Met,              &
-                                      DT_3D      = DT_3D,                  &
-                                      HR_3D      = HR_3D,                  &
-                                      RC         = RC                     )
-
-          ! Trap potential errors
+          ! Compute RRTMG fluxes for all outputs requested in HISTORY.rc,
+          ! including the fixed dynamical heating (FDH/SEFDH) adjustments
+          CALL Do_RRTMG_All_Outputs(                                         &
+               thisDay    = day,                                             &
+               thisMonth  = month,                                           &
+               Input_Opt  = Input_Opt,                                       &
+               State_Chm  = State_Chm,                                       &
+               State_Diag = State_Diag,                                      &
+               State_Grid = State_Grid,                                      &
+               State_Met  = State_Met,                                       &
+               RC         = RC                                              )
           IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered in "Do_RRTMG_Rad_Transfer", ' // &
-                      'for RRTMG output = ' // &
-                      TRIM( State_Diag%RadOutName(N) )
+             ErrMsg = 'Error encountered in "Do_RRTMG_All_Outputs"!'
              CALL Error_Stop( ErrMsg, ThisLoc )
           ENDIF
 
-          ! Calculate for rest of outputs, if any
-          DO N = 2, State_Diag%nRadOut
-             WRITE( 6, 520 ) State_Diag%RadOutName(N), State_Diag%RadOutInd(N)
-             CALL Set_SpecMask( State_Diag%RadOutInd(N), State_Chm )
-             CALL Do_RRTMG_Rad_Transfer( ThisDay    = Day,                    &
-                                         ThisMonth  = Month,                  &
-                                         iCld       = State_Chm%RRTMG_iCld,   &
-                                         iSpecMenu  = State_Diag%RadOutInd(N),&
-                                         iNcDiag    = N,                      &
-                                         iSeed      = State_Chm%RRTMG_iSeed,  &
-                                         Input_Opt  = Input_Opt,              &
-                                         State_Chm  = State_Chm,              &
-                                         State_Diag = State_Diag,             &
-                                         State_Grid = State_Grid,             &
-                                         State_Met  = State_Met,              &
-                                         DT_3D      = DT_3D,                  &
-                                         HR_3D      = HR_3D,                  &
-                                         RC         = RC          )
-             IF ( RC /= GC_SUCCESS ) THEN
-                ErrMsg = 'Error encountered in "Do_RRTMG_Rad_Transfer", ' // &
-                         'for RRTMG output = ' // &
-                         TRIM( State_Diag%RadOutName(N) )
-                CALL Error_Stop( ErrMsg, ThisLoc )
-             ENDIF
-          ENDDO
-
-520       FORMAT( 5x, '- Calling RRTMG to compute fluxes and optics: ', &
-                  a4, ' (Index = ', i4.4, ')' )
-
           IF ( VerboseAndRoot ) THEN
-             CALL Debug_Msg( '### MAIN: a DO_RRTMG_RAD_TRANSFER' )
+             CALL Debug_Msg( '### MAIN: a DO_RRTMG_ALL_OUTPUTS' )
           ENDIF
-
-          If (Allocated(DT_3D)) Deallocate(DT_3D)
-          If (Allocated(HR_3D)) Deallocate(HR_3D)
 
           IF ( Input_Opt%useTimers ) THEN
              CALL Timer_End( "RRTMG", RC )
           ENDIF
 
+          ! Reset first-call flag
           IF ( FIRST_RT ) THEN
              FIRST_RT = .FALSE.
           ENDIF

@@ -1001,14 +1001,14 @@ MODULE gckpp_Monitor
      '       HOCl + HBr --> LOx + BrCl + H2O                                                              ', & ! index 811
      '    HOCl + SALACL --> LOx + Cl2 + H2O                                                               ', & ! index 812
      '    HOCl + SALCCL --> LOx + Cl2 + H2O                                                               ', & ! index 813
-     '       HOCl + SO2 --> PH2SO4 + LOx + PSO4 + SO4 + HCl                                               ', & ! index 814
+     '       HOCl + SO2 --> PSO4AQ + LOx + PSO4 + SO4 + HCl                                               ', & ! index 814
      '       HOBr + HBr --> LOx + Br2 + H2O                                                               ', & ! index 815
      '       HOBr + HCl --> LOx + BrCl + H2O                                                              ', & ! index 816
      '    HOBr + SALACL --> LOx + BrCl + H2O                                                              ', & ! index 817
      '    HOBr + SALCCL --> LOx + BrCl + H2O                                                              ', & ! index 818
      '    HOBr + BrSALA --> LOx + Br2                                                                     ', & ! index 819
      '    HOBr + BrSALC --> LOx + Br2                                                                     ', & ! index 820
-     '       HOBr + SO2 --> PH2SO4 + LOx + PSO4 + SO4 + HBr                                               ', & ! index 821
+     '       HOBr + SO2 --> PSO4AQ + LOx + PSO4 + SO4 + HBr                                               ', & ! index 821
      '         HBr + O3 --> HOBr                                                                          ', & ! index 822
      '      O3 + BrSALA --> HOBr                                                                          ', & ! index 823
      '      O3 + BrSALC --> HOBr                                                                          ', & ! index 824
