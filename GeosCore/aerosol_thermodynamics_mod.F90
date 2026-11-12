@@ -501,7 +501,13 @@ CONTAINS
     DO I = 1, State_Grid%NX
 
        ! Only applying HETP in troposphere
-       IF ( State_Met%InStratMeso(I,J,L) ) CYCLE
+       IF ( State_Met%InStratMeso(I,J,L) ) THEN
+
+          ! Reset the aerosol water where HETP is not called, so that a
+          ! value left from when the box was tropospheric is not used
+          State_Chm%AeroH2O(I,J,L,1+NDUST) = 0.0_fp
+          CYCLE
+       ENDIF
 
        ! Zero PRIVATE variables
        Dcs   = 0.0_fp
