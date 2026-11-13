@@ -2475,7 +2475,7 @@ CONTAINS
 
     USE ErrCode_Mod
     Use Input_Opt_Mod,  ONLY : OptInput
-    USE State_Chm_Mod,  ONLY : ChmState
+    USE State_Chm_Mod,  ONLY : ChmState, Ind_
     Use State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
     USE State_Met_Mod,  ONLY : MetState
@@ -2595,6 +2595,10 @@ CONTAINS
     INTEGER :: id_CO                !
 
     RC = GC_SUCCESS
+
+    ! Species indices for O3 and CO (used by the radiative forcing calculation)
+    id_O3 = Ind_('O3')
+    id_CO = Ind_('CO')
 
     LEV = State_Grid%NZ+1
 
@@ -5856,12 +5860,12 @@ CONTAINS
     ALLOCATE( BCLIFE( NX, NY, NZ ), STAT=RC )
     CALL GC_CheckVar( 'apm_driv_mod.F%BCLIFE', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    PLVSOG = 0d0
+    BCLIFE = 0d0
 
     ALLOCATE( OCLIFE( NX, NY, NZ ), STAT=RC )
     CALL GC_CheckVar( 'apm_driv_mod.F%OCLIFE', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    PLVSOG = 0d0
+    OCLIFE = 0d0
 
     ALLOCATE( IFOUTIJ( NX, NY ) )
     CALL GC_CheckVar( 'apm_driv_mod.F%IFOUTIJ', 0, RC )
@@ -6043,14 +6047,14 @@ CONTAINS
     ZTCLB = 0.0D0
 
     ALLOCATE( ZTFUL(NX,NY,NTYP), STAT=RC )
-    CALL GC_CheckVar( 'apm_driv_mod.F%', 0, RC )
+    CALL GC_CheckVar( 'apm_driv_mod.F%ZTFUL', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    ALBDRR = 0.0D0
+    ZTFUL = 0.0
 
     ALLOCATE( ZTFDL(NX,NY,NTYP), STAT=RC )
-    CALL GC_CheckVar( 'apm_driv_mod.F%', 0, RC )
+    CALL GC_CheckVar( 'apm_driv_mod.F%ZTFDL', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    ALBDRR = 0.0D0
+    ZTFDL = 0.0
 
     ALLOCATE( ZTFLA(NX,NY,NTYP), STAT=RC )
     CALL GC_CheckVar( 'apm_driv_mod.F%ZTFLA', 0, RC )
@@ -6258,9 +6262,9 @@ CONTAINS
     AAODOUT1 = 0.0D0
 
     ALLOCATE( AODOUT3(NX,NY), STAT=RC )
-    CALL GC_CheckVar( 'apm_driv_mod.F%', 0, RC )
+    CALL GC_CheckVar( 'apm_driv_mod.F%AODOUT3', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    ALBDRR = 0.0D0
+    AODOUT3 = 0.0
 
     ALLOCATE( AAODOUT3(NX,NY), STAT=RC )
     CALL GC_CheckVar( 'apm_driv_mod.F%AAODOUT3', 0, RC )
