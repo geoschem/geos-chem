@@ -47,6 +47,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed thread-unsafe error handling in the KPP parallel loops of `GeosCore/fullchem_mod.F90`, `GeosCore/mercury_mod.F90`, and `GeosCore/carbon_gases_mod.F90`
 - Fixed thread-unsafe error handling in several routines
 - Fixed race condition on longitude & latitude in routine `Ocean_Mercury_Flux` (in `GeosCore/ocean_mercury_mod.F90`)
+- Fixed nondeterministic APM results caused by the uninitialized counter `NCOAG4` in `APM_PHYS`; it is now stored in `NCOAG3D` between timesteps
+- Fixed copy-paste errors in `INIT_APM3D` and `APM_RADFDRIV` that prevented certain variables from being initialized before being used
 
 ### Removed
 - Removed invalid OpenMP directives from the `MPI_LOAD_BALANCE` block of `GeosCore/fullchem_mod.F90`, which caused GCHP compilation to fail with `-DOMP=ON`
