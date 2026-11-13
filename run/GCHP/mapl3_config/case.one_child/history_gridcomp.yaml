@@ -1,0 +1,20 @@
+mapl:
+  setServices:
+    sharedObj: libMAPL.history
+
+active_collections:
+  - GCHPctmEnv
+
+time_specs:
+  inst_dt: &inst_dt
+    mode: instantaneous
+
+collections:
+  GCHPctmEnv:
+    template: "OutputDir/%c.%y4%m2%d2_%h2%n2z.nc4"
+    time_spec: *inst_dt
+    var_list:
+      UA:              {source: GCHPctmEnv.UA}
+      VA:              {source: GCHPctmEnv.VA}
+      SPHU0:           {source: GCHPctmEnv.SPHU0}
+      SPHU1:           {source: GCHPctmEnv.SPHU1}

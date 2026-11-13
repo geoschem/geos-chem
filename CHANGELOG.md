@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added `.github/dependabot.yml` to open monthly version-update PRs for GitHub Actions against `main`
 - Added GCHP operational example environment file and run script for the Imperial College London (ICL) HX2 cluster in `run/GCHP/runScriptSamples/operational_examples/icl_hx2`
 - Added option to turn off pre-advection scaling of mixing ratios in GCHP that conserves mass in initial restart file
+- Added developer-only GCHP MAPL3 run directory option to `run/GCHP/createRunDir.sh`, offered only if `GCHP_MAPL3_DEV=y`
 
 ### Changed
 - Updated the Hg0 soil emissions parameterization to improve the response of emissions to light availability
@@ -31,6 +32,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated `SET_SO2` in `KPP/fullchem/fullchem_SulfurChemFuncs.F90` to ensure `RC` and `size_res` are defined before exiting
 - Changed scheduling from `DYNAMIC` to `STATIC` in parallel loops with uniform work per grid box (`aerosol_mod`, `sulfate_mod`, `ucx_mod`, `diagnostics_mod`, `wetscav_mod`)
 - Changed scheduling to `SCHEDULE( STATIC, State_Grid%NX  )`, in parallel loops where most of the work is done near the top of the atmosphere
+ - Updated the Intel VTune scripts (for Harvard Cannon) to move profiling output to its own folder and to generate reports automatically
+- Updated MAPL3 code for compatibility with latest MAPL develop branch without breaking changes for MAPL2
 
 ### Fixed
 - Fixed parallelization errors in `GeosCore/apm_driv_mod.F90`

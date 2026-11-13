@@ -1,0 +1,23 @@
+GCHPchem_DT: 1200
+RRTMG_DT: 10800
+
+GEOSChem_CTM: 1
+MEMORY_DEBUG_LEVEL: 0
+HEMCO_CONFIG: HEMCO_Config.rc
+
+IMPORT_DYN_HEATING: 0
+
+COLD_START_SPC_FROM_BACKGROUND: false
+
+mapl:
+  setServices:
+    sharedObj: libGEOSChem_GridComp
+    userRoutine: geoschem_setservices_
+
+  misc:
+    activate_all_exports: true
+    checkpoint:
+      internal: true
+    restart:
+      internal: true
+      bootstrap: true

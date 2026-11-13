@@ -1,0 +1,4 @@
+# Placeholder until GCHP has a real field dictionary
+placeholder_field:
+  long_name: placeholder
+  canonical_units: "1"
