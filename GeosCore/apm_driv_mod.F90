@@ -427,7 +427,7 @@ CONTAINS
     REAL*8  :: AERAREA1(NSO4+NSEA+NDSTB+4)
     REAL*8  :: AERDRYR1(NSO4+NSEA+NDSTB+4)
     REAL*8  :: GAMMAPM1(NTYP)
-    INTEGER :: NCOAG1,NCOAG2
+    INTEGER :: NCOAG1,NCOAG2,NCOAG4
     INTEGER, PARAMETER :: IFSITEADD = 1
 
     !REAL*8  :: SITEOUT(MAXSITE,LOUT,35),YTOP(MAXSITE,2)
@@ -1139,7 +1139,7 @@ CONTAINS
 !    !$OMP PRIVATE( XQ,PLVSOG01,PLVSOG1,GFTOT1,GFTOT2,DENWET1,DENWET2)       &
 !    !$OMP PRIVATE( IACT10,IACT20,IACT30,FCLOUD1,AERAREA1,AERDRYR1,GAMMAPM1) &
 !    !$OMP PRIVATE( RACT1,RACT2,RACT3)                                       &
-!    !$OMP PRIVATE( NCOAG1,NCOAG2)                                           &
+!    !$OMP PRIVATE( NCOAG1,NCOAG2,NCOAG4)                                    &
 !    !$OMP PRIVATE( YSPGF,XBCLIFE,XOCLIFE,XCSNH3)                            &!Yu+
 !    !$OMP PRIVATE( XOH, XSINK,XAREA,XX0,XX1,DXX,ACS,XLAT, XLON,XAMINE)      &
 !    !$OMP PRIVATE( KYEAR,KMON,KDAY,KHOUR,KMIN,ISITE,JSITE,NSITE)            &
@@ -1439,6 +1439,7 @@ CONTAINS
 
           NCOAG1 = NCOAG3D(I,J,L,1)
           NCOAG2 = NCOAG3D(I,J,L,2)
+          NCOAG4 = NCOAG3D(I,J,L,3)
 
           YCLDLIQ=  State_Met%QL(I,J,L)*State_Met%AIRDEN(I,J,L)*1E3  ! Cloud liquid water content [g/m3]
 
@@ -1446,7 +1447,7 @@ CONTAINS
           !VZ = 3.d0 ! vertical velocity in m/s
 
           CALL APM_PHYS(I,J,L, &
-                 NCOAG1,NCOAG2,IACT10,IACT20,IACT30, &
+                 NCOAG1,NCOAG2,NCOAG4,IACT10,IACT20,IACT30, &
                  RACT1,RACT2,RACT3,NTEMPOUT1, &
                  State_Met%AIRDEN(I,J,L), &
                  PRESS,YSIGMA,TK,RHIN,XQ,PLVSOG01,PLVSOG1,CACID,PACID,CNH3, &
@@ -1606,6 +1607,7 @@ CONTAINS
           GAMMAPM(I,J,L,:) = GAMMAPM1(:)
           NCOAG3D(I,J,L,1)=NCOAG1 ! count step that coag is not call in the grid
           NCOAG3D(I,J,L,2)=NCOAG2 ! count step that coag is not call in the grid
+          NCOAG3D(I,J,L,3)=NCOAG4 ! count step that BC/OC coag is not called in the grid
 
           Spc(APMIDS%id_SO4G)%Conc(I,J,L)=  CACID*VOL*M1ACID*1.d6
 
@@ -5816,10 +5818,10 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
     SO2toSO4 = 0d0
 
-    ALLOCATE( NCOAG3D(NX,NY,NZ,2), STAT=RC )
+    ALLOCATE( NCOAG3D(NX,NY,NZ,3), STAT=RC )
     CALL GC_CheckVar( 'apm_driv_mod.F%NCOAG3D', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    NCOAG3D = 0d0
+    NCOAG3D = 0
 
     ALLOCATE( IACT1(NX,NY,NZ), STAT=RC )
     CALL GC_CheckVar( 'apm_driv_mod.F%IACT1', 0, RC )

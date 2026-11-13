@@ -49,7 +49,8 @@
 ! !INTERFACE:
 !
       SUBROUTINE APM_PHYS( II,        JJ,      LL,       NCOAG1, 
-     &                     NCOAG2,    IACT10,  IACT20,   IACT30,
+     &                     NCOAG2,    NCOAG4,
+     &                     IACT10,    IACT20,  IACT30,
      &                     RACT1,     RACT2,   RACT3,    NTEMPOUT1,
      &                     DENAIR,    PRESS,   YSIGMA,   TK,      RH,
      &                     XQ, PLVSOG01, PLVSOG1, CACID,  PACID, CNH3,
@@ -109,7 +110,7 @@
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 ! 
-      INTEGER :: NCOAG1,NCOAG2, NCOAG4, NCOAG5
+      INTEGER :: NCOAG1,NCOAG2,NCOAG4
       INTEGER :: IACT10       ! bin index for cloud act 
       INTEGER :: IACT20       ! bin index for cloud act 
       INTEGER :: IACT30       ! bin index for cloud act 
