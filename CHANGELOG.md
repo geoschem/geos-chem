@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 - Added the option to use stratospheric-adjusted radiative forcing with RRTMG in GC-Classic
 - Added the EPA NEI2022 (2022v2 platform) monthly-mean anthropogenic emissions for the CONUS as the `NEI2022_MONMEAN` option (off by default); scaled to 2002-2024 with state-level annual scale factors
+- Added routine `Do_Emis_Above_Sfc` (in `GeosCore/mixing_mod.F90`), which applies emissions in levels 2 and higher before non-local PBL mixing.
 
 ### Changed
 - Activated `WetLossConv` and `WetLossLS` collections in fullchem benchmark simulations
@@ -15,12 +16,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Replaced product PH2SO4 by PSO4AQ in HOBr + SO2 and HOCl + SO2 reactions (`KPP/fullchem/fullchem.eqn`, `KPP/custom/custom.eqn`)
 - Moved GC-Classic RRTMG FDH code from `main.F90` into new routine `Do_RRTMG_All_Outputs` in `rrtmg_rad_transfer_mod.F90`
 - Updated `run/shared/singleCarbonSpecies.sh` to remove `EPA22_CO_*` instead of `EPA16_CO_*` entries
+- Updated `Compute_Sflx_for_Vdiff` routine to only include surface emissions in `State_Chm%SurfaceFlux` for passing into the VDIFF non-local PBL mixing routine
+- Moved code shared by `DO_TEND` and `Do_Emis_Above_Sfc` into private helper routines in `GeosCore/mixing_mod.F90`.
+- Updated `GeosCore/mixing_mod.F90` so that `Do_Tend` is only called for full PBL mixing and `Do_Emis_Above_Sfc` is called for non-local PBL mixing
+- Updated the `SatDiagnSurfFlux` diagnostic metadata to state that it contains surface (level 1) emissions minus dry deposition
 
 ### Fixed
 - Fixed the water activity in routine `CALC_SLA_GAMMA` (`GeosCore/ucx_mod.F90`), which was clamped with `MAX` instead of `MIN`
 
 ### Removed
 - Removed the EPA NEI2016 (`NEI2016_MONMEAN`) option from the run directory template files; superseded by `NEI2022_MONMEAN`
+- Removed the `OnlyAbovePBL` argument from `Do_Tend` (in `GeosCore/mixing_mod.F90`)
 
 ## [14.8.0] - 2026-09-11
 ### Added
