@@ -46,7 +46,7 @@ EXE_PASS_STR='Execute Simulation....PASS'
 EXE_FAIL_STR='Execute Simulation....FAIL'
 EXE_TBD_STR='Execute Simulation....TBD'
 EXE_GCC_BUILD_LIST=("default" "apm"   "carbon"  "hg"       \
-                    "luowd"   "rrtmg" "tomas15" )
+                    "oldwd"   "rrtmg" "tomas15" )
 EXE_GCHP_BUILD_LIST=("default" "carbon" "rrtmg" "tomas15")
 END_hhmm_1h="0100z.nc4"
 END_hhmm_20m="0020z.nc4"
@@ -434,8 +434,8 @@ function config_options() {
         options="${baseOptions} -DMECH=carbon -DEXE_FILE_NAME=${exeFileName}"
     elif [[ ${dir} =~ "hg" ]]; then
         options="${baseOptions} -DMECH=Hg -DFASTJX=y -DEXE_FILE_NAME=${exeFileName}"
-    elif [[ ${dir} =~ "luowd" ]]; then
-        options="${baseOptions} -DLUO_WETDEP=y -DEXE_FILE_NAME=${exeFileName}"
+    elif [[ ${dir} =~ "oldwd" ]]; then
+        options="${baseOptions} -DLUO_WETDEP=n -DEXE_FILE_NAME=${exeFileName}"
     elif [[ ${dir} =~ "rrtmg" ]]; then
         options="${baseOptions} -DRRTMG=y -DEXE_FILE_NAME=${exeFileName}"
     elif [[ ${dir} =~ "tomas15" ]]; then
@@ -474,8 +474,8 @@ function compiletest_name() {
         result="${displayName} with APM"
     elif [[ "${buildDir}" =~ "carbon" ]]; then
         result="${displayName} w/ carbon gases (as a KPP mechanism)"
-    elif [[ "${buildDir}" =~ "luowd" ]]; then
-        result="${displayName} with Luo et al wetdep"
+    elif [[ "${buildDir}" =~ "oldwd" ]]; then
+        result="${displayName} with Jacob et al. 2000 wetdep"
     elif [[ "${buildDir}" =~ "hg" ]]; then
         result="${displayName} with Hg (as a KPP mechanism)"
     elif [[ "${buildDir}" =~ "rrtmg" ]]; then
@@ -777,46 +777,55 @@ function get_default_gchp_env_file() {
 
 function print_submodule_head_commits() {
     #========================================================================
-    # Print the head commits for each Git submodule #####
+    # Print the head commits for each Git submodule
     #
-    # 1st argument: Number of pad characters before commit line starts
+    # 1st argument: Minimum width of the name column (the column widens
+    #               to fit the longest name, e.g. a long root folder name)
     # 2nd argument: Path to top-level code directory
-    # 3rd argument: Log file where output will be written
+    # 3rd argument: Log file where output will be written (or "" for stdout)
     #========================================================================
     export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
-    n_pad=${1}
-    baseDir=$(basename "${2}")
-    pad="                       "
+    local width="${1}"
+    local codeDir="${2}"
+    local logFile="${3}"
+    local baseDir submod name i output
+    local -a submods=() names=() heads=()
+    baseDir=$(basename "${codeDir}")
 
-    # Get submodule names from .gitmodules in the superproject folder
-    submods=(.)
-    submods+=$(grep path "${2}/.gitmodules")
-    submods=${submods//path = /}
+    # Get submodule paths from .gitmodules in the superproject folder,
+    # with the superproject itself (".") listed first
+    mapfile -t submods < <(git config -f "${codeDir}/.gitmodules" \
+                               --get-regexp '\.path$' | awk '{print $2}')
+    submods=(. "${submods[@]}")
 
-    # Loop over submodules
-    # Skip blank entries and geos-chem-shared-docs
-    for submod in ${submods[@]}; do
-	if [[ "X${submod}" != "X" ]]; then
-	    if [[ ! "${submod}" =~ "geos-chem-shared-docs" ]]; then
-
-		# Get the head commit for each submodule and create a
-		# display string to print either to log file or to stdout.
-		# For clarity, remove _GridComp from FVdycoreCubed_GridComp.
-		if [[ -d "${2}/$submod" ]]; then
-		    head=$(git -C "${2}/$submod" log --oneline -1)
-		    y=$(basename $submod)
-		    y=${y/_GridComp/}
-		    y=${y/\./${baseDir}}
-		    if [[ "X${3}" == "X" ]]; then
-			echo "${y:0:n_pad}${pad:0:$((n_pad - ${#y}))}: $head"
-		    else
-			echo "${y:0:n_pad}${pad:0:$((n_pad - ${#y}))}: $head" >> "${3}"
-		    fi
-
-		fi
-	    fi
-	fi
+    # Collect the display name and head commit for each submodule.
+    # Skip geos-chem-shared-docs and paths that are not checked out.
+    # For clarity, remove _GridComp from FVdycoreCubed_GridComp.
+    for submod in "${submods[@]}"; do
+        [[ -z "${submod}" ]] && continue
+        [[ "${submod}" =~ "geos-chem-shared-docs" ]] && continue
+        [[ -d "${codeDir}/${submod}" ]] || continue
+        if [[ "${submod}" == "." ]]; then
+            name="${baseDir}"
+        else
+            name=$(basename "${submod}")
+            name="${name/_GridComp/}"
+        fi
+        names+=("${name}")
+        heads+=("$(git -C "${codeDir}/${submod}" log --oneline -1)")
+        (( ${#name} > width )) && width=${#name}
     done
+
+    # Print with the name column padded to a common width so that
+    # the colons line up, either to the log file or to stdout
+    output=$(for i in "${!names[@]}"; do
+        printf "%-*s: %s\n" "${width}" "${names[i]}" "${heads[i]}"
+    done)
+    if [[ -z "${logFile}" ]]; then
+        echo "${output}"
+    else
+        echo "${output}" >> "${logFile}"
+    fi
 }
 
 
