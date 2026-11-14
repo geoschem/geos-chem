@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated `run/shared/singleCarbonSpecies.sh` to remove `EPA22_CO_*` instead of `EPA16_CO_*` entries
 
 ### Fixed
+- Fixed the water activity in routine `CALC_SLA_GAMMA` (`GeosCore/ucx_mod.F90`), which was clamped with `MAX` instead of `MIN`
 - Fixed stale aerosol water (`State_Chm%AeroH2O`) in grid boxes where HETP is not called, by resetting it to zero in `GeosCore/aerosol_thermodynamics_mod.F90`
 
 ### Removed

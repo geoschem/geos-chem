@@ -3219,7 +3219,7 @@ CONTAINS
               /T-330918.55082e+0_f8/(T*T) &
               +12725068.262e+0_f8/(T*T*T))       ! Saturation pressure of H2O
     H2OPP = H2OSUM * P                  ! Partial pressure of H2O
-    ACTH2O = MAX((H2OPP/PSATH2O),1.0e+0_f8) ! Water activity
+    ACTH2O = MIN((H2OPP/PSATH2O),1.0e+0_f8) ! Water activity
 
     ! Calculate molality of solution
     !WT = MIN(100.0e+0_fp,100.0e+0_fp*WT_FRC) ! Convert from fraction to %
