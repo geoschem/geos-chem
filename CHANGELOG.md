@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Fixed
 - Fixed the water activity in routine `CALC_SLA_GAMMA` (`GeosCore/ucx_mod.F90`), which was clamped with `MAX` instead of `MIN`
+- Fixed stale aerosol water (`State_Chm%AeroH2O`) in grid boxes where HETP is not called, by resetting it to zero in `GeosCore/aerosol_thermodynamics_mod.F90`
 
 ### Removed
 - Removed the EPA NEI2016 (`NEI2016_MONMEAN`) option from the run directory template files; superseded by `NEI2022_MONMEAN`
