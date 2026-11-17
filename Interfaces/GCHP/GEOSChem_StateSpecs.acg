@@ -65,7 +65,7 @@ category: IMPORT
  QL               |              | 1	       | R4       | xyz  | C    | placeholder
  TAUCLI           |              | 1	       | R4       | xyz  | C    | placeholder
  TAUCLW           |              | 1	       | R4       | xyz  | C    | placeholder
-# CMFMC            |              | 1	       | R4       | xyz  | E    | placeholder
+ CMFMC            |              | 1	       | R4       | xyz  | E    | placeholder
  DTRAIN           |              | 1	       | R4       | xyz  | C    | placeholder
  OMEGA            |              | 1	       | R4       | xyz  | C    | placeholder
  RH               |              | 1	       | R4       | xyz  | C    | placeholder
@@ -75,10 +75,10 @@ category: IMPORT
  DQRLSAN          |              | 1	       | R4       | xyz  | C    | placeholder
  REEVAPCN         |              | 1	       | R4       | xyz  | C    | placeholder
  REEVAPLS         |              | 1	       | R4       | xyz  | C    | placeholder
-# PFICU            |              | 1	       | R4       | xyz  | E    | placeholder
-# PFILSAN          |              | 1	       | R4       | xyz  | E    | placeholder
-# PFLCU            |              | 1	       | R4       | xyz  | E    | placeholder
-# PFLLSAN          |              | 1	       | R4       | xyz  | E    | placeholder
+ PFICU            |              | 1	       | R4       | xyz  | E    | placeholder
+ PFILSAN          |              | 1	       | R4       | xyz  | E    | placeholder
+ PFLCU            |              | 1	       | R4       | xyz  | E    | placeholder
+ PFLLSAN          |              | 1	       | R4       | xyz  | E    | placeholder
  SPHU1            |              | 1	       | R4       | xyz  | C    | specific_humidity_before_advection
  SPHU2            |              | 1	       | R4       | xyz  | C    | specific_humidity_after_advection
  TMPU1            |              | 1	       | R4       | xyz  | C    | placeholder
