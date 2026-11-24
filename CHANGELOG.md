@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 - Added the option to use stratospheric-adjusted radiative forcing with RRTMG in GC-Classic
 - Added the EPA NEI2022 (2022v2 platform) monthly-mean anthropogenic emissions for the CONUS as the `NEI2022_MONMEAN` option (off by default); scaled to 2002-2024 with state-level annual scale factors
+- Added routine `Do_Emis_Above_Sfc` (in `GeosCore/mixing_mod.F90`), which applies emissions in levels 2 and higher before non-local PBL mixing.
 
 ### Changed
 - Activated `WetLossConv` and `WetLossLS` collections in fullchem benchmark simulations
@@ -17,6 +18,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated `run/shared/singleCarbonSpecies.sh` to remove `EPA22_CO_*` instead of `EPA16_CO_*` entries
 - Changed `LuoWd` integration tests to `oldwd`, with `-DLUO_WETDEP=n`, since Luo and Yu 2023 wetdep is now the default option
 - Changed `LUO_WETDEP` CMake cache variable from `OFF` to `ON` in `CMakeLists.txt`, for consistency
+- Updated `Compute_Sflx_for_Vdiff` routine to only include surface emissions in `State_Chm%SurfaceFlux` for passing into the VDIFF non-local PBL mixing routine
+- Moved code shared by `DO_TEND` and `Do_Emis_Above_Sfc` into private helper routines in `GeosCore/mixing_mod.F90`.
+- Updated `GeosCore/mixing_mod.F90` so that `Do_Tend` is only called for full PBL mixing and `Do_Emis_Above_Sfc` is called for non-local PBL mixing
+- Updated the `SatDiagnSurfFlux` diagnostic metadata to state that it contains surface (level 1) emissions minus dry deposition
 
 ### Fixed
 - Fixed the water activity in routine `CALC_SLA_GAMMA` (`GeosCore/ucx_mod.F90`), which was clamped with `MAX` instead of `MIN`
@@ -24,6 +29,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Removed
 - Removed the EPA NEI2016 (`NEI2016_MONMEAN`) option from the run directory template files; superseded by `NEI2022_MONMEAN`
+- Removed the `OnlyAbovePBL` argument from `Do_Tend` (in `GeosCore/mixing_mod.F90`)
 
 ### Fixed
 - Fixed column alignment in bash function `print_submodule_head_commits` (located in `test/shared/commonFunctionsForTests.sh`)
