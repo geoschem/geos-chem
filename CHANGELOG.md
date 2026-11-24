@@ -47,6 +47,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed thread-unsafe error handling in the KPP parallel loops of `GeosCore/fullchem_mod.F90`, `GeosCore/mercury_mod.F90`, and `GeosCore/carbon_gases_mod.F90`
 - Fixed thread-unsafe error handling in several routines
 - Fixed race condition on longitude & latitude in routine `Ocean_Mercury_Flux` (in `GeosCore/ocean_mercury_mod.F90`)
+- Fixed incorrect POG1, POG2, and STYR entries in the`GFED4_CLIMATOLOGY` sections of the `HEMCO_Config.rc.fullchem` template files
 
 ### Removed
 - Removed invalid OpenMP directives from the `MPI_LOAD_BALANCE` block of `GeosCore/fullchem_mod.F90`, which caused GCHP compilation to fail with `-DOMP=ON`
