@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated `run/shared/singleCarbonSpecies.sh` to remove `EPA22_CO_*` instead of `EPA16_CO_*` entries
 - Changed `LuoWd` integration tests to `oldwd`, with `-DLUO_WETDEP=n`, since Luo and Yu 2023 wetdep is now the default option
 - Changed `LUO_WETDEP` CMake cache variable from `OFF` to `ON` in `CMakeLists.txt`, for consistency
+- Updated `CEDS_01x01` and `CEDS_01x01_SHIP` anthropogenic emissions to CEDSv2025-04 (`CEDS-CMIP-2025-04-18`, 0.1° x 0.1°, 1998-2023; `HEMCO/CEDS/v2026-11`) in the GC-Classic and GCHP `HEMCO_Config.rc` templates; TMB and OTHER_VOC are now also read at 0.1° x 0.1° instead of from 0.5° x 0.5° CEDS `v2021-06`
 
 ### Fixed
 - Fixed the water activity in routine `CALC_SLA_GAMMA` (`GeosCore/ucx_mod.F90`), which was clamped with `MAX` instead of `MIN`

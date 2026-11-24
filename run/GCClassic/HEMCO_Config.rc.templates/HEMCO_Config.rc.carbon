@@ -89,7 +89,7 @@ Mask fractions:              false
     --> AEIC2019_DAILY         :       false    # 2019 (daily data)
     --> AEIC2019_MONMEAN       :       true     # 2019 (monthly-mean data)
     --> AEIC_SCALE_1990_2019   :       true     # Scale to year in 1990-2019
-    --> CEDS_01x01             :       true     # 1980-2019
+    --> CEDS_01x01             :       true     # 1998-2023
     --> HTAP                   :       false    # 2008-2010
     --> FOSSIL_ODIAC           :       true     # 2000-2018
     --> FOSSIL_CDIAC           :       false    # 1980-2014
@@ -113,7 +113,7 @@ Mask fractions:              false
     --> CMIP6_SFC_CH4          :       false    # 1750-1978
 # ..... Ship emissions ...............
     --> SHIP                   :       true
-    --> CEDS_01x01_SHIP        :       true     # 1980-2019
+    --> CEDS_01x01_SHIP        :       true     # 1998-2023
     --> HTAP_SHIP              :       false    # 2000-2018
 #------ OCS FLUX DATA ---------------------------------------------------------
     --> OCS_ANTHRO_FLUX        :       true     # 2012-2016
@@ -673,13 +673,13 @@ Mask fractions:              false
 # %%% for the global base emissions.                                   %%%
 #==============================================================================
 (((CEDS_01x01
-0 CEDS_CO_AGR  $ROOT/CEDS/v2024-06/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_agr  1980-2019/1-12/1/0 C xy   kg/m2/s CO 2401         1 5
-0 CEDS_CO_ENE  $ROOT/CEDS/v2024-06/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_ene  1980-2019/1-12/1/0 C xyL* kg/m2/s CO 2406/706/315 1 5
-0 CEDS_CO_IND  $ROOT/CEDS/v2024-06/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_ind  1980-2019/1-12/1/0 C xyL* kg/m2/s CO 2407/707/316 1 5
-0 CEDS_CO_TRA  $ROOT/CEDS/v2024-06/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_tra  1980-2019/1-12/1/0 C xy   kg/m2/s CO 2411/711     1 5
-0 CEDS_CO_RCO  $ROOT/CEDS/v2024-06/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_rco  1980-2019/1-12/1/0 C xy   kg/m2/s CO 2409/709     1 5
-0 CEDS_CO_SLV  $ROOT/CEDS/v2024-06/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_slv  1980-2019/1-12/1/0 C xy   kg/m2/s CO 2407/707     1 5
-0 CEDS_CO_WST  $ROOT/CEDS/v2024-06/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_wst  1980-2019/1-12/1/0 C xy   kg/m2/s CO 26           1 5
+0 CEDS_CO_AGR  $ROOT/CEDS/v2026-11/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc CO_agr  1998-2023/1-12/1/0 C xy   kg/m2/s CO 2401         1 5
+0 CEDS_CO_ENE  $ROOT/CEDS/v2026-11/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc CO_ene  1998-2023/1-12/1/0 C xyL* kg/m2/s CO 2406/706/315 1 5
+0 CEDS_CO_IND  $ROOT/CEDS/v2026-11/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc CO_ind  1998-2023/1-12/1/0 C xyL* kg/m2/s CO 2407/707/316 1 5
+0 CEDS_CO_TRA  $ROOT/CEDS/v2026-11/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc CO_tra  1998-2023/1-12/1/0 C xy   kg/m2/s CO 2411/711     1 5
+0 CEDS_CO_RCO  $ROOT/CEDS/v2026-11/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc CO_rco  1998-2023/1-12/1/0 C xy   kg/m2/s CO 2409/709     1 5
+0 CEDS_CO_SLV  $ROOT/CEDS/v2026-11/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc CO_slv  1998-2023/1-12/1/0 C xy   kg/m2/s CO 2407/707     1 5
+0 CEDS_CO_WST  $ROOT/CEDS/v2026-11/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc CO_wst  1998-2023/1-12/1/0 C xy   kg/m2/s CO 26           1 5
 )))CEDS_01x01
 
 #==============================================================================
@@ -745,7 +745,7 @@ Mask fractions:              false
 )))HTAP_SHIP
 
 (((CEDS_01x01_SHIP
-0 CEDS_CO_SHP $ROOT/CEDS/v2024-06/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc CO_shp 1980-2019/1-12/1/0 C xy kg/m2/s CO 26 10 5
+0 CEDS_CO_SHP $ROOT/CEDS/v2026-11/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc CO_shp 1998-2023/1-12/1/0 C xy kg/m2/s CO 26 10 5
 )))CEDS_01x01_SHIP
 
 #==============================================================================
@@ -902,7 +902,7 @@ Mask fractions:              false
 )))ICOADS_SHIP
 
 (((CEDS_01x01_SHIP
-0 CEDS_CO2_SHP  $ROOT/CEDS/v2024-06/$YYYY/CEDS_CO2_0.1x0.1_$YYYY.nc  CO2_shp  1980-2019/1-12/1/0 C xy kg/m2/s CO2 - 6 1
+0 CEDS_CO2_SHP  $ROOT/CEDS/v2026-11/$YYYY/CO2-em-anthro_CMIP_CEDS_$YYYY.nc CO2_shp  1998-2023/1-12/1/0 C xy kg/m2/s CO2 - 6 1
 )))CEDS_01x01_SHIP
 )))SHIP
 
