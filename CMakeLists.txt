@@ -87,8 +87,8 @@ if(MODEL_GCHP)
   set(TOMAS OFF CACHE BOOL
     "Switch to build TOMAS as a component of GEOS-Chem"
   )
-  set(LUO_WETDEP OFF CACHE BOOL
-    "Switch to build the Luo et al (2020) wetdep scheme into GEOS-Chem"
+  set(LUO_WETDEP ON CACHE BOOL
+    "Switch to build the Luo and Yu (2023) wetdep scheme into GEOS-Chem"
   )
   set(FASTJX OFF CACHE BOOL
     "Switch to use legacy FAST-JX photolysis in GEOS-Chem"

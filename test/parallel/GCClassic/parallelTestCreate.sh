@@ -208,8 +208,8 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
 	exit 0
     fi
 
-    # 4x5 merra2 fullchem_LuoWd
-    dir="gc_4x5_merra2_fullchem_LuoWd"
+    # 4x5 merra2 fullchem_oldwd
+    dir="gc_4x5_merra2_fullchem_oldwd"
     create_rundir "1\n1\n1\n1\n1\n${rundirsDir}\n${dir}\nn\nn\n" "${log}"
 
     # 4x5 merra2 fullchem_aciduptake
@@ -248,8 +248,8 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
     # 4x5 merra2 TransportTracers
     create_rundir "7\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
 
-    # 4x5 merra2 TransportTracers_LuoWd
-    dir="gc_4x5_merra2_TransportTracers_LuoWd"
+    # 4x5 merra2 TransportTracers_oldwd
+    dir="gc_4x5_merra2_TransportTracers_oldwd"
     create_rundir "7\n1\n1\n1\n${rundirsDir}\n${dir}\nn\n" "${log}"
 
     # 4x5 merra2 metals"
