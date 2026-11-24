@@ -17,10 +17,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated `run/shared/singleCarbonSpecies.sh` to remove `EPA22_CO_*` instead of `EPA16_CO_*` entries
 - Changed `LuoWd` integration tests to `oldwd`, with `-DLUO_WETDEP=n`, since Luo and Yu 2023 wetdep is now the default option
 - Changed `LUO_WETDEP` CMake cache variable from `OFF` to `ON` in `CMakeLists.txt`, for consistency
+- Updated `CEDS_01x01` and `CEDS_01x01_SHIP` anthropogenic emissions to CEDSv2025-04 (`CEDS-CMIP-2025-04-18`, 0.1° x 0.1°, 1998-2023; `HEMCO/CEDS/v2026-11`) in the GC-Classic and GCHP `HEMCO_Config.rc` templates and the GCHP `ExtData.rc` and `extdata.yaml` templates; TMB and OTHER_VOC are now also read at 0.1° x 0.1° instead of from 0.5° x 0.5° CEDS `v2021-06`
 
 ### Fixed
 - Fixed the water activity in routine `CALC_SLA_GAMMA` (`GeosCore/ucx_mod.F90`), which was clamped with `MAX` instead of `MIN`
 - Fixed stale aerosol water (`State_Chm%AeroH2O`) in grid boxes where HETP is not called, by resetting it to zero in `GeosCore/aerosol_thermodynamics_mod.F90`
+- Fixed `CEDS_01x01` scale factors in the fullchem `HEMCO_Config.rc` templates: `CEDS_NO_ENE` now uses the energy diel factor (`2406`, was agriculture `2401`) and `CEDS_POG2_ENE` now uses `SV2POG2` (`77`, was `SV2POG1` `76`)
 
 ### Removed
 - Removed the EPA NEI2016 (`NEI2016_MONMEAN`) option from the run directory template files; superseded by `NEI2022_MONMEAN`
