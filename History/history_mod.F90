@@ -3334,9 +3334,10 @@ CONTAINS
           ! Point to mapping obj specific to species boundary conditions
           mapData => State_Diag%Map_SpeciesBC
 
-          !$OMP PARALLEL DO       &
-          !$OMP DEFAULT( SHARED ) &
-          !$OMP PRIVATE( N, S   )
+          !$OMP PARALLEL DO                                                  &
+          !$OMP DEFAULT( SHARED                                             )&
+          !$OMP PRIVATE( N, S                                               )&
+          !$OMP SCHEDULE( STATIC                                            ) 
           DO S = 1, mapData%nSlots
              N = mapData%slot2id(S)
              State_Diag%SpeciesBC(:,:,:,S) = State_Chm%Species(N)%Conc(:,:,:)

@@ -34,6 +34,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Changed scheduling to `SCHEDULE( STATIC, State_Grid%NX  )`, in parallel loops where most of the work is done near the top of the atmosphere
  - Updated the Intel VTune scripts (for Harvard Cannon) to move profiling output to its own folder and to generate reports automatically
 - Updated MAPL3 code for compatibility with latest MAPL develop branch without breaking changes for MAPL2
+- Optimized parallel loops in `GeosUtil`, `History`, and `ObsPack` source code modules
+- Updated `GeosCore/timers_mod.F90` to use `OMP_GET_MAX_THREADS` instead of `OMP_GET_NUM_THREADS`
 
 ### Fixed
 - Fixed parallelization errors in `GeosCore/apm_driv_mod.F90`
@@ -57,6 +59,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Removed unused variables `ISTATUS`, `RCNTRL`, and `RSTATE` from `GeosCore/carbon_gases_mod.F90`
 - Removed nested parallel loops in `GeosCore/vdiff_mod.F90` and `GeosCore/tpcore_fvdas_mod.F90`; they just add overhead
 - Removed `USE` statement importing `OCEAN_MERCURY_FLUX` from routine `EMISSMERCURY`; it not called and is thus dead code
+- Removed nested `!$OMP PARALLEL` clauses from `ConvertBox*` routines in `GeosUtil/unitconv_mod.F90`
 
 ## [14.8.0] - 2026-09-11
 ### Added

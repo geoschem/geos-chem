@@ -124,7 +124,7 @@ CONTAINS
     INTEGER            :: RC
 #ifdef MODEL_CLASSIC
 #ifndef NO_OMP
-    INTEGER, EXTERNAL  :: OMP_GET_NUM_THREADS
+    INTEGER, EXTERNAL  :: OMP_GET_MAX_THREADS
 #endif
 #endif
 
@@ -154,10 +154,8 @@ CONTAINS
 #ifdef MODEL_CLASSIC
 #ifndef NO_OMP
     ! Determine the number of threads available for parallel loops
-    !$OMP PARALLEL
-    nThreads   = OMP_GET_NUM_THREADS()
+    nThreads   = OMP_GET_MAX_THREADS()
     d_nThreads = DBLE( nThreads )
-    !$OMP END PARALLEL
 #endif
 #endif
 

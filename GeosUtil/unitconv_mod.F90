@@ -737,7 +737,8 @@ CONTAINS
     ! Loop over species
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( S, N, const                                              )
+    !$OMP PRIVATE( S, N, const                                              )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO S = 1, SIZE( mapping )
 
        ! Get the modelId from the mapping array
@@ -850,7 +851,8 @@ CONTAINS
     ! Loop over all species
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( S, N, const                                              )
+    !$OMP PRIVATE( S, N, const                                              )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO S = 1, SIZE( mapping )
 
        ! Get the modelId from the mapping array
@@ -945,7 +947,8 @@ CONTAINS
     ! Loop over all species
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( S, N                                                     )
+    !$OMP PRIVATE( S, N                                                     )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO S = 1, SIZE( mapping )
 
        ! Get the modelId from the mapping array
@@ -1038,7 +1041,8 @@ CONTAINS
     ! Loop over all species
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( S, N                                                     )
+    !$OMP PRIVATE( S, N                                                     )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO S = 1, SIZE( mapping )
 
        ! Get the modelId from the mapping array
@@ -1142,7 +1146,8 @@ CONTAINS
     !========================================================================
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( S, N                                                     )
+    !$OMP PRIVATE( S, N                                                     )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO S = 1, SIZE( mapping )
 
        ! Get the modelId from the mapping array
@@ -1245,7 +1250,8 @@ CONTAINS
 
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( S, N                                                     )
+    !$OMP PRIVATE( S, N                                                     )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO S = 1, SIZE( mapping )
 
        ! Get the modelId from the mapping array
@@ -1359,7 +1365,8 @@ CONTAINS
     ! Loop over all species
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( S, N, MW_kg, const                                       )
+    !$OMP PRIVATE( S, N, MW_kg, const                                       )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO S = 1, SIZE( mapping )
 
        ! Get the modelId from the mapping array
@@ -1483,7 +1490,8 @@ CONTAINS
     ! Loop over species
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( S, N, MW_kg, const                                       )
+    !$OMP PRIVATE( S, N, MW_kg, const                                       )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO S = 1, SIZE( mapping )
 
        ! Get the modelId from the mapping array
@@ -1606,7 +1614,8 @@ CONTAINS
     ! Loop over all species
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( S, N, const                                              )
+    !$OMP PRIVATE( S, N, const                                              )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO S = 1, SIZE( mapping )
 
        ! Get the modelId from the mapping array
@@ -1725,7 +1734,8 @@ CONTAINS
     ! Loop over all species
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( S, N, const                                              )
+    !$OMP PRIVATE( S, N, const                                              )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO S = 1, SIZE( mapping )
 
        ! Get the modelId from the mapping array
@@ -1836,7 +1846,8 @@ CONTAINS
 
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( S, N                                                     )
+    !$OMP PRIVATE( S, N                                                     )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO S = 1, SIZE( mapping )
 
        ! Get the modelId from the mapping array
@@ -1944,7 +1955,8 @@ CONTAINS
 
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( S, N                                                     )
+    !$OMP PRIVATE( S, N                                                     )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO S = 1, SIZE( mapping )
 
        ! Get the modelId from the mapping array
@@ -2062,7 +2074,8 @@ CONTAINS
     ! Loop over all species
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( S, N, MW_kg, const                                       )
+    !$OMP PRIVATE( S, N, MW_kg, const                                       )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO S = 1, SIZE( mapping )
 
        ! Get the modelId from the mapping array
@@ -2181,7 +2194,8 @@ CONTAINS
     ! Loop over all species
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( S, N, MW_kg, const                                       )
+    !$OMP PRIVATE( N, MW_kg, const                                          )&
+    !$OMP SCHEDULE( STATIC                                                  )
     DO N = 1, State_Chm%nSpecies
 
        ! Molecular weight for the species [kg]
@@ -2260,9 +2274,6 @@ CONTAINS
     !========================================================================
     ! ConvertBox_KgKgDry_to_Kg begins here!
     !========================================================================
-    !$OMP PARALLEL DO           &
-    !$OMP DEFAULT( SHARED     ) &
-    !$OMP PRIVATE( N )
     DO N = 1, State_Chm%nSpecies
 
        ! Convert species concentration units
@@ -2277,7 +2288,6 @@ CONTAINS
 #endif
 
     ENDDO
-    !$OMP END PARALLEL DO
 
   END SUBROUTINE ConvertBox_KgKgDry_to_Kg
 !EOC
@@ -2333,9 +2343,6 @@ CONTAINS
     !========================================================================
     ! ConvertBox_Kg_to_KgKgDry begins here!
     !========================================================================
-    !$OMP PARALLEL DO           &
-    !$OMP DEFAULT( SHARED     ) &
-    !$OMP PRIVATE( N )
     DO N = 1, State_Chm%nSpecies
 
        ! Convert species concentration units
@@ -2350,7 +2357,6 @@ CONTAINS
 #endif
 
     ENDDO
-    !$OMP END PARALLEL DO
 
   END SUBROUTINE ConvertBox_Kg_to_KgKgDry
 !EOC
@@ -2403,9 +2409,6 @@ CONTAINS
     !========================================================================
     ! ConvertBox_Kgm2_to_Kg begins here!
     !========================================================================
-    !$OMP PARALLEL DO           &
-    !$OMP DEFAULT( SHARED     ) &
-    !$OMP PRIVATE( N )
     DO N = 1, State_Chm%nSpecies
 
        ! Convert species concentration units
@@ -2420,7 +2423,6 @@ CONTAINS
 #endif
 
     ENDDO
-    !$OMP END PARALLEL DO
 
   END SUBROUTINE ConvertBox_Kgm2_to_Kg
 !EOC
@@ -2474,9 +2476,6 @@ CONTAINS
     !========================================================================
     ! ConvertBox_Kg_to_Kgm2 begins here!
     !========================================================================
-    !$OMP PARALLEL DO           &
-    !$OMP DEFAULT( SHARED     ) &
-    !$OMP PRIVATE( N )
     DO N = 1, State_Chm%nSpecies
 
        ! Convert species concentration units
@@ -2491,7 +2490,6 @@ CONTAINS
 #endif
 
     ENDDO
-    !$OMP END PARALLEL DO
 
   END SUBROUTINE ConvertBox_Kg_to_Kgm2
 !EOC
