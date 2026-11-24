@@ -116,8 +116,8 @@ Collections:
 
   CEDS_CO_0.1x0.1:
     # All data in valid_range must be locally available. Edit or download as needed.
-    valid_range: "1980-01-01/2019-12-01T00:00"
-    template: ./HcoDir/CEDS/v2024-06/%y4/CEDS_CO_0.1x0.1_%y4.nc
+    valid_range: "1998-01-01/2023-12-01T00:00"
+    template: ./HcoDir/CEDS/v2026-11/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
 
   #-------------------------------------------------------------------
   # HTAP
