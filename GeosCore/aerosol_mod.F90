@@ -1194,6 +1194,7 @@ CONTAINS
 
     ! Convert AbsHum to RelHum
     REAL(fp)            :: TK,CONSEXP,VPRESH2O,RELHUM
+    REAL(fp), ALLOCATABLE :: RELHUM3D(:,:,:)
 
     ! Relative Humidities
     REAL(fp),  SAVE     :: RH(NRH)   = (/0e+0_fp,0.5e+0_fp, &
@@ -1505,6 +1506,62 @@ CONTAINS
        ENDIF
     ENDIF
 
+    !=======================================================================
+    ! Precompute relative humidity and the RH-bin index once per grid cell.
+    ! These depend only on (I,J,L) but were formerly recomputed inside the
+    ! wavelength (NWVS) and aerosol-type (NAER) loops below, repeating the
+    ! saturation-vapor-pressure EXP up to NWVS*NAER times per cell.
+    !=======================================================================
+    ALLOCATE( RELHUM3D( State_Grid%NX, State_Grid%NY, State_Grid%NZ ) )
+    RELHUM3D = 0.0_fp
+
+    !$OMP PARALLEL DO                                                       &
+    !$OMP DEFAULT( SHARED                                                  )&
+    !$OMP PRIVATE( I, J, L, RELHUM, TK, CONSEXP, VPRESH2O, IRH             )&
+    !$OMP SCHEDULE( DYNAMIC, 8                                             )&
+    !$OMP COLLAPSE( 3                                                      )
+    DO L = 1, State_Grid%NZ
+    DO J = 1, State_Grid%NY
+    DO I = 1, State_Grid%NX
+
+       ! Skip non-chemistry boxes (they keep IRHARR = 1 as set above)
+       IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
+
+       ! Calculate RH. Not clear why the result of this calc is
+       ! slightly different than State_Met%RH
+       RELHUM   = State_Met%AVGW(I,J,L) * State_Met%AIRNUMDEN(I,J,L)
+       TK       = State_Met%T(I,J,L)
+       CONSEXP  = 17.2693882e+0_fp * (TK - 273.16e+0_fp) / &
+                  (TK - 35.86e+0_fp)
+       VPRESH2O = CONSVAP * EXP(CONSEXP) / TK
+       RELHUM   = RELHUM / VPRESH2O
+       RELHUM3D(I,J,L) = RELHUM
+
+       ! Sort into relative humidity bins
+       ! Currently uses the 0, 50, 70, 80, 90% RH bins
+       ! (95 and 99% also stored in data files but not used)
+       IF (      RELHUM <= RH(2) ) THEN
+          IRH = 1
+       ELSE IF ( RELHUM <= RH(3) ) THEN
+          IRH = 2
+       ELSE IF ( RELHUM <= RH(4) ) THEN
+          IRH = 3
+       ELSE IF ( RELHUM <= RH(5) ) THEN
+          IRH = 4
+       ELSE
+          IRH = 5
+       ENDIF
+
+       ! save the index of the relative humidity into array that is
+       ! used by the photolysis to pull the right optics
+       ! information from the FJX_spec.dat
+       IRHARR(I,J,L) = IRH
+
+    ENDDO
+    ENDDO
+    ENDDO
+    !$OMP END PARALLEL DO
+
     DO IIWV = 1, NWVS
        !now select the correct LUT wavelength
        IF (ODSWITCH .EQ. 0) THEN
@@ -1599,6 +1656,10 @@ CONTAINS
           DO L = 1, State_Grid%NZ
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
+
+             ! Skip non-chemistry boxes (moved up from below so that the
+             ! LUT interpolation work is not done for skipped boxes)
+             IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
 
              ! Zero private loop variables
              g         = 0
@@ -1695,41 +1756,12 @@ CONTAINS
 
             ENDIF
 
-             ! Skip non-chemistry boxes
-             IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
-
-             ! Calculate RH. Not clear why the result of this calc is
-             ! slightly different than State_Met%RH
-             RELHUM   = State_Met%AVGW(I,J,L) * State_Met%AIRNUMDEN(I,J,L)
-             TK       = State_Met%T(I,J,L)
-             CONSEXP  = 17.2693882e+0_fp * (TK - 273.16e+0_fp) / &
-                        (TK - 35.86e+0_fp)
-             VPRESH2O = CONSVAP * EXP(CONSEXP) / TK
-             RELHUM   = RELHUM / VPRESH2O
-
-             ! Sort into relative humidity bins
-             ! Currently uses the 0, 50, 70, 80, 90% RH bins
-             ! (95 and 99% also stored in data files but not used)
-             IF (      RELHUM <= RH(2) ) THEN
-                IRH = 1
-             ELSE IF ( RELHUM <= RH(3) ) THEN
-                IRH = 2
-             ELSE IF ( RELHUM <= RH(4) ) THEN
-                IRH = 3
-             ELSE IF ( RELHUM <= RH(5) ) THEN
-                IRH = 4
-             ELSE
-                IRH = 5
-             ENDIF
-
-             ! save the index of the relative humidity into array that is
-             ! used by the photolysis to pull the right optics
-             ! information from the FJX_spec.dat
-             ! Previously the ODAER was organized by aerosol species and
-             ! each RH bin, but this leaves a lot of the array redundant
-             ! because only one RH bin is used at once
-             ! This becomes a waste of memory with multiple wavelengths
-             IRHARR(I,J,L) = IRH
+             ! Use the relative humidity and RH-bin index that were
+             ! precomputed once per grid cell before these loops
+             ! (identical values; formerly recomputed here per
+             ! wavelength and aerosol type)
+             RELHUM = RELHUM3D(I,J,L)
+             IRH    = IRHARR(I,J,L)
 
              ! For the NRHth bin, we don't have to interpolate
              ! For the other bins, we have to interpolate
@@ -2034,6 +2066,9 @@ CONTAINS
 
        ENDDO !Loop over NAER
     ENDDO !End loop over NWVS
+
+    ! Free the precomputed relative-humidity work array
+    DEALLOCATE( RELHUM3D )
 
     !==============================================================
     ! Account for stratospheric aerosols (SDE 04/17/13)
